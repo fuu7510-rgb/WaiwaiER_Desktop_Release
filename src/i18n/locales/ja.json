@@ -1,0 +1,238 @@
+{
+  "common": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "edit": "編集",
+    "create": "作成",
+    "add": "追加",
+    "remove": "削除",
+    "close": "閉じる",
+    "confirm": "確認",
+    "yes": "はい",
+    "no": "いいえ",
+    "ok": "OK",
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "success": "成功",
+    "warning": "警告",
+    "info": "情報",
+    "search": "検索",
+    "settings": "設定",
+    "export": "エクスポート",
+    "import": "インポート",
+    "duplicate": "複製",
+    "copy": "コピー",
+    "paste": "貼り付け",
+    "undo": "元に戻す",
+    "redo": "やり直し",
+    "name": "名前",
+    "description": "説明",
+    "type": "タイプ",
+    "required": "必須",
+    "optional": "任意"
+  },
+  "app": {
+    "title": "WaiwaiER Desktop",
+    "subtitle": "ER図エディタ",
+    "version": "バージョン {{version}}"
+  },
+  "menu": {
+    "file": "ファイル",
+    "edit": "編集",
+    "view": "表示",
+    "help": "ヘルプ",
+    "newProject": "新規プロジェクト",
+    "openProject": "プロジェクトを開く",
+    "saveProject": "プロジェクトを保存",
+    "exportJson": "JSONエクスポート",
+    "exportExcel": "Excelエクスポート",
+    "importJson": "JSONインポート",
+    "about": "WaiwaiER Desktopについて"
+  },
+  "project": {
+    "projects": "プロジェクト",
+    "newProject": "新規プロジェクト",
+    "projectName": "プロジェクト名",
+    "createProject": "プロジェクトを作成",
+    "deleteProject": "プロジェクトを削除",
+    "deleteConfirm": "プロジェクト「{{name}}」を削除しますか？この操作は取り消せません。",
+    "noProjects": "プロジェクトがありません",
+    "encryption": {
+      "enable": "このプロジェクトを暗号化する",
+      "passphrase": "パスフレーズ",
+      "passphraseConfirm": "パスフレーズ（確認）",
+      "saveToKeychain": "OSキーチェーンに保存する",
+      "warning": "パスフレーズを忘れるとデータを復元できなくなります"
+    },
+    "limits": {
+      "maxProjects": "プロジェクト数の上限に達しました（Free版: {{max}}個まで）",
+      "maxTables": "テーブル数の上限に達しました（Free版: {{max}}個まで）",
+      "upgradeToPro": "Proプランにアップグレードして制限を解除"
+    }
+  },
+  "editor": {
+    "title": "エディタ",
+    "addTable": "テーブルを追加",
+    "tableName": "テーブル名",
+    "noTables": "テーブルがありません。「テーブルを追加」ボタンをクリックして開始してください。",
+    "zoom": "ズーム",
+    "zoomIn": "拡大",
+    "zoomOut": "縮小",
+    "fitView": "全体を表示"
+  },
+  "table": {
+    "table": "テーブル",
+    "tables": "テーブル",
+    "addColumn": "カラムを追加",
+    "columnName": "カラム名",
+    "columnType": "データ型",
+    "isKey": "キー",
+    "isLabel": "ラベル",
+    "constraints": "制約",
+    "deleteTable": "テーブルを削除",
+    "deleteTableConfirm": "テーブル「{{name}}」を削除しますか？",
+    "duplicateTable": "テーブルを複製",
+    "color": "色"
+  },
+  "column": {
+    "column": "カラム",
+    "columns": "カラム",
+    "deleteColumn": "カラムを削除",
+    "deleteColumnConfirm": "カラム「{{name}}」を削除しますか？",
+    "constraints": {
+      "required": "必須",
+      "unique": "ユニーク",
+      "defaultValue": "デフォルト値",
+      "minValue": "最小値",
+      "maxValue": "最大値",
+      "minLength": "最小文字数",
+      "maxLength": "最大文字数",
+      "pattern": "パターン（正規表現）",
+      "enumValues": "選択肢"
+    }
+  },
+  "columnTypes": {
+    "Text": "テキスト",
+    "Number": "数値",
+    "Decimal": "小数",
+    "Date": "日付",
+    "DateTime": "日時",
+    "Time": "時刻",
+    "Duration": "期間",
+    "Email": "メール",
+    "Phone": "電話番号",
+    "Url": "URL",
+    "Image": "画像",
+    "File": "ファイル",
+    "Enum": "選択肢",
+    "EnumList": "複数選択",
+    "Yes/No": "Yes/No",
+    "Color": "色",
+    "LatLong": "座標",
+    "Address": "住所",
+    "Ref": "参照",
+    "ChangeCounter": "変更カウンター",
+    "ChangeLocation": "変更場所",
+    "ChangeTimestamp": "変更日時",
+    "Progress": "進捗",
+    "UniqueID": "ユニークID"
+  },
+  "relation": {
+    "relation": "リレーション",
+    "relations": "リレーション",
+    "sourceTable": "参照元テーブル",
+    "sourceColumn": "参照元カラム",
+    "targetTable": "参照先テーブル",
+    "targetColumn": "参照先カラム",
+    "type": "リレーションタイプ",
+    "oneToOne": "1対1",
+    "oneToMany": "1対多",
+    "manyToMany": "多対多",
+    "deleteRelation": "リレーションを削除"
+  },
+  "simulator": {
+    "title": "シミュレーター",
+    "views": {
+      "table": "テーブル",
+      "deck": "デッキ",
+      "detail": "詳細",
+      "form": "フォーム"
+    },
+    "generateSampleData": "サンプルデータを生成",
+    "clearSampleData": "サンプルデータをクリア",
+    "rowCount": "行数",
+    "noData": "データがありません"
+  },
+  "settings": {
+    "title": "設定",
+    "general": "一般",
+    "appearance": "外観",
+    "backup": "バックアップ",
+    "license": "ライセンス",
+    "language": "言語",
+    "theme": "テーマ",
+    "themes": {
+      "light": "ライト",
+      "dark": "ダーク",
+      "system": "システム設定に従う"
+    },
+    "autoBackup": {
+      "enable": "自動バックアップを有効にする",
+      "interval": "バックアップ間隔（分）",
+      "retention": "保持日数",
+      "location": "バックアップ場所",
+      "selectFolder": "フォルダを選択"
+    }
+  },
+  "license": {
+    "title": "ライセンス",
+    "currentPlan": "現在のプラン",
+    "free": "Free",
+    "pro": "Pro",
+    "enterLicenseKey": "ライセンスキーを入力",
+    "licenseKey": "ライセンスキー",
+    "activate": "アクティベート",
+    "deactivate": "非アクティベート",
+    "validUntil": "有効期限: {{date}}",
+    "expired": "有効期限切れ",
+    "offlineWarning": "オンライン検証が必要です。残り{{days}}日",
+    "upgradeToPro": "Proプランにアップグレード",
+    "proFeatures": {
+      "title": "Proプランの機能",
+      "unlimitedProjects": "プロジェクト数無制限",
+      "unlimitedTables": "テーブル数無制限",
+      "prioritySupport": "優先サポート"
+    }
+  },
+  "export": {
+    "title": "エクスポート",
+    "format": "形式",
+    "formats": {
+      "json": "JSON",
+      "excel": "Excel (.xlsx)",
+      "package": "パッケージ (.waiwai)"
+    },
+    "includeData": "サンプルデータを含める",
+    "encrypt": "エクスポートを暗号化する",
+    "exportSuccess": "エクスポートが完了しました",
+    "exportError": "エクスポートに失敗しました"
+  },
+  "import": {
+    "title": "インポート",
+    "selectFile": "ファイルを選択",
+    "dropFile": "ファイルをドロップ",
+    "importSuccess": "インポートが完了しました",
+    "importError": "インポートに失敗しました",
+    "invalidFormat": "無効なファイル形式です"
+  },
+  "errors": {
+    "generic": "エラーが発生しました",
+    "networkError": "ネットワークエラー",
+    "fileNotFound": "ファイルが見つかりません",
+    "permissionDenied": "アクセスが拒否されました",
+    "invalidData": "無効なデータです",
+    "saveFailed": "保存に失敗しました",
+    "loadFailed": "読み込みに失敗しました"
+  }
+}

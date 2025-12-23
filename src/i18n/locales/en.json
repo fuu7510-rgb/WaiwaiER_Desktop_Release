@@ -1,0 +1,238 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "add": "Add",
+    "remove": "Remove",
+    "close": "Close",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Info",
+    "search": "Search",
+    "settings": "Settings",
+    "export": "Export",
+    "import": "Import",
+    "duplicate": "Duplicate",
+    "copy": "Copy",
+    "paste": "Paste",
+    "undo": "Undo",
+    "redo": "Redo",
+    "name": "Name",
+    "description": "Description",
+    "type": "Type",
+    "required": "Required",
+    "optional": "Optional"
+  },
+  "app": {
+    "title": "WaiwaiER Desktop",
+    "subtitle": "ER Diagram Editor",
+    "version": "Version {{version}}"
+  },
+  "menu": {
+    "file": "File",
+    "edit": "Edit",
+    "view": "View",
+    "help": "Help",
+    "newProject": "New Project",
+    "openProject": "Open Project",
+    "saveProject": "Save Project",
+    "exportJson": "Export JSON",
+    "exportExcel": "Export Excel",
+    "importJson": "Import JSON",
+    "about": "About WaiwaiER Desktop"
+  },
+  "project": {
+    "projects": "Projects",
+    "newProject": "New Project",
+    "projectName": "Project Name",
+    "createProject": "Create Project",
+    "deleteProject": "Delete Project",
+    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+    "noProjects": "No projects",
+    "encryption": {
+      "enable": "Encrypt this project",
+      "passphrase": "Passphrase",
+      "passphraseConfirm": "Confirm Passphrase",
+      "saveToKeychain": "Save to OS keychain",
+      "warning": "If you forget your passphrase, you will not be able to recover your data"
+    },
+    "limits": {
+      "maxProjects": "Maximum number of projects reached (Free: up to {{max}})",
+      "maxTables": "Maximum number of tables reached (Free: up to {{max}})",
+      "upgradeToPro": "Upgrade to Pro to remove limits"
+    }
+  },
+  "editor": {
+    "title": "Editor",
+    "addTable": "Add Table",
+    "tableName": "Table Name",
+    "noTables": "No tables. Click \"Add Table\" to get started.",
+    "zoom": "Zoom",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "fitView": "Fit View"
+  },
+  "table": {
+    "table": "Table",
+    "tables": "Tables",
+    "addColumn": "Add Column",
+    "columnName": "Column Name",
+    "columnType": "Data Type",
+    "isKey": "Key",
+    "isLabel": "Label",
+    "constraints": "Constraints",
+    "deleteTable": "Delete Table",
+    "deleteTableConfirm": "Are you sure you want to delete table \"{{name}}\"?",
+    "duplicateTable": "Duplicate Table",
+    "color": "Color"
+  },
+  "column": {
+    "column": "Column",
+    "columns": "Columns",
+    "deleteColumn": "Delete Column",
+    "deleteColumnConfirm": "Are you sure you want to delete column \"{{name}}\"?",
+    "constraints": {
+      "required": "Required",
+      "unique": "Unique",
+      "defaultValue": "Default Value",
+      "minValue": "Min Value",
+      "maxValue": "Max Value",
+      "minLength": "Min Length",
+      "maxLength": "Max Length",
+      "pattern": "Pattern (Regex)",
+      "enumValues": "Options"
+    }
+  },
+  "columnTypes": {
+    "Text": "Text",
+    "Number": "Number",
+    "Decimal": "Decimal",
+    "Date": "Date",
+    "DateTime": "DateTime",
+    "Time": "Time",
+    "Duration": "Duration",
+    "Email": "Email",
+    "Phone": "Phone",
+    "Url": "URL",
+    "Image": "Image",
+    "File": "File",
+    "Enum": "Enum",
+    "EnumList": "Enum List",
+    "Yes/No": "Yes/No",
+    "Color": "Color",
+    "LatLong": "LatLong",
+    "Address": "Address",
+    "Ref": "Ref",
+    "ChangeCounter": "Change Counter",
+    "ChangeLocation": "Change Location",
+    "ChangeTimestamp": "Change Timestamp",
+    "Progress": "Progress",
+    "UniqueID": "Unique ID"
+  },
+  "relation": {
+    "relation": "Relation",
+    "relations": "Relations",
+    "sourceTable": "Source Table",
+    "sourceColumn": "Source Column",
+    "targetTable": "Target Table",
+    "targetColumn": "Target Column",
+    "type": "Relation Type",
+    "oneToOne": "One to One",
+    "oneToMany": "One to Many",
+    "manyToMany": "Many to Many",
+    "deleteRelation": "Delete Relation"
+  },
+  "simulator": {
+    "title": "Simulator",
+    "views": {
+      "table": "Table",
+      "deck": "Deck",
+      "detail": "Detail",
+      "form": "Form"
+    },
+    "generateSampleData": "Generate Sample Data",
+    "clearSampleData": "Clear Sample Data",
+    "rowCount": "Row Count",
+    "noData": "No data"
+  },
+  "settings": {
+    "title": "Settings",
+    "general": "General",
+    "appearance": "Appearance",
+    "backup": "Backup",
+    "license": "License",
+    "language": "Language",
+    "theme": "Theme",
+    "themes": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "autoBackup": {
+      "enable": "Enable auto backup",
+      "interval": "Backup interval (minutes)",
+      "retention": "Retention days",
+      "location": "Backup location",
+      "selectFolder": "Select Folder"
+    }
+  },
+  "license": {
+    "title": "License",
+    "currentPlan": "Current Plan",
+    "free": "Free",
+    "pro": "Pro",
+    "enterLicenseKey": "Enter License Key",
+    "licenseKey": "License Key",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "validUntil": "Valid until: {{date}}",
+    "expired": "Expired",
+    "offlineWarning": "Online verification required. {{days}} days remaining",
+    "upgradeToPro": "Upgrade to Pro",
+    "proFeatures": {
+      "title": "Pro Plan Features",
+      "unlimitedProjects": "Unlimited projects",
+      "unlimitedTables": "Unlimited tables",
+      "prioritySupport": "Priority support"
+    }
+  },
+  "export": {
+    "title": "Export",
+    "format": "Format",
+    "formats": {
+      "json": "JSON",
+      "excel": "Excel (.xlsx)",
+      "package": "Package (.waiwai)"
+    },
+    "includeData": "Include sample data",
+    "encrypt": "Encrypt export",
+    "exportSuccess": "Export completed",
+    "exportError": "Export failed"
+  },
+  "import": {
+    "title": "Import",
+    "selectFile": "Select File",
+    "dropFile": "Drop file here",
+    "importSuccess": "Import completed",
+    "importError": "Import failed",
+    "invalidFormat": "Invalid file format"
+  },
+  "errors": {
+    "generic": "An error occurred",
+    "networkError": "Network error",
+    "fileNotFound": "File not found",
+    "permissionDenied": "Permission denied",
+    "invalidData": "Invalid data",
+    "saveFailed": "Save failed",
+    "loadFailed": "Load failed"
+  }
+}
