@@ -2,12 +2,8 @@ import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useERStore, useProjectStore } from '../../stores';
 import { Button, Input, ConfirmDialog } from '../common';
+import { TABLE_COLORS, TABLE_COLOR_CLASSES } from '../../lib/constants';
 import type { Table } from '../../types';
-
-const tableColors = [
-  '#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316',
-  '#f59e0b', '#84cc16', '#22c55e', '#14b8a6', '#06b6d4',
-];
 
 export function TableEditor() {
   const { t } = useTranslation();
@@ -60,14 +56,16 @@ export function TableEditor() {
           {t('table.color')}
         </label>
         <div className="flex flex-wrap gap-1.5">
-          {tableColors.map((color) => (
+          {TABLE_COLORS.map((color) => (
             <button
               key={color}
-              className={`w-5 h-5 rounded-full border transition-all ${
+              type="button"
+              className={`w-5 h-5 rounded-full border transition-all ${TABLE_COLOR_CLASSES[color]} ${
                 selectedTable.color === color ? 'ring-2 ring-offset-1 ring-indigo-400 scale-110' : 'hover:scale-110'
               }`}
-              style={{ backgroundColor: color, borderColor: color }}
               onClick={() => handleUpdate({ color })}
+              title={color}
+              aria-label={color}
             />
           ))}
         </div>

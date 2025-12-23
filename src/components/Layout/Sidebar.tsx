@@ -4,6 +4,7 @@ import { useERStore, useProjectStore, useUIStore } from '../../stores';
 import { Button, Input } from '../common';
 import { TableEditor } from '../EREditor/TableEditor';
 import { ColumnEditor } from '../EREditor/ColumnEditor';
+import { TABLE_BG_COLOR_CLASSES } from '../../lib/constants';
 
 export function Sidebar() {
   const { t } = useTranslation();
@@ -34,8 +35,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className="bg-white border-r border-zinc-200 flex flex-col h-full"
-      style={{ width: sidebarWidth }}
+      className="bg-white border-r border-zinc-200 flex flex-col h-full w-[280px]"
     >
       {/* Tables List Header */}
       <div className="px-3 py-2 border-b border-zinc-100 flex items-center justify-between">
@@ -138,8 +138,7 @@ function TableListItem({ table, isSelected }: TableListItemProps) {
     >
       <div className="flex items-center gap-2">
         <div
-          className="w-2 h-2 rounded-full shrink-0"
-          style={{ backgroundColor: table.color || '#6366f1' }}
+          className={`w-2 h-2 rounded-full shrink-0 ${TABLE_BG_COLOR_CLASSES[table.color || '#6366f1'] || 'bg-indigo-500'}`}
         />
         <span className={`text-xs font-medium truncate ${isSelected ? 'text-indigo-700' : 'text-zinc-700'}`}>
           {table.name}

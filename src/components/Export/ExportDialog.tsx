@@ -1,11 +1,11 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { save, open } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
-import { Dialog, Button, Input } from '../common';
+import { Dialog, Button } from '../common';
 import { useERStore, useProjectStore, useLicenseStore } from '../../stores';
-import { generateSampleData, exportPackage, importPackage } from '../../lib';
+import { generateSampleData, exportPackage } from '../../lib';
 import type { ERDiagram } from '../../types';
 
 interface ExportDialogProps {

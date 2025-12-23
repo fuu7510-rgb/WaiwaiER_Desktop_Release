@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '../common';
+import { TABLE_BG_COLOR_CLASSES } from '../../lib/constants';
 import type { Table, Column } from '../../types';
 
 interface FormViewProps {
@@ -30,13 +31,13 @@ function getInputType(column: Column): string {
   }
 }
 
-function renderFormField(column: Column, _t: (key: string) => string) {
+function renderFormField(column: Column, columnId: string, _t: (key: string) => string) {
   const inputType = getInputType(column);
   const baseInputClass = "w-full px-2.5 py-1.5 text-xs border border-zinc-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400";
 
   if (column.type === 'Yes/No') {
     return (
-      <select className={baseInputClass}>
+      <select id={columnId} className={baseInputClass}>
         <option value="">選択してください</option>
         <option value="yes">Yes</option>
         <option value="no">No</option>
@@ -47,7 +48,7 @@ function renderFormField(column: Column, _t: (key: string) => string) {
   if (column.type === 'Enum') {
     const options = column.constraints.enumValues || [];
     return (
-      <select className={baseInputClass}>
+      <select id={columnId} className={baseInputClass}>
         <option value="">選択してください</option>
         {options.map((opt) => (
           <option key={opt} value={opt}>{opt}</option>
@@ -60,9 +61,13 @@ function renderFormField(column: Column, _t: (key: string) => string) {
     const options = column.constraints.enumValues || [];
     return (
       <div className="space-y-1">
-        {options.map((opt) => (
+        {options.map((opt, index) => (
           <label key={opt} className="flex items-center gap-1.5 cursor-pointer">
-            <input type="checkbox" className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600" />
+            <input 
+              type="checkbox" 
+              id={`${columnId}-${index}`}
+              className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600" 
+            />
             <span className="text-xs text-zinc-600">{opt}</span>
           </label>
         ))}
@@ -80,7 +85,7 @@ function renderFormField(column: Column, _t: (key: string) => string) {
           <p className="mt-1 text-[10px]">クリックしてファイルを選択</p>
           <p className="text-[9px] text-zinc-300">またはドラッグ＆ドロップ</p>
         </div>
-        <input type="file" className="hidden" />
+        <input id={columnId} type="file" className="hidden" title={column.name} />
       </div>
     );
   }
@@ -88,6 +93,7 @@ function renderFormField(column: Column, _t: (key: string) => string) {
   if (column.type === 'Address' || column.constraints.maxLength && column.constraints.maxLength > 100) {
     return (
       <textarea 
+        id={columnId}
         className={baseInputClass}
         rows={3}
         placeholder={column.description || `${column.name}を入力`}
@@ -97,6 +103,7 @@ function renderFormField(column: Column, _t: (key: string) => string) {
 
   return (
     <input
+      id={columnId}
       type={inputType}
       className={baseInputClass}
       placeholder={column.description || `${column.name}を入力`}
@@ -118,8 +125,7 @@ export function FormView({ table }: FormViewProps) {
       <div className="bg-white rounded-lg shadow-sm border border-zinc-100 overflow-hidden">
         {/* Header */}
         <div 
-          className="px-4 py-3 text-white"
-          style={{ backgroundColor: table.color || '#6366f1' }}
+          className={`px-4 py-3 text-white ${bgClasses[table.color || '#6366f1'] || 'bg-[#6366f1]'}`}
         >
           <h2 className="text-sm font-medium">{table.name}</h2>
           <p className="text-[10px] opacity-75">新規作成フォーム</p>
@@ -129,7 +135,10 @@ export function FormView({ table }: FormViewProps) {
         <form className="p-4 space-y-3">
           {table.columns.map((column) => (
             <div key={column.id}>
-              <label className="flex items-center text-[10px] font-medium text-zinc-500 mb-1">
+              <label 
+                htmlFor={column.id}
+                className="flex items-center text-[10px] font-medium text-zinc-500 mb-1"
+              >
                 {column.isKey && (
                   <svg className="w-2.5 h-2.5 text-amber-500 mr-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
@@ -141,7 +150,7 @@ export function FormView({ table }: FormViewProps) {
                   ({t(`columnTypes.${column.type}`)})
                 </span>
               </label>
-              {renderFormField(column, t)}
+              {renderFormField(column, column.id, t)}
               {column.description && (
                 <p className="mt-0.5 text-[9px] text-zinc-400">{column.description}</p>
               )}

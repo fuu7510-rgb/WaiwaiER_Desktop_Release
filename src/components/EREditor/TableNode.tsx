@@ -9,31 +9,44 @@ interface TableNodeData {
   table: Table;
 }
 
-const columnTypeColors: Record<ColumnType, string> = {
-  Text: '#3b82f6',
-  Number: '#10b981',
-  Decimal: '#10b981',
-  Date: '#f59e0b',
-  DateTime: '#f59e0b',
-  Time: '#f59e0b',
-  Duration: '#f59e0b',
-  Email: '#8b5cf6',
-  Phone: '#8b5cf6',
-  Url: '#8b5cf6',
-  Image: '#ec4899',
-  File: '#ec4899',
-  Enum: '#6366f1',
-  EnumList: '#6366f1',
-  'Yes/No': '#ef4444',
-  Color: '#f97316',
-  LatLong: '#14b8a6',
-  Address: '#14b8a6',
-  Ref: '#06b6d4',
-  ChangeCounter: '#64748b',
-  ChangeLocation: '#64748b',
-  ChangeTimestamp: '#64748b',
-  Progress: '#22c55e',
-  UniqueID: '#a855f7',
+const columnTypeClasses: Record<ColumnType, string> = {
+  Text: 'bg-blue-500',
+  Number: 'bg-emerald-500',
+  Decimal: 'bg-emerald-500',
+  Date: 'bg-amber-500',
+  DateTime: 'bg-amber-500',
+  Time: 'bg-amber-500',
+  Duration: 'bg-amber-500',
+  Email: 'bg-violet-500',
+  Phone: 'bg-violet-500',
+  Url: 'bg-violet-500',
+  Image: 'bg-pink-500',
+  File: 'bg-pink-500',
+  Enum: 'bg-indigo-500',
+  EnumList: 'bg-indigo-500',
+  'Yes/No': 'bg-red-500',
+  Color: 'bg-orange-500',
+  LatLong: 'bg-teal-500',
+  Address: 'bg-teal-500',
+  Ref: 'bg-cyan-500',
+  ChangeCounter: 'bg-slate-500',
+  ChangeLocation: 'bg-slate-500',
+  ChangeTimestamp: 'bg-slate-500',
+  Progress: 'bg-green-500',
+  UniqueID: 'bg-purple-500',
+};
+
+const tableColorClasses: Record<string, { border: string; bg: string }> = {
+  '#6366f1': { border: 'border-indigo-500', bg: 'bg-indigo-500' },
+  '#8b5cf6': { border: 'border-violet-500', bg: 'bg-violet-500' },
+  '#ec4899': { border: 'border-pink-500', bg: 'bg-pink-500' },
+  '#ef4444': { border: 'border-red-500', bg: 'bg-red-500' },
+  '#f97316': { border: 'border-orange-500', bg: 'bg-orange-500' },
+  '#f59e0b': { border: 'border-amber-500', bg: 'bg-amber-500' },
+  '#84cc16': { border: 'border-lime-500', bg: 'bg-lime-500' },
+  '#22c55e': { border: 'border-green-500', bg: 'bg-green-500' },
+  '#14b8a6': { border: 'border-teal-500', bg: 'bg-teal-500' },
+  '#06b6d4': { border: 'border-cyan-500', bg: 'bg-cyan-500' },
 };
 
 export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => {
@@ -75,7 +88,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
   }, [table.id, addColumn]);
 
   const isSelected = selectedTableId === table.id || selected;
-  const borderColor = table.color || '#6366f1';
+  const colorClasses = tableColorClasses[table.color?.toLowerCase() || '#6366f1'] || tableColorClasses['#6366f1'];
 
   return (
     <div
@@ -83,14 +96,13 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
         bg-white rounded-md shadow-lg min-w-[180px] max-w-[280px]
         border transition-all duration-200
         ${isSelected ? 'ring-2 ring-indigo-400/50 ring-offset-1' : 'hover:shadow-xl'}
+        ${colorClasses.border}
       `}
-      style={{ borderColor }}
       onClick={handleClick}
     >
       {/* Header */}
       <div
-        className="px-2.5 py-1.5 rounded-t font-medium text-white text-xs flex items-center justify-between"
-        style={{ backgroundColor: borderColor }}
+        className={`px-2.5 py-1.5 rounded-t font-medium text-white text-xs flex items-center justify-between ${colorClasses.bg}`}
         onDoubleClick={handleDoubleClick}
       >
         {isEditing ? (
@@ -102,6 +114,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
             onKeyDown={handleKeyDown}
             className="bg-transparent border-none outline-none text-white w-full text-xs"
             autoFocus
+            aria-label={t('editor.tableName')}
           />
         ) : (
           <span className="truncate">{table.name}</span>
@@ -143,7 +156,7 @@ const ColumnRow = memo(({ column, tableId }: ColumnRowProps) => {
   const { t } = useTranslation();
   const { selectColumn, selectedColumnId } = useERStore();
   const isSelected = selectedColumnId === column.id;
-  const typeColor = columnTypeColors[column.type] || '#64748b';
+  const typeClass = columnTypeClasses[column.type] || 'bg-slate-500';
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -190,8 +203,7 @@ const ColumnRow = memo(({ column, tableId }: ColumnRowProps) => {
 
       {/* Column type badge */}
       <span
-        className="text-[9px] px-1 py-0.5 rounded font-medium text-white/90"
-        style={{ backgroundColor: typeColor }}
+        className={`text-[9px] px-1 py-0.5 rounded font-medium text-white/90 ${typeClass}`}
       >
         {t(`columnTypes.${column.type}`)}
       </span>

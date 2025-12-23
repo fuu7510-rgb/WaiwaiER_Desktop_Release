@@ -56,8 +56,11 @@ export function MainLayout({ children }: MainLayoutProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
+  // デバッグ: コンポーネントがレンダリングされているか確認
+  console.log('MainLayout rendering');
+
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="h-screen flex flex-col bg-gray-50" style={{ backgroundColor: '#f0f0f0', minHeight: '100vh' }}>
       {/* ライセンス警告バナー */}
       {warning && (
         <div className="bg-yellow-100 border-b border-yellow-300 px-4 py-2 text-sm text-yellow-800 flex items-center justify-between">
