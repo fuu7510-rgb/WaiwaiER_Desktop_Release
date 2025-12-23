@@ -31,12 +31,12 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
       title={t('settings.title')}
       size="lg"
     >
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* General Settings */}
         <section>
-          <h3 className="text-lg font-medium text-gray-900 mb-4">{t('settings.general')}</h3>
+          <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2.5">{t('settings.general')}</h3>
           
-          <div className="space-y-4">
+          <div className="space-y-2.5">
             <Select
               label={t('settings.language')}
               value={settings.language}
@@ -55,17 +55,17 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
 
         {/* Backup Settings */}
         <section>
-          <h3 className="text-lg font-medium text-gray-900 mb-4">{t('settings.backup')}</h3>
+          <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2.5">{t('settings.backup')}</h3>
           
-          <div className="space-y-4">
-            <label className="flex items-center gap-2">
+          <div className="space-y-2.5">
+            <label className="flex items-center gap-1.5 cursor-pointer">
               <input
                 type="checkbox"
                 checked={settings.autoBackupEnabled}
                 onChange={(e) => updateSettings({ autoBackupEnabled: e.target.checked })}
-                className="rounded border-gray-300"
+                className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
               />
-              <span className="text-sm">{t('settings.autoBackup.enable')}</span>
+              <span className="text-xs text-zinc-600">{t('settings.autoBackup.enable')}</span>
             </label>
             
             {settings.autoBackupEnabled && (
@@ -94,25 +94,25 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
 
         {/* License Settings */}
         <section>
-          <h3 className="text-lg font-medium text-gray-900 mb-4">{t('settings.license')}</h3>
+          <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2.5">{t('settings.license')}</h3>
           
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-gray-600">{t('license.currentPlan')}</span>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+          <div className="bg-zinc-50 rounded p-3">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] text-zinc-500">{t('license.currentPlan')}</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
                 subscriptionPlan === 'pro' 
-                  ? 'bg-blue-100 text-blue-700' 
-                  : 'bg-gray-200 text-gray-700'
+                  ? 'bg-indigo-100 text-indigo-700' 
+                  : 'bg-zinc-200 text-zinc-600'
               }`}>
                 {subscriptionPlan === 'pro' ? t('license.pro') : t('license.free')}
               </span>
             </div>
             
             {subscriptionPlan === 'free' && (
-              <div className="space-y-3">
-                <div className="text-sm text-gray-600">
-                  <h4 className="font-medium mb-2">{t('license.proFeatures.title')}</h4>
-                  <ul className="list-disc list-inside space-y-1">
+              <div className="space-y-2.5">
+                <div className="text-[10px] text-zinc-500">
+                  <h4 className="font-medium mb-1.5 text-zinc-600">{t('license.proFeatures.title')}</h4>
+                  <ul className="list-disc list-inside space-y-0.5">
                     <li>{t('license.proFeatures.unlimitedProjects')}</li>
                     <li>{t('license.proFeatures.unlimitedTables')}</li>
                     <li>{t('license.proFeatures.prioritySupport')}</li>
@@ -124,13 +124,18 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                   placeholder="XXXX-XXXX-XXXX-XXXX"
                 />
                 
-                <Button className="w-full">{t('license.activate')}</Button>
+                <Button className="w-full" size="sm">{t('license.activate')}</Button>
               </div>
             )}
             
             {subscriptionPlan === 'pro' && (
-              <div className="text-sm text-gray-600">
-                <p className="text-green-600 mb-2">✓ ライセンス有効</p>
+              <div className="text-[10px] text-zinc-500">
+                <p className="text-green-600 mb-1.5 flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  ライセンス有効
+                </p>
                 <Button variant="secondary" size="sm">{t('license.deactivate')}</Button>
               </div>
             )}
@@ -138,11 +143,11 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
         </section>
 
         {/* About */}
-        <section className="border-t pt-4">
-          <div className="text-center text-sm text-gray-500">
-            <p className="font-medium">{t('app.title')}</p>
+        <section className="border-t border-zinc-100 pt-3">
+          <div className="text-center text-[10px] text-zinc-400">
+            <p className="font-medium text-zinc-500">{t('app.title')}</p>
             <p>{t('app.version', { version: '0.1.0' })}</p>
-            <p className="mt-2">© 2025 Fuaze. All rights reserved.</p>
+            <p className="mt-1">© 2025 Fuaze. All rights reserved.</p>
           </div>
         </section>
       </div>

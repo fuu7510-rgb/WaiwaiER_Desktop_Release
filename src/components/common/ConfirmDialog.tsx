@@ -37,17 +37,17 @@ export function ConfirmDialog({
       title={title}
       size="sm"
       footer={
-        <div className="flex justify-end gap-3">
-          <Button variant="secondary" onClick={onClose}>
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" size="sm" onClick={onClose}>
             {cancelLabel || t('common.cancel')}
           </Button>
-          <Button variant={variant} onClick={handleConfirm}>
+          <Button variant={variant} size="sm" onClick={handleConfirm}>
             {confirmLabel || t('common.confirm')}
           </Button>
         </div>
       }
     >
-      <p className="text-gray-600">{message}</p>
+      <p className="text-zinc-600 text-xs leading-relaxed">{message}</p>
     </Dialog>
   );
 }

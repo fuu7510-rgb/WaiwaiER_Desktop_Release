@@ -125,6 +125,7 @@ export const useERStore = create<ERState>()(
           table.position = position;
         }
       });
+      get().saveHistory('テーブルを移動');
     },
     
     duplicateTable: (id) => {

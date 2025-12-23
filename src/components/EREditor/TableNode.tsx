@@ -80,16 +80,16 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
   return (
     <div
       className={`
-        bg-white rounded-lg shadow-md min-w-[200px] max-w-[300px]
-        border-2 transition-all duration-200
-        ${isSelected ? 'ring-2 ring-blue-400 ring-offset-2' : ''}
+        bg-white rounded-md shadow-lg min-w-[180px] max-w-[280px]
+        border transition-all duration-200
+        ${isSelected ? 'ring-2 ring-indigo-400/50 ring-offset-1' : 'hover:shadow-xl'}
       `}
       style={{ borderColor }}
       onClick={handleClick}
     >
       {/* Header */}
       <div
-        className="px-3 py-2 rounded-t-md font-semibold text-white flex items-center justify-between"
+        className="px-2.5 py-1.5 rounded-t font-medium text-white text-xs flex items-center justify-between"
         style={{ backgroundColor: borderColor }}
         onDoubleClick={handleDoubleClick}
       >
@@ -100,19 +100,19 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
             onChange={(e) => setEditName(e.target.value)}
             onBlur={handleNameSubmit}
             onKeyDown={handleKeyDown}
-            className="bg-transparent border-none outline-none text-white w-full"
+            className="bg-transparent border-none outline-none text-white w-full text-xs"
             autoFocus
           />
         ) : (
           <span className="truncate">{table.name}</span>
         )}
-        <span className="text-xs opacity-75 ml-2">
-          {table.columns.length} {t('column.columns')}
+        <span className="text-[10px] opacity-70 ml-1.5 tabular-nums">
+          {table.columns.length}
         </span>
       </div>
 
       {/* Columns */}
-      <div className="divide-y divide-gray-100">
+      <div className="divide-y divide-zinc-100">
         {table.columns.map((column) => (
           <ColumnRow key={column.id} column={column} tableId={table.id} />
         ))}
@@ -121,9 +121,12 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
       {/* Add Column Button */}
       <button
         onClick={handleAddColumn}
-        className="w-full px-3 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors rounded-b-md"
+        className="w-full px-2.5 py-1 text-[10px] text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors rounded-b flex items-center justify-center gap-1"
       >
-        + {t('table.addColumn')}
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+        {t('table.addColumn')}
       </button>
     </div>
   );
@@ -150,9 +153,9 @@ const ColumnRow = memo(({ column, tableId }: ColumnRowProps) => {
   return (
     <div
       className={`
-        relative px-3 py-1.5 flex items-center gap-2 cursor-pointer
-        hover:bg-gray-50 transition-colors
-        ${isSelected ? 'bg-blue-50' : ''}
+        relative px-2 py-1 flex items-center gap-1.5 cursor-pointer
+        hover:bg-zinc-50 transition-colors
+        ${isSelected ? 'bg-indigo-50' : ''}
       `}
       onClick={handleClick}
     >
@@ -161,25 +164,33 @@ const ColumnRow = memo(({ column, tableId }: ColumnRowProps) => {
         type="target"
         position={Position.Left}
         id={column.id}
-        className="!w-2 !h-2 !bg-gray-400 !border-2 !border-white"
+        className="!w-1.5 !h-1.5 !bg-zinc-300 !border !border-white"
       />
 
       {/* Key/Label indicators */}
-      <div className="flex gap-0.5">
+      <div className="flex gap-0.5 w-6 justify-center">
         {column.isKey && (
-          <span className="text-yellow-500 text-xs" title={t('table.isKey')}>🔑</span>
+          <span title={t('table.isKey')}>
+            <svg className="w-3 h-3 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+            </svg>
+          </span>
         )}
         {column.isLabel && (
-          <span className="text-blue-500 text-xs" title={t('table.isLabel')}>🏷️</span>
+          <span title={t('table.isLabel')}>
+            <svg className="w-3 h-3 text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+            </svg>
+          </span>
         )}
       </div>
 
       {/* Column name */}
-      <span className="flex-1 text-sm truncate">{column.name}</span>
+      <span className="flex-1 text-[11px] truncate text-zinc-700">{column.name}</span>
 
       {/* Column type badge */}
       <span
-        className="text-xs px-1.5 py-0.5 rounded text-white"
+        className="text-[9px] px-1 py-0.5 rounded font-medium text-white/90"
         style={{ backgroundColor: typeColor }}
       >
         {t(`columnTypes.${column.type}`)}
@@ -187,7 +198,7 @@ const ColumnRow = memo(({ column, tableId }: ColumnRowProps) => {
 
       {/* Required indicator */}
       {column.constraints.required && (
-        <span className="text-red-500 text-xs">*</span>
+        <span className="text-red-400 text-[10px] font-bold">*</span>
       )}
 
       {/* Right Handle (for outgoing connections) */}
@@ -195,7 +206,7 @@ const ColumnRow = memo(({ column, tableId }: ColumnRowProps) => {
         type="source"
         position={Position.Right}
         id={column.id}
-        className="!w-2 !h-2 !bg-gray-400 !border-2 !border-white"
+        className="!w-1.5 !h-1.5 !bg-zinc-300 !border !border-white"
       />
     </div>
   );

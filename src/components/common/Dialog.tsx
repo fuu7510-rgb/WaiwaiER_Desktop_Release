@@ -38,36 +38,37 @@ export function Dialog({ isOpen, onClose, title, children, footer, size = 'md' }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black bg-opacity-50 transition-opacity"
+        className="absolute inset-0 bg-zinc-900/50 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
       
       {/* Dialog */}
-      <div className={`relative bg-white rounded-lg shadow-xl w-full ${sizeStyles[size]} mx-4 max-h-[90vh] flex flex-col`}>
+      <div className={`relative bg-white rounded-lg shadow-2xl w-full ${sizeStyles[size]} max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200`}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100">
+          <h2 className="text-sm font-semibold text-zinc-800">{title}</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="p-1 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded transition-colors"
+            title="閉じる"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
         
         {/* Content */}
-        <div className="px-6 py-4 overflow-y-auto flex-1">
+        <div className="px-4 py-3 overflow-y-auto flex-1 text-xs">
           {children}
         </div>
         
         {/* Footer */}
         {footer && (
-          <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg">
+          <div className="px-4 py-3 border-t border-zinc-100 bg-zinc-50/50 rounded-b-lg">
             {footer}
           </div>
         )}

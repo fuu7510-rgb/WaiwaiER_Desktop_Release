@@ -40,7 +40,7 @@ export function ColumnEditor() {
 
   if (!selectedColumn) {
     return (
-      <div className="p-4 text-gray-500 text-center">
+      <div className="p-3 text-zinc-400 text-center text-xs">
         {t('column.column')}を選択してください
       </div>
     );
@@ -52,8 +52,8 @@ export function ColumnEditor() {
   }));
 
   return (
-    <div className="p-4 space-y-4">
-      <h3 className="font-semibold text-lg">{t('column.column')}設定</h3>
+    <div className="p-3 space-y-3">
+      <h3 className="font-medium text-xs text-zinc-500 uppercase tracking-wide">{t('column.column')}設定</h3>
       
       {/* カラム名 */}
       <Input
@@ -71,51 +71,51 @@ export function ColumnEditor() {
       />
       
       {/* キー設定 */}
-      <div className="flex items-center gap-4">
-        <label className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
+        <label className="flex items-center gap-1.5 cursor-pointer">
           <input
             type="checkbox"
             checked={selectedColumn.isKey}
             onChange={(e) => handleUpdate({ isKey: e.target.checked })}
-            className="rounded border-gray-300"
+            className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
           />
-          <span className="text-sm">{t('table.isKey')}</span>
+          <span className="text-xs text-zinc-600">{t('table.isKey')}</span>
         </label>
         
-        <label className="flex items-center gap-2">
+        <label className="flex items-center gap-1.5 cursor-pointer">
           <input
             type="checkbox"
             checked={selectedColumn.isLabel}
             onChange={(e) => handleUpdate({ isLabel: e.target.checked })}
-            className="rounded border-gray-300"
+            className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
           />
-          <span className="text-sm">{t('table.isLabel')}</span>
+          <span className="text-xs text-zinc-600">{t('table.isLabel')}</span>
         </label>
       </div>
       
       {/* 制約設定 */}
-      <div className="border-t pt-4">
-        <h4 className="font-medium mb-3">{t('table.constraints')}</h4>
+      <div className="border-t border-zinc-100 pt-3">
+        <h4 className="font-medium text-xs text-zinc-500 mb-2">{t('table.constraints')}</h4>
         
-        <div className="space-y-3">
-          <label className="flex items-center gap-2">
+        <div className="space-y-2">
+          <label className="flex items-center gap-1.5 cursor-pointer">
             <input
               type="checkbox"
               checked={selectedColumn.constraints.required}
               onChange={(e) => handleConstraintUpdate({ required: e.target.checked })}
-              className="rounded border-gray-300"
+              className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
             />
-            <span className="text-sm">{t('column.constraints.required')}</span>
+            <span className="text-xs text-zinc-600">{t('column.constraints.required')}</span>
           </label>
           
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-1.5 cursor-pointer">
             <input
               type="checkbox"
               checked={selectedColumn.constraints.unique}
               onChange={(e) => handleConstraintUpdate({ unique: e.target.checked })}
-              className="rounded border-gray-300"
+              className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
             />
-            <span className="text-sm">{t('column.constraints.unique')}</span>
+            <span className="text-xs text-zinc-600">{t('column.constraints.unique')}</span>
           </label>
           
           <Input
@@ -127,7 +127,7 @@ export function ColumnEditor() {
           {/* Enum選択肢（Enum/EnumListの場合） */}
           {(selectedColumn.type === 'Enum' || selectedColumn.type === 'EnumList') && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-zinc-500 mb-1">
                 {t('column.constraints.enumValues')}
               </label>
               <textarea
@@ -135,8 +135,8 @@ export function ColumnEditor() {
                 onChange={(e) => handleConstraintUpdate({
                   enumValues: e.target.value.split('\n').filter(v => v.trim())
                 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                rows={4}
+                className="w-full px-2.5 py-1.5 text-xs border border-zinc-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                rows={3}
                 placeholder="選択肢を1行に1つ入力"
               />
             </div>
@@ -145,8 +145,8 @@ export function ColumnEditor() {
       </div>
       
       {/* 削除ボタン */}
-      <div className="border-t pt-4">
-        <Button variant="danger" onClick={handleDelete} className="w-full">
+      <div className="border-t border-zinc-100 pt-3">
+        <Button variant="danger" size="sm" onClick={handleDelete} className="w-full">
           {t('column.deleteColumn')}
         </Button>
       </div>

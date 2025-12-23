@@ -22,25 +22,25 @@ export function Simulator() {
 
   if (!selectedTable) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-500">
+      <div className="flex-1 flex items-center justify-center text-zinc-400 text-xs">
         <p>{t('editor.noTables')}</p>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-gray-100">
+    <div className="flex-1 flex flex-col h-full bg-zinc-50">
       {/* ビュー切り替えタブ */}
-      <div className="flex bg-white border-b px-4">
+      <div className="flex bg-white border-b border-zinc-100 px-3">
         {views.map((view) => (
           <button
             key={view.id}
             onClick={() => setSimulatorView(view.id)}
             className={`
-              px-4 py-3 text-sm font-medium border-b-2 transition-colors
+              px-3 py-2 text-xs font-medium border-b-2 transition-colors
               ${simulatorView === view.id
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-zinc-500 hover:text-zinc-700 hover:border-zinc-300'
               }
             `}
           >
@@ -50,7 +50,7 @@ export function Simulator() {
       </div>
 
       {/* シミュレータービュー */}
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 overflow-auto p-3">
         {simulatorView === 'table' && <TableView table={selectedTable} />}
         {simulatorView === 'deck' && <DeckView table={selectedTable} />}
         {simulatorView === 'detail' && <DetailView table={selectedTable} />}

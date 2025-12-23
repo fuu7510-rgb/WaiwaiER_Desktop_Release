@@ -37,15 +37,15 @@ export function TableEditor() {
 
   if (!selectedTable) {
     return (
-      <div className="p-4 text-gray-500 text-center">
+      <div className="p-3 text-zinc-400 text-center text-xs">
         {t('table.table')}を選択してください
       </div>
     );
   }
 
   return (
-    <div className="p-4 space-y-4">
-      <h3 className="font-semibold text-lg">{t('table.table')}設定</h3>
+    <div className="p-3 space-y-3">
+      <h3 className="font-medium text-xs text-zinc-500 uppercase tracking-wide">{t('table.table')}設定</h3>
       
       {/* テーブル名 */}
       <Input
@@ -56,15 +56,15 @@ export function TableEditor() {
       
       {/* 色選択 */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-xs font-medium text-zinc-500 mb-1.5">
           {t('table.color')}
         </label>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {tableColors.map((color) => (
             <button
               key={color}
-              className={`w-8 h-8 rounded-full border-2 transition-transform ${
-                selectedTable.color === color ? 'ring-2 ring-offset-2 ring-blue-400 scale-110' : ''
+              className={`w-5 h-5 rounded-full border transition-all ${
+                selectedTable.color === color ? 'ring-2 ring-offset-1 ring-indigo-400 scale-110' : 'hover:scale-110'
               }`}
               style={{ backgroundColor: color, borderColor: color }}
               onClick={() => handleUpdate({ color })}
@@ -74,20 +74,20 @@ export function TableEditor() {
       </div>
       
       {/* 統計情報 */}
-      <div className="bg-gray-50 rounded-lg p-3">
-        <div className="text-sm text-gray-600 space-y-1">
-          <p>{t('column.columns')}: {selectedTable.columns.length}</p>
-          <p>作成日: {new Date(selectedTable.createdAt).toLocaleString()}</p>
-          <p>更新日: {new Date(selectedTable.updatedAt).toLocaleString()}</p>
+      <div className="bg-zinc-50 rounded p-2">
+        <div className="text-[10px] text-zinc-500 space-y-0.5">
+          <p>{t('column.columns')}: <span className="text-zinc-700 font-medium">{selectedTable.columns.length}</span></p>
+          <p>作成日: <span className="text-zinc-700">{new Date(selectedTable.createdAt).toLocaleString()}</span></p>
+          <p>更新日: <span className="text-zinc-700">{new Date(selectedTable.updatedAt).toLocaleString()}</span></p>
         </div>
       </div>
       
       {/* アクションボタン */}
-      <div className="space-y-2 border-t pt-4">
-        <Button variant="secondary" onClick={handleDuplicate} className="w-full">
+      <div className="space-y-1.5 border-t border-zinc-100 pt-3">
+        <Button variant="secondary" size="sm" onClick={handleDuplicate} className="w-full">
           {t('table.duplicateTable')}
         </Button>
-        <Button variant="danger" onClick={() => setIsDeleteDialogOpen(true)} className="w-full">
+        <Button variant="danger" size="sm" onClick={() => setIsDeleteDialogOpen(true)} className="w-full">
           {t('table.deleteTable')}
         </Button>
       </div>

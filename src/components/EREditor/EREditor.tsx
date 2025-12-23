@@ -61,15 +61,15 @@ function EREditorInner() {
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
       setNodes((nds) => applyNodeChanges(changes, nds));
-      
-      // 位置変更をストアに反映
-      changes.forEach((change) => {
-        if (change.type === 'position' && change.position && change.dragging === false) {
-          moveTable(change.id, change.position);
-        }
-      });
     },
-    [setNodes, moveTable]
+    [setNodes]
+  );
+
+  const onNodeDragStop = useCallback(
+    (_: React.MouseEvent, node: Node) => {
+      moveTable(node.id, node.position);
+    },
+    [moveTable]
   );
 
   const onEdgesChange = useCallback(
@@ -106,6 +106,7 @@ function EREditorInner() {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodeDragStop={onNodeDragStop}
         onConnect={onConnect}
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
@@ -113,10 +114,10 @@ function EREditorInner() {
         snapToGrid
         snapGrid={[15, 15]}
         deleteKeyCode="Delete"
-        className="bg-gray-50"
+        className="bg-zinc-50"
       >
-        <Background color="#ddd" gap={15} />
-        <Controls />
+        <Background color="#e4e4e7" gap={15} />
+        <Controls className="!bg-white !border-zinc-200 !shadow-sm [&>button]:!border-zinc-200 [&>button]:!bg-white [&>button:hover]:!bg-zinc-50" />
         <MiniMap
           nodeStrokeColor={(n) => {
             if (n.data?.table?.color) return n.data.table.color;
@@ -126,6 +127,8 @@ function EREditorInner() {
             if (n.data?.table?.color) return n.data.table.color;
             return '#fff';
           }}
+          className="!bg-white !border-zinc-200 !shadow-sm"
+          maskColor="rgba(0, 0, 0, 0.05)"
         />
       </ReactFlow>
     </div>
