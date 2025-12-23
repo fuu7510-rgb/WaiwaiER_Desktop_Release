@@ -1,52 +1,15 @@
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Table } from '../../types';
+import { generateSampleRow, formatValue } from '../../lib';
 
 interface DetailViewProps {
   table: Table;
 }
 
-// サンプルデータ生成
-function generateSampleRow(table: Table): Record<string, unknown> {
-  const row: Record<string, unknown> = {};
-  table.columns.forEach((column) => {
-    switch (column.type) {
-      case 'Text':
-        row[column.id] = `サンプル${column.name}`;
-        break;
-      case 'Number':
-        row[column.id] = Math.floor(Math.random() * 1000);
-        break;
-      case 'Decimal':
-        row[column.id] = (Math.random() * 1000).toFixed(2);
-        break;
-      case 'Date':
-        row[column.id] = new Date().toLocaleDateString();
-        break;
-      case 'DateTime':
-        row[column.id] = new Date().toLocaleString();
-        break;
-      case 'Email':
-        row[column.id] = 'sample@example.com';
-        break;
-      case 'Phone':
-        row[column.id] = '090-1234-5678';
-        break;
-      case 'Yes/No':
-        row[column.id] = 'Yes';
-        break;
-      case 'UniqueID':
-        row[column.id] = 'ID-00001';
-        break;
-      default:
-        row[column.id] = `${column.type}サンプル`;
-    }
-  });
-  return row;
-}
-
 export function DetailView({ table }: DetailViewProps) {
   const { t } = useTranslation();
-  const sampleData = generateSampleRow(table);
+  const sampleData = useMemo(() => generateSampleRow(table), [table]);
   const labelColumn = table.columns.find((c) => c.isLabel) || table.columns[0];
 
   return (

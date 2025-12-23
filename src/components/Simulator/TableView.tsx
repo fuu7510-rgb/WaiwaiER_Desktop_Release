@@ -1,62 +1,15 @@
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Table } from '../../types';
+import { generateSampleData, formatValue } from '../../lib';
 
 interface TableViewProps {
   table: Table;
 }
 
-// サンプルデータ生成（後でFaker.jsを使用）
-function generateSampleData(table: Table, count: number = 5): Record<string, unknown>[] {
-  const data: Record<string, unknown>[] = [];
-  
-  for (let i = 0; i < count; i++) {
-    const row: Record<string, unknown> = {};
-    table.columns.forEach((column) => {
-      switch (column.type) {
-        case 'Text':
-          row[column.id] = `サンプル ${column.name} ${i + 1}`;
-          break;
-        case 'Number':
-          row[column.id] = Math.floor(Math.random() * 1000);
-          break;
-        case 'Decimal':
-          row[column.id] = (Math.random() * 1000).toFixed(2);
-          break;
-        case 'Date':
-          row[column.id] = new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toLocaleDateString();
-          break;
-        case 'DateTime':
-          row[column.id] = new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toLocaleString();
-          break;
-        case 'Email':
-          row[column.id] = `user${i + 1}@example.com`;
-          break;
-        case 'Phone':
-          row[column.id] = `090-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
-          break;
-        case 'Yes/No':
-          row[column.id] = Math.random() > 0.5 ? 'Yes' : 'No';
-          break;
-        case 'Enum':
-          const options = column.constraints.enumValues || ['Option A', 'Option B', 'Option C'];
-          row[column.id] = options[Math.floor(Math.random() * options.length)];
-          break;
-        case 'UniqueID':
-          row[column.id] = `ID-${String(i + 1).padStart(5, '0')}`;
-          break;
-        default:
-          row[column.id] = `${column.type} ${i + 1}`;
-      }
-    });
-    data.push(row);
-  }
-  
-  return data;
-}
-
 export function TableView({ table }: TableViewProps) {
   const { t } = useTranslation();
-  const sampleData = generateSampleData(table);
+  const sampleData = useMemo(() => generateSampleData(table, 5), [table]);
 
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-zinc-100">

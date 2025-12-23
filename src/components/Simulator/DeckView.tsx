@@ -1,35 +1,13 @@
+import { useMemo } from 'react';
 import type { Table } from '../../types';
+import { generateSampleData, formatValue } from '../../lib';
 
 interface DeckViewProps {
   table: Table;
 }
 
-// サンプルデータ生成
-function generateSampleData(table: Table, count: number = 6): Record<string, unknown>[] {
-  const data: Record<string, unknown>[] = [];
-  
-  for (let i = 0; i < count; i++) {
-    const row: Record<string, unknown> = {};
-    table.columns.forEach((column) => {
-      switch (column.type) {
-        case 'Text':
-          row[column.id] = `サンプル ${column.name} ${i + 1}`;
-          break;
-        case 'Number':
-          row[column.id] = Math.floor(Math.random() * 1000);
-          break;
-        default:
-          row[column.id] = `${column.type} ${i + 1}`;
-      }
-    });
-    data.push(row);
-  }
-  
-  return data;
-}
-
 export function DeckView({ table }: DeckViewProps) {
-  const sampleData = generateSampleData(table);
+  const sampleData = useMemo(() => generateSampleData(table, 6), [table]);
   const labelColumn = table.columns.find((c) => c.isLabel) || table.columns[0];
   const keyColumn = table.columns.find((c) => c.isKey) || table.columns[0];
 

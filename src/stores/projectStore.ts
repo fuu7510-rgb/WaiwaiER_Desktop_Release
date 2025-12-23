@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
 import type { Project, SubscriptionPlan } from '../types';
+import { saveProject as dbSaveProject, loadProjects as dbLoadProjects, deleteProject as dbDeleteProject } from '../lib/database';
 
 // Free版の制限
 const FREE_LIMITS = {
@@ -13,11 +14,13 @@ interface ProjectState {
   // プロジェクト一覧
   projects: Project[];
   currentProjectId: string | null;
+  isLoading: boolean;
   
   // サブスクリプション
   subscriptionPlan: SubscriptionPlan;
   
   // アクション
+  loadProjectsFromDB: () => Promise<void>;
   createProject: (name: string, isEncrypted?: boolean) => string | null;
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => void;
@@ -39,7 +42,20 @@ export const useProjectStore = create<ProjectState>()(
     (set, get) => ({
       projects: [],
       currentProjectId: null,
+      isLoading: false,
       subscriptionPlan: 'free',
+      
+      loadProjectsFromDB: async () => {
+        set({ isLoading: true });
+        try {
+          const projects = await dbLoadProjects();
+          set({ projects });
+        } catch (error) {
+          console.error('Failed to load projects from DB:', error);
+        } finally {
+          set({ isLoading: false });
+        }
+      },
       
       createProject: (name, isEncrypted = false) => {
         if (!get().canCreateProject()) {
@@ -59,17 +75,26 @@ export const useProjectStore = create<ProjectState>()(
           projects: [...state.projects, project],
         }));
         
+        // 非同期でDBに保存
+        dbSaveProject(project).catch((error) => {
+          console.error('Failed to save project to DB:', error);
+        });
+        
         return project.id;
       },
       
       updateProject: (id, updates) => {
-        set((state) => ({
-          projects: state.projects.map((p) =>
-            p.id === id
-              ? { ...p, ...updates, updatedAt: new Date().toISOString() }
-              : p
-          ),
-        }));
+        const updatedProject = get().projects.find((p) => p.id === id);
+        if (updatedProject) {
+          const newProject = { ...updatedProject, ...updates, updatedAt: new Date().toISOString() };
+          set((state) => ({
+            projects: state.projects.map((p) => p.id === id ? newProject : p),
+          }));
+          // 非同期でDBに保存
+          dbSaveProject(newProject).catch((error) => {
+            console.error('Failed to update project in DB:', error);
+          });
+        }
       },
       
       deleteProject: (id) => {
@@ -77,6 +102,10 @@ export const useProjectStore = create<ProjectState>()(
           projects: state.projects.filter((p) => p.id !== id),
           currentProjectId: state.currentProjectId === id ? null : state.currentProjectId,
         }));
+        // 非同期でDBから削除
+        dbDeleteProject(id).catch((error) => {
+          console.error('Failed to delete project from DB:', error);
+        });
       },
       
       openProject: (id) => {

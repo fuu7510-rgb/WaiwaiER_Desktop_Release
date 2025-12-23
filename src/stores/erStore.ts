@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { v4 as uuidv4 } from 'uuid';
 import type { Table, Column, Relation, ERDiagram, ColumnType, HistoryEntry } from '../types';
+import { saveDiagram, loadDiagram } from '../lib/database';
 
 interface ERState {
   // ER図データ
@@ -15,6 +16,9 @@ interface ERState {
   // 履歴（Undo/Redo）
   history: HistoryEntry[];
   historyIndex: number;
+  
+  // 現在のプロジェクトID（永続化用）
+  currentProjectId: string | null;
   
   // アクション
   // テーブル操作
@@ -48,6 +52,11 @@ interface ERState {
   importDiagram: (diagram: ERDiagram) => void;
   exportDiagram: () => ERDiagram;
   clearDiagram: () => void;
+  
+  // 永続化
+  setCurrentProjectId: (projectId: string | null) => void;
+  loadFromDB: (projectId: string) => Promise<void>;
+  saveToDB: () => void;
 }
 
 const createDefaultColumn = (order: number): Column => ({
@@ -80,6 +89,7 @@ export const useERStore = create<ERState>()(
     selectedColumnId: null,
     history: [],
     historyIndex: -1,
+    currentProjectId: null,
     
     // テーブル操作
     addTable: (name, position = { x: 100, y: 100 }) => {
@@ -88,6 +98,7 @@ export const useERStore = create<ERState>()(
         state.tables.push(table);
       });
       get().saveHistory(`テーブル「${name}」を追加`);
+      get().saveToDB();
       return table.id;
     },
     
@@ -99,6 +110,7 @@ export const useERStore = create<ERState>()(
         }
       });
       get().saveHistory('テーブルを更新');
+      get().saveToDB();
     },
     
     deleteTable: (id) => {
@@ -116,6 +128,7 @@ export const useERStore = create<ERState>()(
       if (table) {
         get().saveHistory(`テーブル「${table.name}」を削除`);
       }
+      get().saveToDB();
     },
     
     moveTable: (id, position) => {
@@ -168,6 +181,7 @@ export const useERStore = create<ERState>()(
         }
       });
       get().saveHistory(`カラム「${newColumn.name}」を追加`);
+      get().saveToDB();
       return newColumn.id;
     },
     
@@ -183,6 +197,7 @@ export const useERStore = create<ERState>()(
         }
       });
       get().saveHistory('カラムを更新');
+      get().saveToDB();
     },
     
     deleteColumn: (tableId, columnId) => {
@@ -203,6 +218,7 @@ export const useERStore = create<ERState>()(
         }
       });
       get().saveHistory('カラムを削除');
+      get().saveToDB();
     },
     
     reorderColumn: (tableId, columnId, newOrder) => {
@@ -230,6 +246,7 @@ export const useERStore = create<ERState>()(
           }
         }
       });
+      get().saveToDB();
     },
     
     // リレーション操作
@@ -239,6 +256,7 @@ export const useERStore = create<ERState>()(
         state.relations.push({ ...relation, id });
       });
       get().saveHistory('リレーションを追加');
+      get().saveToDB();
       return id;
     },
     
@@ -250,6 +268,7 @@ export const useERStore = create<ERState>()(
         }
       });
       get().saveHistory('リレーションを更新');
+      get().saveToDB();
     },
     
     deleteRelation: (id) => {
@@ -257,6 +276,7 @@ export const useERStore = create<ERState>()(
         state.relations = state.relations.filter((r) => r.id !== id);
       });
       get().saveHistory('リレーションを削除');
+      get().saveToDB();
     },
     
     // 選択操作
@@ -335,6 +355,7 @@ export const useERStore = create<ERState>()(
         state.historyIndex = -1;
       });
       get().saveHistory('ダイアグラムをインポート');
+      get().saveToDB();
     },
     
     exportDiagram: () => {
@@ -350,6 +371,43 @@ export const useERStore = create<ERState>()(
         state.selectedColumnId = null;
       });
       get().saveHistory('ダイアグラムをクリア');
+      get().saveToDB();
+    },
+    
+    // 永続化
+    setCurrentProjectId: (projectId) => {
+      set((state) => {
+        state.currentProjectId = projectId;
+      });
+    },
+    
+    loadFromDB: async (projectId) => {
+      const diagram = await loadDiagram(projectId);
+      if (diagram) {
+        set((state) => {
+          state.tables = diagram.tables;
+          state.relations = diagram.relations;
+          state.selectedTableId = null;
+          state.selectedColumnId = null;
+          state.history = [];
+          state.historyIndex = -1;
+          state.currentProjectId = projectId;
+        });
+        get().saveHistory('プロジェクトを読み込み');
+      } else {
+        set((state) => {
+          state.currentProjectId = projectId;
+        });
+      }
+    },
+    
+    saveToDB: () => {
+      const { tables, relations, currentProjectId } = get();
+      if (currentProjectId) {
+        saveDiagram(currentProjectId, { tables, relations }).catch((error) => {
+          console.error('Failed to save diagram to DB:', error);
+        });
+      }
     },
   }))
 );

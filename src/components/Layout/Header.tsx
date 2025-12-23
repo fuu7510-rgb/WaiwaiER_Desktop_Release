@@ -1,16 +1,19 @@
 import { useTranslation } from 'react-i18next';
-import { useUIStore, useERStore, useProjectStore } from '../../stores';
+import { useUIStore, useERStore, useProjectStore, useLicenseStore } from '../../stores';
+import { importJSONDiagram } from '../Export';
 import type { ViewMode } from '../../types';
 
 export function Header() {
   const { t } = useTranslation();
-  const { viewMode, setViewMode, openSettings, openProjectDialog, settings, setLanguage } = useUIStore();
-  const { undo, redo, history, historyIndex } = useERStore();
+  const { viewMode, setViewMode, openSettings, openProjectDialog, openExportDialog, settings, setLanguage } = useUIStore();
+  const { undo, redo, history, historyIndex, importDiagram } = useERStore();
   const { currentProjectId, projects } = useProjectStore();
+  const { license, setShowLicenseDialog } = useLicenseStore();
   
   const currentProject = projects.find((p) => p.id === currentProjectId);
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
+  const isPro = license.plan === 'pro';
 
   const handleViewModeChange = (mode: ViewMode) => {
     setViewMode(mode);
@@ -18,6 +21,18 @@ export function Header() {
 
   const toggleLanguage = () => {
     setLanguage(settings.language === 'ja' ? 'en' : 'ja');
+  };
+
+  const handleImport = async () => {
+    try {
+      const diagram = await importJSONDiagram();
+      if (diagram) {
+        importDiagram(diagram);
+      }
+    } catch (error) {
+      console.error('Import failed:', error);
+      alert(t('import.importError'));
+    }
   };
 
   return (
@@ -72,6 +87,28 @@ export function Header() {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-1">
+        {/* Import/Export */}
+        <div className="flex border border-zinc-200 rounded">
+          <button
+            onClick={handleImport}
+            className="p-1 text-zinc-500 hover:bg-zinc-50 transition-colors"
+            title={t('common.import')}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+          </button>
+          <button
+            onClick={openExportDialog}
+            className="p-1 text-zinc-500 hover:bg-zinc-50 border-l border-zinc-200 transition-colors"
+            title={t('common.export')}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+          </button>
+        </div>
+
         {/* Undo/Redo */}
         <div className="flex border border-zinc-200 rounded">
           <button
@@ -95,6 +132,19 @@ export function Header() {
             </svg>
           </button>
         </div>
+
+        {/* License Badge */}
+        <button
+          onClick={() => setShowLicenseDialog(true)}
+          className={`px-2 py-0.5 text-xs rounded font-medium transition-colors ${
+            isPro
+              ? 'bg-green-100 text-green-700 hover:bg-green-200'
+              : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+          }`}
+          title={t('license.title', 'ライセンス管理')}
+        >
+          {isPro ? 'Pro' : 'Free'}
+        </button>
 
         {/* Language Toggle */}
         <button
