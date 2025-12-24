@@ -26,6 +26,8 @@
     "paste": "Paste",
     "undo": "Undo",
     "redo": "Redo",
+    "moveUp": "Move Up",
+    "moveDown": "Move Down",
     "name": "Name",
     "description": "Description",
     "type": "Type",
@@ -80,7 +82,8 @@
     "zoom": "Zoom",
     "zoomIn": "Zoom In",
     "zoomOut": "Zoom Out",
-    "fitView": "Fit View"
+    "fitView": "Fit View",
+    "relationHighlight": "Relationship Highlight"
   },
   "table": {
     "table": "Table",
@@ -184,6 +187,23 @@
       "retention": "Retention days",
       "location": "Backup location",
       "selectFolder": "Select Folder"
+    },
+    "tableName": {
+      "title": "Table Name",
+      "prefix": "Prefix",
+      "suffix": "Suffix",
+      "prefixPlaceholder": "e.g. T",
+      "suffixPlaceholder": "e.g. _master"
+    },
+    "keyColumn": {
+      "title": "Key Column Name",
+      "prefix": "Prefix",
+      "suffix": "Suffix",
+      "prefixPlaceholder": "e.g. ID",
+      "suffixPlaceholder": "e.g. _key",
+      "defaultKeyColumnName": "Fixed Key Column Name",
+      "defaultKeyColumnNamePlaceholder": "e.g. _RowID",
+      "description": "When adding a table, the key column name is auto-generated as 'Prefix + Table Name (input) + Suffix'. If a fixed key column name is set, it takes priority."
     }
   },
   "license": {

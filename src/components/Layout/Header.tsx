@@ -5,7 +5,17 @@ import type { ViewMode } from '../../types';
 
 export function Header() {
   const { t } = useTranslation();
-  const { viewMode, setViewMode, openSettings, openProjectDialog, openExportDialog, settings, setLanguage } = useUIStore();
+  const {
+    viewMode,
+    setViewMode,
+    openSettings,
+    openProjectDialog,
+    openExportDialog,
+    settings,
+    setLanguage,
+    isRelationHighlightEnabled,
+    toggleRelationHighlight,
+  } = useUIStore();
   const { undo, redo, history, historyIndex, importDiagram } = useERStore();
   const { currentProjectId, projects } = useProjectStore();
   const { license, setShowLicenseDialog } = useLicenseStore();
@@ -132,6 +142,19 @@ export function Header() {
             </svg>
           </button>
         </div>
+
+        {/* Relation Highlight Toggle */}
+        <button
+          onClick={toggleRelationHighlight}
+          className={`px-2 py-0.5 text-xs rounded font-medium transition-colors border ${
+            isRelationHighlightEnabled
+              ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+              : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
+          }`}
+          title={t('editor.relationHighlight', '関連強調')}
+        >
+          {t('editor.relationHighlight', '関連強調')}: {isRelationHighlightEnabled ? 'ON' : 'OFF'}
+        </button>
 
         {/* License Badge */}
         <button

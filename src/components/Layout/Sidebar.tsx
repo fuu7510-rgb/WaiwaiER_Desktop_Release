@@ -8,8 +8,8 @@ import { TABLE_BG_COLOR_CLASSES } from '../../lib/constants';
 
 export function Sidebar() {
   const { t } = useTranslation();
-  const { isSidebarOpen, sidebarWidth } = useUIStore();
-  const { tables, addTable, selectedTableId, selectedColumnId } = useERStore();
+  const { isSidebarOpen, settings } = useUIStore();
+  const { tables, addTable, selectedTableId, selectedColumnId, reorderTables } = useERStore();
   const { currentProjectId, canAddTable } = useProjectStore();
   
   const [newTableName, setNewTableName] = useState('');
@@ -24,10 +24,27 @@ export function Sidebar() {
     
     const x = 100 + (tables.length % 5) * 250;
     const y = 100 + Math.floor(tables.length / 5) * 300;
-    addTable(newTableName.trim(), { x, y });
+    const tablePrefix = settings.tableNamePrefix || '';
+    const tableSuffix = settings.tableNameSuffix || '';
+    const baseName = newTableName.trim();
+    const fullTableName = `${tablePrefix}${baseName}${tableSuffix}`;
+    
+    // キーカラム名を生成: プレフィックス + ベース名 + サフィックス
+    // defaultKeyColumnNameが設定されている場合はそちらを優先
+    let keyColumnName: string | undefined;
+    if (settings.defaultKeyColumnName) {
+      keyColumnName = settings.defaultKeyColumnName;
+    } else {
+      const keyPrefix = settings.keyColumnPrefix || '';
+      const keySuffix = settings.keyColumnSuffix || '';
+      if (keyPrefix || keySuffix) {
+        keyColumnName = `${keyPrefix}${baseName}${keySuffix}`;
+      }
+    }
+    addTable(fullTableName, { x, y }, { keyColumnName });
     setNewTableName('');
     setIsAddingTable(false);
-  }, [newTableName, currentProjectId, canAddTable, tables.length, addTable, t]);
+  }, [newTableName, currentProjectId, canAddTable, tables.length, addTable, t, settings.tableNamePrefix, settings.tableNameSuffix, settings.keyColumnPrefix, settings.keyColumnSuffix, settings.defaultKeyColumnName]);
 
   if (!isSidebarOpen) {
     return null;
@@ -95,11 +112,15 @@ export function Sidebar() {
           </div>
         ) : (
           <ul className="divide-y divide-zinc-100">
-            {tables.map((table) => (
+            {tables.map((table, index) => (
               <TableListItem
                 key={table.id}
                 table={table}
                 isSelected={table.id === selectedTableId}
+                canMoveUp={index > 0}
+                canMoveDown={index < tables.length - 1}
+                onMoveUp={() => reorderTables(table.id, tables[index - 1].id)}
+                onMoveDown={() => reorderTables(table.id, tables[index + 1].id)}
               />
             ))}
           </ul>
@@ -133,9 +154,20 @@ interface TableListItemProps {
     columns: { id: string }[];
   };
   isSelected: boolean;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }
 
-function TableListItem({ table, isSelected }: TableListItemProps) {
+function TableListItem({
+  table,
+  isSelected,
+  canMoveUp,
+  canMoveDown,
+  onMoveUp,
+  onMoveDown,
+}: TableListItemProps) {
   const { selectTable } = useERStore();
 
   return (
@@ -156,8 +188,58 @@ function TableListItem({ table, isSelected }: TableListItemProps) {
         <span className={`text-sm font-medium truncate ${isSelected ? 'text-indigo-700' : 'text-zinc-700'}`}>
           {table.name}
         </span>
-        <span className="text-[10px] text-zinc-400 ml-auto shrink-0">
-          {table.columns.length}
+        <span className="ml-auto flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            className={`
+              inline-flex items-center justify-center w-7 h-7 rounded-md border
+              bg-white text-zinc-500 transition-colors
+              hover:bg-zinc-50 hover:text-zinc-700
+              focus:outline-none focus:ring-2 focus:ring-indigo-200
+              ${canMoveUp ? 'border-zinc-200' : 'border-zinc-100 opacity-30 cursor-not-allowed hover:bg-white hover:text-zinc-500'}
+            `}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!canMoveUp) return;
+              onMoveUp?.();
+            }}
+            aria-label="上に移動"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path
+                fillRule="evenodd"
+                d="M10 4a1 1 0 01.707.293l5 5a1 1 0 11-1.414 1.414L10 6.414 5.707 10.707A1 1 0 114.293 9.293l5-5A1 1 0 0110 4z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className={`
+              inline-flex items-center justify-center w-7 h-7 rounded-md border
+              bg-white text-zinc-500 transition-colors
+              hover:bg-zinc-50 hover:text-zinc-700
+              focus:outline-none focus:ring-2 focus:ring-indigo-200
+              ${canMoveDown ? 'border-zinc-200' : 'border-zinc-100 opacity-30 cursor-not-allowed hover:bg-white hover:text-zinc-500'}
+            `}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!canMoveDown) return;
+              onMoveDown?.();
+            }}
+            aria-label="下に移動"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path
+                fillRule="evenodd"
+                d="M10 16a1 1 0 01-.707-.293l-5-5a1 1 0 111.414-1.414L10 13.586l4.293-4.293a1 1 0 111.414 1.414l-5 5A1 1 0 0110 16z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+          <span className="text-[10px] text-zinc-400 pl-1">
+            {table.columns.length}
+          </span>
         </span>
       </div>
     </li>

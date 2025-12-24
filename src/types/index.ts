@@ -144,6 +144,11 @@ export interface AppSettings {
   autoBackupIntervalMinutes: number;
   backupRetentionDays: number;
   backupLocation: string;
+  tableNamePrefix: string;
+  tableNameSuffix: string;
+  keyColumnPrefix: string;
+  keyColumnSuffix: string;
+  defaultKeyColumnName: string;
 }
 
 // 履歴関連の型定義（Undo/Redo）

@@ -20,6 +20,9 @@ interface UIState {
   // サイドバー
   isSidebarOpen: boolean;
   sidebarWidth: number;
+
+  // ERエディタ表示
+  isRelationHighlightEnabled: boolean;
   
   // 設定
   settings: AppSettings;
@@ -43,6 +46,9 @@ interface UIState {
   // サイドバー操作
   toggleSidebar: () => void;
   setSidebarWidth: (width: number) => void;
+
+  // ERエディタ表示操作
+  toggleRelationHighlight: () => void;
   
   // 設定操作
   updateSettings: (settings: Partial<AppSettings>) => void;
@@ -57,6 +63,11 @@ const defaultSettings: AppSettings = {
   autoBackupIntervalMinutes: 5,
   backupRetentionDays: 7,
   backupLocation: '',
+  tableNamePrefix: '',
+  tableNameSuffix: '',
+  keyColumnPrefix: '',
+  keyColumnSuffix: '',
+  defaultKeyColumnName: '',
 };
 
 export const useUIStore = create<UIState>()(
@@ -73,6 +84,7 @@ export const useUIStore = create<UIState>()(
       isAboutDialogOpen: false,
       isSidebarOpen: true,
       sidebarWidth: 280,
+      isRelationHighlightEnabled: true,
       settings: defaultSettings,
       
       // ビュー操作
@@ -94,6 +106,10 @@ export const useUIStore = create<UIState>()(
       // サイドバー操作
       toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
       setSidebarWidth: (width) => set({ sidebarWidth: Math.max(200, Math.min(500, width)) }),
+
+      // ERエディタ表示操作
+      toggleRelationHighlight: () =>
+        set((state) => ({ isRelationHighlightEnabled: !state.isRelationHighlightEnabled })),
       
       // 設定操作
       updateSettings: (settings) =>
@@ -115,6 +131,7 @@ export const useUIStore = create<UIState>()(
         settings: state.settings,
         isSidebarOpen: state.isSidebarOpen,
         sidebarWidth: state.sidebarWidth,
+        isRelationHighlightEnabled: state.isRelationHighlightEnabled,
       }),
     }
   )

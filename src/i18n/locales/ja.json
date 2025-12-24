@@ -26,6 +26,8 @@
     "paste": "貼り付け",
     "undo": "元に戻す",
     "redo": "やり直し",
+    "moveUp": "上に移動",
+    "moveDown": "下に移動",
     "name": "名前",
     "description": "説明",
     "type": "タイプ",
@@ -77,6 +79,7 @@
     "tableName": "テーブル名",
     "noTables": "テーブルがありません",
     "clickAddTable": "「テーブルを追加」ボタンをクリックして開始してください。",
+    "relationHighlight": "関連強調",
     "zoom": "ズーム",
     "zoomIn": "拡大",
     "zoomOut": "縮小",
@@ -184,6 +187,23 @@
       "retention": "保持日数",
       "location": "バックアップ場所",
       "selectFolder": "フォルダを選択"
+    },
+    "tableName": {
+      "title": "テーブル名",
+      "prefix": "プレフィックス",
+      "suffix": "サフィックス",
+      "prefixPlaceholder": "例: T",
+      "suffixPlaceholder": "例: _master"
+    },
+    "keyColumn": {
+      "title": "キーカラム名",
+      "prefix": "プレフィックス",
+      "suffix": "サフィックス",
+      "prefixPlaceholder": "例: ID",
+      "suffixPlaceholder": "例: _key",
+      "defaultKeyColumnName": "固定キーカラム名",
+      "defaultKeyColumnNamePlaceholder": "例: _RowID",
+      "description": "テーブル追加時、キーカラム名は「プレフィックス + テーブル名（入力値） + サフィックス」で自動生成されます。固定キーカラム名が設定されている場合は、そちらが優先されます。"
     }
   },
   "license": {

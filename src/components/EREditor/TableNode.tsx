@@ -7,6 +7,13 @@ import type { Table, Column, ColumnType } from '../../types';
 
 interface TableNodeData {
   table: Table;
+  highlight?: {
+    isGraphSelected: boolean;
+    isUpstream: boolean;
+    isDownstream: boolean;
+    isRelated: boolean;
+    isDimmed: boolean;
+  };
 }
 
 const columnTypeClasses: Record<ColumnType, string> = {
@@ -88,6 +95,11 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
   }, [table.id, addColumn]);
 
   const isSelected = selectedTableId === table.id || selected;
+  const highlight = data.highlight;
+  const isDimmed = highlight?.isDimmed ?? false;
+  const isUpstream = highlight?.isUpstream ?? false;
+  const isDownstream = highlight?.isDownstream ?? false;
+  const isRelated = highlight?.isRelated ?? false;
   const colorClasses = tableColorClasses[table.color?.toLowerCase() || '#6366f1'] || tableColorClasses['#6366f1'];
 
   return (
@@ -95,7 +107,10 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
       className={`
         bg-white rounded-md shadow-lg min-w-[180px] max-w-[280px]
         border transition-all duration-200
-        ${isSelected ? 'ring-2 ring-indigo-400/50 ring-offset-1' : 'hover:shadow-xl'}
+        ${isSelected ? 'ring-2 ring-indigo-400/50 ring-offset-1' : isRelated ? 'ring-1 ring-indigo-300/40' : 'hover:shadow-xl'}
+        ${isUpstream && !isDownstream ? 'border-dashed' : ''}
+        ${isDownstream && !isUpstream ? 'border-solid' : ''}
+        ${isDimmed ? 'opacity-30 saturate-50' : ''}
         ${colorClasses.border}
       `}
       onClick={handleClick}
@@ -126,21 +141,36 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
 
       {/* Columns */}
       <div className="divide-y divide-zinc-100">
-        {table.columns.map((column) => (
-          <ColumnRow key={column.id} column={column} tableId={table.id} />
+        {table.columns.map((column, index) => (
+          <ColumnRow
+            key={column.id}
+            column={column}
+            tableId={table.id}
+            isFirst={index === 0}
+            isLast={index === table.columns.length - 1}
+          />
         ))}
       </div>
 
       {/* Add Column Button */}
-      <button
-        onClick={handleAddColumn}
-        className="w-full px-2.5 py-1 text-[10px] text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors rounded-b flex items-center justify-center gap-1"
-      >
-        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-        </svg>
-        {t('table.addColumn')}
-      </button>
+      <div className="relative">
+        <Handle
+          type="target"
+          position={Position.Left}
+          id={`${table.id}__addColumn`}
+          className="!w-3 !h-3 !bg-green-400 !border-2 !border-white !-left-1.5"
+          title="ここに接続すると新しいカラムを作成"
+        />
+        <button
+          onClick={handleAddColumn}
+          className="w-full px-2.5 py-1 text-[10px] text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors rounded-b flex items-center justify-center gap-1"
+        >
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          {t('table.addColumn')}
+        </button>
+      </div>
     </div>
   );
 });
@@ -150,11 +180,13 @@ TableNode.displayName = 'TableNode';
 interface ColumnRowProps {
   column: Column;
   tableId: string;
+  isFirst: boolean;
+  isLast: boolean;
 }
 
-const ColumnRow = memo(({ column, tableId }: ColumnRowProps) => {
+const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) => {
   const { t } = useTranslation();
-  const { selectColumn, selectedColumnId } = useERStore();
+  const { selectColumn, selectedColumnId, reorderColumn } = useERStore();
   const isSelected = selectedColumnId === column.id;
   const typeClass = columnTypeClasses[column.type] || 'bg-slate-500';
 
@@ -163,11 +195,25 @@ const ColumnRow = memo(({ column, tableId }: ColumnRowProps) => {
     selectColumn(tableId, column.id);
   }, [tableId, column.id, selectColumn]);
 
+  const handleMoveUp = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isFirst) {
+      reorderColumn(tableId, column.id, column.order - 1);
+    }
+  }, [tableId, column.id, column.order, isFirst, reorderColumn]);
+
+  const handleMoveDown = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isLast) {
+      reorderColumn(tableId, column.id, column.order + 1);
+    }
+  }, [tableId, column.id, column.order, isLast, reorderColumn]);
+
   return (
     <div
       className={`
         relative px-2 py-1 flex items-center gap-1.5 cursor-pointer
-        hover:bg-zinc-50 transition-colors
+        hover:bg-zinc-50 transition-colors group
         ${isSelected ? 'bg-indigo-50' : ''}
       `}
       onClick={handleClick}
@@ -177,8 +223,32 @@ const ColumnRow = memo(({ column, tableId }: ColumnRowProps) => {
         type="target"
         position={Position.Left}
         id={column.id}
-        className="!w-1.5 !h-1.5 !bg-zinc-300 !border !border-white"
+        className="!w-3 !h-3 !bg-zinc-300 !border-2 !border-white"
       />
+
+      {/* Reorder buttons (visible on hover) */}
+      <div className="hidden group-hover:flex flex-col absolute -left-4 bg-white shadow-sm border border-zinc-200 rounded overflow-hidden z-10">
+        <button
+          onClick={handleMoveUp}
+          disabled={isFirst}
+          className={`p-0.5 hover:bg-zinc-100 ${isFirst ? 'opacity-20 cursor-not-allowed' : 'text-zinc-500'}`}
+          title={t('common.moveUp')}
+        >
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+          </svg>
+        </button>
+        <button
+          onClick={handleMoveDown}
+          disabled={isLast}
+          className={`p-0.5 border-t border-zinc-100 hover:bg-zinc-100 ${isLast ? 'opacity-20 cursor-not-allowed' : 'text-zinc-500'}`}
+          title={t('common.moveDown')}
+        >
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
 
       {/* Key/Label indicators */}
       <div className="flex gap-0.5 w-6 justify-center">
@@ -213,13 +283,16 @@ const ColumnRow = memo(({ column, tableId }: ColumnRowProps) => {
         <span className="text-red-400 text-[10px] font-bold">*</span>
       )}
 
-      {/* Right Handle (for outgoing connections) */}
-      <Handle
-        type="source"
-        position={Position.Right}
-        id={column.id}
-        className="!w-1.5 !h-1.5 !bg-zinc-300 !border !border-white"
-      />
+      {/* Right Handle (for outgoing connections) - only for key columns */}
+      {column.isKey && (
+        <Handle
+          type="source"
+          position={Position.Right}
+          id={`${column.id}__source`}
+          className="!w-3 !h-3 !bg-amber-400 !border-2 !border-white hover:!bg-amber-500 cursor-crosshair"
+          title="ドラッグして他のテーブルのカラムに接続"
+        />
+      )}
     </div>
   );
 });

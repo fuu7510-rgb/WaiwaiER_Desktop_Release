@@ -53,6 +53,59 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
           </div>
         </section>
 
+        {/* Table Name Settings */}
+        <section>
+          <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2.5">{t('settings.tableName.title')}</h3>
+          
+          <div className="space-y-2.5">
+            <Input
+              label={t('settings.tableName.prefix')}
+              placeholder={t('settings.tableName.prefixPlaceholder')}
+              value={settings.tableNamePrefix}
+              onChange={(e) => updateSettings({ tableNamePrefix: e.target.value })}
+            />
+            
+            <Input
+              label={t('settings.tableName.suffix')}
+              placeholder={t('settings.tableName.suffixPlaceholder')}
+              value={settings.tableNameSuffix}
+              onChange={(e) => updateSettings({ tableNameSuffix: e.target.value })}
+            />
+          </div>
+        </section>
+
+        {/* Key Column Name Settings */}
+        <section>
+          <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2.5">{t('settings.keyColumn.title')}</h3>
+          
+          <div className="space-y-2.5">
+            <Input
+              label={t('settings.keyColumn.prefix')}
+              placeholder={t('settings.keyColumn.prefixPlaceholder')}
+              value={settings.keyColumnPrefix}
+              onChange={(e) => updateSettings({ keyColumnPrefix: e.target.value })}
+            />
+            
+            <Input
+              label={t('settings.keyColumn.suffix')}
+              placeholder={t('settings.keyColumn.suffixPlaceholder')}
+              value={settings.keyColumnSuffix}
+              onChange={(e) => updateSettings({ keyColumnSuffix: e.target.value })}
+            />
+            
+            <Input
+              label={t('settings.keyColumn.defaultKeyColumnName')}
+              placeholder={t('settings.keyColumn.defaultKeyColumnNamePlaceholder')}
+              value={settings.defaultKeyColumnName}
+              onChange={(e) => updateSettings({ defaultKeyColumnName: e.target.value })}
+            />
+            
+            <p className="text-[10px] text-zinc-400">
+              {t('settings.keyColumn.description')}
+            </p>
+          </div>
+        </section>
+
         {/* Backup Settings */}
         <section>
           <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2.5">{t('settings.backup')}</h3>

@@ -22,10 +22,11 @@ interface ERState {
   
   // アクション
   // テーブル操作
-  addTable: (name: string, position?: { x: number; y: number }) => string;
+  addTable: (name: string, position?: { x: number; y: number }, options?: { keyColumnName?: string }) => string;
   updateTable: (id: string, updates: Partial<Table>) => void;
   deleteTable: (id: string) => void;
   moveTable: (id: string, position: { x: number; y: number }) => void;
+  reorderTables: (activeTableId: string, overTableId: string) => void;
   duplicateTable: (id: string) => string | null;
   
   // カラム操作
@@ -59,9 +60,9 @@ interface ERState {
   saveToDB: () => void;
 }
 
-const createDefaultColumn = (order: number): Column => ({
+const createDefaultColumn = (order: number, customName?: string): Column => ({
   id: uuidv4(),
-  name: `Column${order + 1}`,
+  name: customName || `Column${order + 1}`,
   type: 'Text' as ColumnType,
   isKey: order === 0,
   isLabel: order === 0,
@@ -69,16 +70,26 @@ const createDefaultColumn = (order: number): Column => ({
   order,
 });
 
-const createDefaultTable = (name: string, position: { x: number; y: number }): Table => {
+const createDefaultTable = (name: string, position: { x: number; y: number }, keyColumnName?: string): Table => {
   const now = new Date().toISOString();
   return {
     id: uuidv4(),
     name,
-    columns: [createDefaultColumn(0)],
+    columns: [createDefaultColumn(0, keyColumnName)],
     position,
     createdAt: now,
     updatedAt: now,
   };
+};
+
+const arrayMove = <T,>(array: T[], fromIndex: number, toIndex: number): T[] => {
+  const next = array.slice();
+  const startIndex = fromIndex < 0 ? next.length + fromIndex : fromIndex;
+  if (startIndex < 0 || startIndex >= next.length) return next;
+  const endIndex = toIndex < 0 ? next.length + toIndex : toIndex;
+  const [item] = next.splice(startIndex, 1);
+  next.splice(endIndex, 0, item);
+  return next;
 };
 
 export const useERStore = create<ERState>()(
@@ -92,8 +103,8 @@ export const useERStore = create<ERState>()(
     currentProjectId: null,
     
     // テーブル操作
-    addTable: (name, position = { x: 100, y: 100 }) => {
-      const table = createDefaultTable(name, position);
+    addTable: (name, position = { x: 100, y: 100 }, options) => {
+      const table = createDefaultTable(name, position, options?.keyColumnName);
       set((state) => {
         state.tables.push(table);
       });
@@ -139,6 +150,18 @@ export const useERStore = create<ERState>()(
         }
       });
       get().saveHistory('テーブルを移動');
+    },
+
+    reorderTables: (activeTableId, overTableId) => {
+      if (activeTableId === overTableId) return;
+      set((state) => {
+        const oldIndex = state.tables.findIndex((t) => t.id === activeTableId);
+        const newIndex = state.tables.findIndex((t) => t.id === overTableId);
+        if (oldIndex === -1 || newIndex === -1) return;
+        state.tables = arrayMove(state.tables, oldIndex, newIndex);
+      });
+      get().saveHistory('テーブルの順序を変更');
+      get().saveToDB();
     },
     
     duplicateTable: (id) => {
@@ -246,6 +269,7 @@ export const useERStore = create<ERState>()(
           }
         }
       });
+      get().saveHistory('カラムの順序を変更');
       get().saveToDB();
     },
     
