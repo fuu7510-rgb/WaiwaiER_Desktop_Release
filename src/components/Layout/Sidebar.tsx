@@ -38,15 +38,16 @@ export function Sidebar() {
       className="bg-white border-r border-zinc-200 flex flex-col h-full w-[280px]"
     >
       {/* Tables List Header */}
-      <div className="px-3 py-2 border-b border-zinc-100 flex items-center justify-between">
-        <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
-          {t('table.tables')} <span className="text-zinc-400">({tables.length})</span>
+      <div className="p-4 border-b border-zinc-100 flex items-center justify-between bg-white sticky top-0 z-10">
+        <h2 className="text-xs font-bold text-zinc-600 uppercase tracking-wider">
+          {t('table.tables')} <span className="text-zinc-400 ml-1">({tables.length})</span>
         </h2>
         <Button
           size="sm"
           onClick={() => setIsAddingTable(true)}
+          className="shadow-none"
         >
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
           {t('editor.addTable')}
@@ -55,7 +56,7 @@ export function Sidebar() {
 
       {/* Add Table Form */}
       {isAddingTable && (
-        <div className="p-2 border-b border-zinc-100 bg-indigo-50/50">
+        <div className="p-4 border-b border-zinc-100 bg-indigo-50/30">
           <Input
             placeholder={t('editor.tableName')}
             value={newTableName}
@@ -65,13 +66,14 @@ export function Sidebar() {
               if (e.key === 'Escape') setIsAddingTable(false);
             }}
             autoFocus
+            className="mb-3"
           />
-          <div className="flex gap-1.5 mt-1.5">
-            <Button size="sm" onClick={handleAddTable}>
-              {t('common.create')}
-            </Button>
+          <div className="flex gap-2 justify-end">
             <Button size="sm" variant="secondary" onClick={() => setIsAddingTable(false)}>
               {t('common.cancel')}
+            </Button>
+            <Button size="sm" onClick={handleAddTable}>
+              {t('common.create')}
             </Button>
           </div>
         </div>
@@ -80,8 +82,16 @@ export function Sidebar() {
       {/* Tables List */}
       <div className="flex-1 overflow-y-auto">
         {tables.length === 0 ? (
-          <div className="p-3 text-center text-zinc-400 text-xs">
-            {t('editor.noTables')}
+          <div className="p-8 text-center">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-zinc-100 mb-3 text-zinc-400">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <p className="text-sm text-zinc-500 mb-1 font-medium">{t('editor.noTables')}</p>
+            <p className="text-xs text-zinc-400">
+              {t('editor.clickAddTable')}
+            </p>
           </div>
         ) : (
           <ul className="divide-y divide-zinc-100">
@@ -103,8 +113,11 @@ export function Sidebar() {
         ) : selectedTableId ? (
           <TableEditor />
         ) : (
-          <div className="p-3 text-zinc-400 text-center text-xs">
-            テーブルまたはカラムを選択
+          <div className="h-full flex flex-col items-center justify-center p-8 text-zinc-400">
+            <svg className="w-8 h-8 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            <p className="text-xs text-center">テーブルまたはカラムを選択して編集</p>
           </div>
         )}
       </div>
@@ -129,18 +142,18 @@ function TableListItem({ table, isSelected }: TableListItemProps) {
     <li
       onClick={() => selectTable(table.id)}
       className={`
-        px-3 py-2 cursor-pointer transition-all duration-150
+        px-4 py-3 cursor-pointer transition-all duration-150
         ${isSelected 
-          ? 'bg-indigo-50 border-l-2 border-indigo-500' 
-          : 'hover:bg-zinc-50 border-l-2 border-transparent'
+          ? 'bg-indigo-50 border-l-4 border-indigo-500 pl-3' 
+          : 'hover:bg-zinc-50 border-l-4 border-transparent pl-3'
         }
       `}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <div
-          className={`w-2 h-2 rounded-full shrink-0 ${TABLE_BG_COLOR_CLASSES[table.color || '#6366f1'] || 'bg-indigo-500'}`}
+          className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-sm ${TABLE_BG_COLOR_CLASSES[table.color || '#6366f1'] || 'bg-indigo-500'}`}
         />
-        <span className={`text-xs font-medium truncate ${isSelected ? 'text-indigo-700' : 'text-zinc-700'}`}>
+        <span className={`text-sm font-medium truncate ${isSelected ? 'text-indigo-700' : 'text-zinc-700'}`}>
           {table.name}
         </span>
         <span className="text-[10px] text-zinc-400 ml-auto shrink-0">

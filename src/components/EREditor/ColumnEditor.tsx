@@ -39,11 +39,7 @@ export function ColumnEditor() {
   }, [selectedTableId, selectedColumnId, deleteColumn]);
 
   if (!selectedColumn) {
-    return (
-      <div className="p-3 text-zinc-400 text-center text-xs">
-        {t('column.column')}を選択してください
-      </div>
-    );
+    return null;
   }
 
   const typeOptions = columnTypes.map((type) => ({
@@ -52,8 +48,8 @@ export function ColumnEditor() {
   }));
 
   return (
-    <div className="p-3 space-y-3">
-      <h3 className="font-medium text-xs text-zinc-500 uppercase tracking-wide">{t('column.column')}設定</h3>
+    <div className="p-4 space-y-4">
+      <h3 className="font-bold text-xs text-zinc-500 uppercase tracking-wider mb-2">{t('column.column')}設定</h3>
       
       {/* カラム名 */}
       <Input
