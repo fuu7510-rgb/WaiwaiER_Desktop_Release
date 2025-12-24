@@ -32,7 +32,9 @@
     "description": "Description",
     "type": "Type",
     "required": "Required",
-    "optional": "Optional"
+    "optional": "Optional",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar"
   },
   "app": {
     "title": "WaiwaiER Desktop",
@@ -54,6 +56,7 @@
   },
   "project": {
     "projects": "Projects",
+    "noProjectAutosaveWarning": "No project selected: auto-save is disabled",
     "newProject": "New Project",
     "projectName": "Project Name",
     "createProject": "Create Project",
@@ -104,6 +107,9 @@
     "columns": "Columns",
     "deleteColumn": "Delete Column",
     "deleteColumnConfirm": "Are you sure you want to delete column \"{{name}}\"?",
+    "dummyData": "Dummy Data",
+    "dummyDataPreview": "Preview (matches Simulator)",
+    "dummyDataPlaceholder": "One value per line (multi-line supported)",
     "constraints": {
       "required": "Required",
       "unique": "Unique",
@@ -204,6 +210,18 @@
       "defaultKeyColumnName": "Fixed Key Column Name",
       "defaultKeyColumnNamePlaceholder": "e.g. _RowID",
       "description": "When adding a table, the key column name is auto-generated as 'Prefix + Table Name (input) + Suffix'. If a fixed key column name is set, it takes priority."
+    },
+    "relationLabel": {
+      "title": "Edge Label",
+      "initialMode": "Default for new relations",
+      "customText": "Custom text",
+      "customTextPlaceholder": "e.g. 1:N",
+      "description": "Sets the initial label for newly created relations (edges). 'Hidden' is saved as an empty string (hidden).",
+      "modes": {
+        "auto": "Auto (1:N / 1:1 / N:M)",
+        "hidden": "Hidden",
+        "custom": "Custom"
+      }
     }
   },
   "license": {

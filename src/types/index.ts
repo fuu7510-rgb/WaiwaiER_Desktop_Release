@@ -47,6 +47,11 @@ export interface Column {
   isKey: boolean;
   isLabel: boolean;
   description?: string;
+  /**
+   * サンプル/ダミーデータ生成で優先的に使う値。1行=候補値（複数指定可）。
+   * 未指定の場合はデータ型やカラム名から自動生成する。
+   */
+  dummyValues?: string[];
   constraints: ColumnConstraints;
   order: number;
 }
@@ -74,11 +79,26 @@ export interface Relation {
   targetTableId: string;
   targetColumnId: string;
   type: 'one-to-one' | 'one-to-many' | 'many-to-many';
+  /**
+   * ER図の線上に表示する任意ラベル（例: "1:N"）。未指定なら type から自動生成する。
+   */
+  label?: string;
+}
+
+export interface Memo {
+  id: string;
+  text: string;
+  position: TablePosition;
+  width?: number;
+  height?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ERDiagram {
   tables: Table[];
   relations: Relation[];
+  memos?: Memo[];
 }
 
 // プロジェクト関連の型定義
@@ -141,6 +161,8 @@ export interface UIState {
 export type Language = 'ja' | 'en';
 export type Theme = 'light' | 'dark' | 'system';
 
+export type RelationLabelInitialMode = 'auto' | 'hidden' | 'custom';
+
 export interface AppSettings {
   language: Language;
   theme: Theme;
@@ -153,6 +175,15 @@ export interface AppSettings {
   keyColumnPrefix: string;
   keyColumnSuffix: string;
   defaultKeyColumnName: string;
+
+  /**
+   * 新規作成されるリレーション(線)ラベルの初期値ルール
+   */
+  relationLabelInitialMode: RelationLabelInitialMode;
+  /**
+   * relationLabelInitialMode === 'custom' のときに使う初期テキスト
+   */
+  relationLabelInitialCustomText: string;
 }
 
 // 履歴関連の型定義（Undo/Redo）

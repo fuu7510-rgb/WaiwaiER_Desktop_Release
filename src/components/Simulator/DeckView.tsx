@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { Table } from '../../types';
 import { generateSampleData } from '../../lib';
+import { getRowLabel } from './recordLabel';
 
 interface DeckViewProps {
   table: Table;
@@ -9,7 +10,6 @@ interface DeckViewProps {
 
 export function DeckView({ table, searchQuery = '' }: DeckViewProps) {
   const sampleData = useMemo(() => generateSampleData(table, 5), [table]);
-  const labelColumn = table.columns.find((c) => c.isLabel) || table.columns[0];
   const keyColumn = table.columns.find((c) => c.isKey) || table.columns[0];
 
   const filteredData = useMemo(() => {
@@ -30,7 +30,7 @@ export function DeckView({ table, searchQuery = '' }: DeckViewProps) {
           {/* Header */}
           <div className="border-b border-zinc-100 pb-2 mb-2">
             <h3 className="font-medium text-xs text-zinc-700">
-              {String(row[labelColumn?.id] ?? `Item ${index + 1}`)}
+              {getRowLabel(table, row, { fallback: `Item ${index + 1}` })}
             </h3>
             <p className="text-[10px] text-zinc-400">
               {String(row[keyColumn?.id] ?? '')}

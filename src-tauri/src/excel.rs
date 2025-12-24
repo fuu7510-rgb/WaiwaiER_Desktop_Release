@@ -1,5 +1,6 @@
-use rust_xlsxwriter::{Format, Note, Workbook, Worksheet, XlsxError};
+use rust_xlsxwriter::{Format, Note, Workbook, XlsxError};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 // フロントエンドから受け取るカラム制約の型
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -60,59 +61,119 @@ pub struct ExportRequest {
 
 // カラム設定のメモ内容を生成
 fn generate_column_note(column: &Column, tables: &[Table]) -> String {
-    let mut lines = Vec::new();
-    
-    // 基本情報
-    lines.push(format!("TYPE: {}", column.column_type));
-    
+    // docs/AppSheet/MEMO_SETUP.md に従い、AppSheet Note Parameters の形式で出力する
+    // 例: AppSheet:{"Type":"Ref","IsRequired":true,"TypeAuxData":"{\"RefTable\":\"顧客\"}"}
+    let mut data = serde_json::Map::<String, Value>::new();
+
+    // Type（Textは省略して空メモにしやすくする）
+    if column.column_type != "Text" {
+        data.insert("Type".to_string(), Value::String(column.column_type.clone()));
+    }
+
+    // 基本フラグ
     if column.is_key {
-        lines.push("KEY: Yes".to_string());
+        data.insert("IsKey".to_string(), Value::Bool(true));
     }
     if column.is_label {
-        lines.push("LABEL: Yes".to_string());
+        data.insert("IsLabel".to_string(), Value::Bool(true));
     }
-    
-    // 制約情報
     if column.constraints.required == Some(true) {
-        lines.push("REQUIRED: Yes".to_string());
+        data.insert("IsRequired".to_string(), Value::Bool(true));
     }
-    if column.constraints.unique == Some(true) {
-        lines.push("UNIQUE: Yes".to_string());
-    }
+
+    // 初期値
     if let Some(ref default_value) = column.constraints.default_value {
-        lines.push(format!("INITIAL: {}", default_value));
-    }
-    if let Some(min) = column.constraints.min_value {
-        lines.push(format!("MIN: {}", min));
-    }
-    if let Some(max) = column.constraints.max_value {
-        lines.push(format!("MAX: {}", max));
-    }
-    if let Some(ref pattern) = column.constraints.pattern {
-        lines.push(format!("VALID_IF: MATCHES([], \"{}\")", pattern));
-    }
-    if let Some(ref enum_values) = column.constraints.enum_values {
-        lines.push(format!("VALID_IF: IN([], {{\"{}\"}})", enum_values.join("\", \"")));
-    }
-    
-    // Ref型の場合の参照先
-    if column.column_type == "Ref" {
-        if let Some(ref ref_table_id) = column.constraints.ref_table_id {
-            // テーブル名を探す
-            if let Some(ref_table) = tables.iter().find(|t| t.id == *ref_table_id) {
-                lines.push(format!("REF: {}", ref_table.name));
-            }
+        if !default_value.is_empty() {
+            data.insert("DEFAULT".to_string(), Value::String(default_value.clone()));
         }
     }
-    
+
     // 説明
     if let Some(ref desc) = column.description {
         if !desc.is_empty() {
-            lines.push(format!("DESCRIPTION: {}", desc));
+            data.insert("Description".to_string(), Value::String(desc.clone()));
         }
     }
-    
-    lines.join("\n")
+
+    // Valid_If（正規表現）
+    if let Some(ref pattern) = column.constraints.pattern {
+        if !pattern.is_empty() {
+            // AppSheetの式で [_THIS] を参照し、MATCHES を使う
+            // 文字列リテラル内の " と \ はエスケープする
+            let mut escaped = String::with_capacity(pattern.len());
+            for ch in pattern.chars() {
+                match ch {
+                    '\\' => escaped.push_str("\\\\"),
+                    '"' => escaped.push_str("\\\""),
+                    _ => escaped.push(ch),
+                }
+            }
+            let expr = format!("MATCHES([_THIS], \"{}\")", escaped);
+            data.insert("Valid_If".to_string(), Value::String(expr));
+        }
+    }
+
+    // TypeAuxData（型固有のオプション）
+    let mut type_aux = serde_json::Map::<String, Value>::new();
+
+    // 数値型: Min/Max
+    if let Some(min) = column.constraints.min_value {
+        type_aux.insert("MinValue".to_string(), Value::Number(serde_json::Number::from_f64(min).unwrap_or_else(|| serde_json::Number::from(0))));
+    }
+    if let Some(max) = column.constraints.max_value {
+        type_aux.insert("MaxValue".to_string(), Value::Number(serde_json::Number::from_f64(max).unwrap_or_else(|| serde_json::Number::from(0))));
+    }
+
+    // Enum/EnumList: EnumValues + BaseType（選択肢がある場合のみ）
+    if column.column_type == "Enum" || column.column_type == "EnumList" {
+        if let Some(ref enum_values) = column.constraints.enum_values {
+            if !enum_values.is_empty() {
+                type_aux.insert(
+                    "EnumValues".to_string(),
+                    Value::Array(enum_values.iter().cloned().map(Value::String).collect()),
+                );
+                let max_len = enum_values.iter().map(|v| v.chars().count()).max().unwrap_or(0);
+                let base_type = if max_len > 20 { "LongText" } else { "Text" };
+                type_aux.insert("BaseType".to_string(), Value::String(base_type.to_string()));
+            }
+        }
+    }
+
+    // Ref: 参照先テーブル情報
+    if column.column_type == "Ref" {
+        if let Some(ref ref_table_id) = column.constraints.ref_table_id {
+            if let Some(ref_table) = tables.iter().find(|t| t.id == *ref_table_id) {
+                // MEMO_SETUP.md の例に合わせて RefTable / RefKeyColumn / RefType を使う
+                type_aux.insert("RefTable".to_string(), Value::String(ref_table.name.clone()));
+
+                // 参照キー列（指定があれば優先、なければ Key、それもなければ先頭）
+                let ref_col = column
+                    .constraints
+                    .ref_column_id
+                    .as_ref()
+                    .and_then(|cid| ref_table.columns.iter().find(|c| c.id == *cid))
+                    .or_else(|| ref_table.columns.iter().find(|c| c.is_key))
+                    .or_else(|| ref_table.columns.first());
+
+                if let Some(rc) = ref_col {
+                    type_aux.insert("RefKeyColumn".to_string(), Value::String(rc.name.clone()));
+                    type_aux.insert("RefType".to_string(), Value::String(rc.column_type.clone()));
+                }
+            }
+        }
+    }
+
+    if !type_aux.is_empty() {
+        // TypeAuxDataは「JSON文字列」として格納する（ネストしたダブルクォートを含む）
+        let aux_string = serde_json::to_string(&Value::Object(type_aux)).unwrap_or_else(|_| "{}".to_string());
+        data.insert("TypeAuxData".to_string(), Value::String(aux_string));
+    }
+
+    let json_string = serde_json::to_string(&Value::Object(data)).unwrap_or_else(|_| "{}".to_string());
+    if json_string == "{}" {
+        return "AppSheet:{}".to_string();
+    }
+    format!("AppSheet:{}", json_string)
 }
 
 // サンプル値を文字列に変換
@@ -165,8 +226,10 @@ pub fn export_to_excel(request: &ExportRequest, file_path: &str) -> Result<(), X
             // カラム設定をメモとして追加
             // 【重要】write_noteを使用（write_commentではなくGoogleスプレッドシート互換）
             let note_text = generate_column_note(column, &request.tables);
-            let note = Note::new(&note_text);
-            worksheet.insert_note(0, col, &note)?;
+            if note_text != "AppSheet:{}" {
+                let note = Note::new(&note_text);
+                worksheet.insert_note(0, col, &note)?;
+            }
         }
         
         // サンプルデータを追加
@@ -222,9 +285,10 @@ mod tests {
         };
         
         let note = generate_column_note(&column, &[]);
-        assert!(note.contains("TYPE: Text"));
-        assert!(note.contains("KEY: Yes"));
-        assert!(note.contains("LABEL: Yes"));
-        assert!(note.contains("REQUIRED: Yes"));
+        assert!(note.starts_with("AppSheet:"));
+        assert!(note.contains("\"IsKey\":true"));
+        assert!(note.contains("\"IsLabel\":true"));
+        assert!(note.contains("\"IsRequired\":true"));
+        assert!(note.contains("\"Description\":\"Test description\""));
     }
 }

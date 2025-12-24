@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useERStore } from '../../stores';
 import { Button, Input, Select } from '../common';
@@ -13,10 +13,28 @@ const columnTypes: ColumnType[] = [
 
 export function ColumnEditor() {
   const { t } = useTranslation();
-  const { tables, selectedTableId, selectedColumnId, updateColumn, deleteColumn } = useERStore();
+  const {
+    tables,
+    selectedTableId,
+    selectedColumnId,
+    updateColumn,
+    deleteColumn,
+    sampleDataByTableId,
+    ensureSampleData,
+  } = useERStore();
   
   const selectedTable = tables.find((t) => t.id === selectedTableId);
   const selectedColumn = selectedTable?.columns.find((c) => c.id === selectedColumnId);
+
+  useEffect(() => {
+    ensureSampleData();
+  }, [ensureSampleData]);
+
+  const previewValues = useMemo(() => {
+    if (!selectedTableId || !selectedColumnId) return [] as string[];
+    const rows = sampleDataByTableId[selectedTableId] ?? [];
+    return rows.map((row) => String(row[selectedColumnId] ?? '-'));
+  }, [sampleDataByTableId, selectedColumnId, selectedTableId]);
 
   const handleUpdate = useCallback((updates: Partial<Column>) => {
     if (selectedTableId && selectedColumnId) {
@@ -137,6 +155,45 @@ export function ColumnEditor() {
               />
             </div>
           )}
+        </div>
+      </div>
+
+      {/* ダミーデータ */}
+      <div className="border-t border-zinc-100 pt-3">
+        <h4 className="font-medium text-xs text-zinc-500 mb-2">{t('column.dummyData')}</h4>
+
+        <div className="mb-2">
+          <div className="text-[10px] text-zinc-400 mb-1">{t('column.dummyDataPreview')}</div>
+          <div className="text-xs text-zinc-700 bg-white border border-zinc-200 rounded px-2 py-1.5">
+            {previewValues.length === 0 ? (
+              <div className="text-zinc-400">-</div>
+            ) : (
+              <div className="space-y-0.5">
+                {previewValues.map((v, i) => (
+                  <div key={i} className="truncate">{v}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-zinc-500 mb-1">
+            {t('column.dummyData')}
+          </label>
+          <textarea
+            value={selectedColumn.dummyValues?.join('\n') || ''}
+            onChange={(e) => {
+              const next = e.target.value
+                .split('\n')
+                .map((v) => v.trim())
+                .filter((v) => v.length > 0);
+              handleUpdate({ dummyValues: next.length ? next : undefined });
+            }}
+            className="w-full px-2.5 py-1.5 text-xs border border-zinc-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+            rows={3}
+            placeholder={t('column.dummyDataPlaceholder')}
+          />
         </div>
       </div>
       

@@ -1,13 +1,18 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { v4 as uuidv4 } from 'uuid';
-import type { Table, Column, Relation, ERDiagram, ColumnType, HistoryEntry } from '../types';
+import type { Table, Column, Relation, Memo, ERDiagram, ColumnType, HistoryEntry } from '../types';
 import { saveDiagram, loadDiagram } from '../lib/database';
+import { generateSampleData } from '../lib/sampleData';
 
 interface ERState {
   // ER図データ
   tables: Table[];
   relations: Relation[];
+  memos: Memo[];
+
+  // シミュレーター用サンプルデータ（tableId -> rows）
+  sampleDataByTableId: Record<string, Record<string, unknown>[]>;
 
   // 保存状態
   isDirty: boolean;
@@ -43,11 +48,23 @@ interface ERState {
   updateColumn: (tableId: string, columnId: string, updates: Partial<Column>) => void;
   deleteColumn: (tableId: string, columnId: string) => void;
   reorderColumn: (tableId: string, columnId: string, newOrder: number) => void;
+
+  // サンプルデータ操作
+  ensureSampleData: () => void;
+  regenerateSampleData: () => void;
+  regenerateSampleDataForTable: (tableId: string) => void;
+  updateSampleRow: (tableId: string, rowIndex: number, updates: Record<string, unknown>) => void;
   
   // リレーション操作
   addRelation: (relation: Omit<Relation, 'id'>) => string;
   updateRelation: (id: string, updates: Partial<Relation>) => void;
   deleteRelation: (id: string) => void;
+
+  // メモ操作
+  addMemo: (position?: { x: number; y: number }, initialText?: string) => string;
+  updateMemo: (id: string, updates: Partial<Memo>) => void;
+  moveMemo: (id: string, position: { x: number; y: number }) => void;
+  deleteMemo: (id: string) => void;
   
   // 選択操作
   selectTable: (id: string | null) => void;
@@ -93,6 +110,19 @@ const createDefaultTable = (name: string, position: { x: number; y: number }, ke
   };
 };
 
+const createDefaultMemo = (position: { x: number; y: number }, initialText?: string): Memo => {
+  const now = new Date().toISOString();
+  return {
+    id: uuidv4(),
+    text: initialText ?? '',
+    position,
+    width: 260,
+    height: 140,
+    createdAt: now,
+    updatedAt: now,
+  };
+};
+
 const arrayMove = <T,>(array: T[], fromIndex: number, toIndex: number): T[] => {
   const next = array.slice();
   const startIndex = fromIndex < 0 ? next.length + fromIndex : fromIndex;
@@ -102,6 +132,79 @@ const arrayMove = <T,>(array: T[], fromIndex: number, toIndex: number): T[] => {
   next.splice(endIndex, 0, item);
   return next;
 };
+
+const AUTO_REF_PLACEHOLDER_RE = /^REF-\d+$/;
+
+function normalizeRefValues(params: {
+  tables: Table[];
+  sampleDataByTableId: Record<string, Record<string, unknown>[]>;
+}): Record<string, Record<string, unknown>[]> {
+  const { tables } = params;
+  const base = params.sampleDataByTableId;
+
+  const tableById = new Map<string, Table>();
+  for (const t of tables) tableById.set(t.id, t);
+
+  const next: Record<string, Record<string, unknown>[]> = { ...base };
+
+  for (const table of tables) {
+    const rows = next[table.id] ?? [];
+    if (rows.length === 0) continue;
+
+    const refColumns = table.columns.filter((c) => c.type === 'Ref' && c.constraints.refTableId);
+    if (refColumns.length === 0) continue;
+
+    let anyRowChanged = false;
+    const nextRows = rows.map((row, rowIndex) => {
+      let outRow: Record<string, unknown> = row;
+
+      for (let refIndex = 0; refIndex < refColumns.length; refIndex++) {
+        const column = refColumns[refIndex];
+        const raw = String(row[column.id] ?? '').trim();
+
+        const refTableId = column.constraints.refTableId;
+        const refTable = refTableId ? tableById.get(refTableId) : undefined;
+        if (!refTable || !refTableId) continue;
+
+        const refRows = next[refTableId] ?? [];
+        if (refRows.length === 0) continue;
+
+        const refKeyColId =
+          column.constraints.refColumnId ??
+          refTable.columns.find((c) => c.isKey)?.id ??
+          refTable.columns[0]?.id;
+
+        if (!refKeyColId) continue;
+
+        const exists = raw
+          ? refRows.some((r) => String(r[refKeyColId] ?? '').trim() === raw)
+          : false;
+
+        // 既に有効な参照なら触らない
+        if (exists) continue;
+
+        // ユーザーが手入力したような値は保持（REF-xxx や空だけ補正対象）
+        if (raw && !AUTO_REF_PLACEHOLDER_RE.test(raw)) continue;
+
+        const pickedRow = refRows[(rowIndex + refIndex) % refRows.length];
+        const pickedKey = String(pickedRow?.[refKeyColId] ?? '').trim();
+        if (!pickedKey) continue;
+
+        if (outRow === row) outRow = { ...row };
+        outRow[column.id] = pickedKey;
+        anyRowChanged = true;
+      }
+
+      return outRow;
+    });
+
+    if (anyRowChanged) {
+      next[table.id] = nextRows;
+    }
+  }
+
+  return next;
+}
 
 export const useERStore = create<ERState>()(
   immer((set, get) => {
@@ -132,6 +235,9 @@ export const useERStore = create<ERState>()(
     return {
     tables: [],
     relations: [],
+    memos: [],
+
+    sampleDataByTableId: {},
 
     isDirty: false,
     isSaving: false,
@@ -149,6 +255,7 @@ export const useERStore = create<ERState>()(
       const table = createDefaultTable(name, position, options?.keyColumnName);
       set((state) => {
         state.tables.push(table);
+        state.sampleDataByTableId[table.id] = generateSampleData(table, 5);
       });
       get().saveHistory(`テーブル「${name}」を追加`);
       get().queueSaveToDB();
@@ -170,6 +277,7 @@ export const useERStore = create<ERState>()(
       const table = get().tables.find((t) => t.id === id);
       set((state) => {
         state.tables = state.tables.filter((t) => t.id !== id);
+        delete state.sampleDataByTableId[id];
         state.relations = state.relations.filter(
           (r) => r.sourceTableId !== id && r.targetTableId !== id
         );
@@ -223,6 +331,7 @@ export const useERStore = create<ERState>()(
       
       set((state) => {
         state.tables.push(newTable);
+        state.sampleDataByTableId[newTable.id] = generateSampleData(newTable, 5);
       });
       get().saveHistory(`テーブル「${source.name}」を複製`);
       get().queueSaveToDB();
@@ -245,6 +354,7 @@ export const useERStore = create<ERState>()(
         if (t) {
           t.columns.push(newColumn);
           t.updatedAt = new Date().toISOString();
+          state.sampleDataByTableId[tableId] = generateSampleData(t, 5);
         }
       });
       get().saveHistory(`カラム「${newColumn.name}」を追加`);
@@ -260,6 +370,7 @@ export const useERStore = create<ERState>()(
           if (column) {
             Object.assign(column, updates);
             table.updatedAt = new Date().toISOString();
+            state.sampleDataByTableId[tableId] = generateSampleData(table, 5);
           }
         }
       });
@@ -273,6 +384,7 @@ export const useERStore = create<ERState>()(
         if (table) {
           table.columns = table.columns.filter((c) => c.id !== columnId);
           table.updatedAt = new Date().toISOString();
+          state.sampleDataByTableId[tableId] = generateSampleData(table, 5);
           
           // リレーションも削除
           state.relations = state.relations.filter(
@@ -310,11 +422,58 @@ export const useERStore = create<ERState>()(
             });
             table.columns.sort((a, b) => a.order - b.order);
             table.updatedAt = new Date().toISOString();
+            state.sampleDataByTableId[tableId] = generateSampleData(table, 5);
           }
         }
       });
       get().saveHistory('カラムの順序を変更');
       get().queueSaveToDB();
+    },
+
+    // サンプルデータ操作
+    ensureSampleData: () => {
+      const { tables } = get();
+      set((state) => {
+        const next: Record<string, Record<string, unknown>[]> = {};
+        for (const table of tables) {
+          next[table.id] = state.sampleDataByTableId[table.id] ?? generateSampleData(table, 5);
+        }
+        state.sampleDataByTableId = normalizeRefValues({ tables, sampleDataByTableId: next });
+      });
+    },
+
+    regenerateSampleData: () => {
+      const { tables } = get();
+      set((state) => {
+        const next: Record<string, Record<string, unknown>[]> = {};
+        for (const table of tables) {
+          next[table.id] = generateSampleData(table, 5);
+        }
+        state.sampleDataByTableId = normalizeRefValues({ tables, sampleDataByTableId: next });
+      });
+    },
+
+    regenerateSampleDataForTable: (tableId) => {
+      const table = get().tables.find((t) => t.id === tableId);
+      if (!table) return;
+      const tables = get().tables;
+      set((state) => {
+        const next = {
+          ...state.sampleDataByTableId,
+          [tableId]: generateSampleData(table, 5),
+        };
+        state.sampleDataByTableId = normalizeRefValues({ tables, sampleDataByTableId: next });
+      });
+    },
+
+    updateSampleRow: (tableId, rowIndex, updates) => {
+      set((state) => {
+        const current = state.sampleDataByTableId[tableId];
+        if (!current || !current[rowIndex]) return;
+        const next = current.slice();
+        next[rowIndex] = { ...next[rowIndex], ...updates };
+        state.sampleDataByTableId[tableId] = next;
+      });
     },
     
     // リレーション操作
@@ -346,6 +505,48 @@ export const useERStore = create<ERState>()(
       get().saveHistory('リレーションを削除');
       get().queueSaveToDB();
     },
+
+    // メモ操作
+    addMemo: (position = { x: 200, y: 200 }, initialText) => {
+      const memo = createDefaultMemo(position, initialText);
+      set((state) => {
+        state.memos.push(memo);
+      });
+      get().saveHistory('メモを追加');
+      get().queueSaveToDB();
+      return memo.id;
+    },
+
+    updateMemo: (id, updates) => {
+      set((state) => {
+        const memo = state.memos.find((m) => m.id === id);
+        if (memo) {
+          Object.assign(memo, updates, { updatedAt: new Date().toISOString() });
+        }
+      });
+      get().saveHistory('メモを更新');
+      get().queueSaveToDB();
+    },
+
+    moveMemo: (id, position) => {
+      set((state) => {
+        const memo = state.memos.find((m) => m.id === id);
+        if (memo) {
+          memo.position = position;
+          memo.updatedAt = new Date().toISOString();
+        }
+      });
+      get().saveHistory('メモを移動');
+      get().queueSaveToDB();
+    },
+
+    deleteMemo: (id) => {
+      set((state) => {
+        state.memos = state.memos.filter((m) => m.id !== id);
+      });
+      get().saveHistory('メモを削除');
+      get().queueSaveToDB();
+    },
     
     // 選択操作
     selectTable: (id) => {
@@ -373,6 +574,7 @@ export const useERStore = create<ERState>()(
           state.historyIndex--;
           state.tables = entry.state.tables;
           state.relations = entry.state.relations;
+          state.memos = entry.state.memos ?? [];
         });
         get().queueSaveToDB();
       }
@@ -386,18 +588,23 @@ export const useERStore = create<ERState>()(
           state.historyIndex++;
           state.tables = entry.state.tables;
           state.relations = entry.state.relations;
+          state.memos = entry.state.memos ?? [];
         });
         get().queueSaveToDB();
       }
     },
     
     saveHistory: (description) => {
-      const { tables, relations, historyIndex } = get();
+      const { tables, relations, memos, historyIndex } = get();
       const entry: HistoryEntry = {
         id: uuidv4(),
         timestamp: new Date().toISOString(),
         description,
-        state: { tables: JSON.parse(JSON.stringify(tables)), relations: JSON.parse(JSON.stringify(relations)) },
+        state: {
+          tables: JSON.parse(JSON.stringify(tables)),
+          relations: JSON.parse(JSON.stringify(relations)),
+          memos: JSON.parse(JSON.stringify(memos)),
+        },
       };
       
       set((state) => {
@@ -419,6 +626,10 @@ export const useERStore = create<ERState>()(
       set((state) => {
         state.tables = diagram.tables;
         state.relations = diagram.relations;
+        state.memos = diagram.memos ?? [];
+        state.sampleDataByTableId = Object.fromEntries(
+          (diagram.tables ?? []).map((t) => [t.id, generateSampleData(t, 5)])
+        );
         state.selectedTableId = null;
         state.selectedColumnId = null;
         state.history = [];
@@ -429,14 +640,16 @@ export const useERStore = create<ERState>()(
     },
     
     exportDiagram: () => {
-      const { tables, relations } = get();
-      return { tables, relations };
+      const { tables, relations, memos } = get();
+      return { tables, relations, memos };
     },
     
     clearDiagram: () => {
       set((state) => {
         state.tables = [];
         state.relations = [];
+        state.memos = [];
+        state.sampleDataByTableId = {};
         state.selectedTableId = null;
         state.selectedColumnId = null;
       });
@@ -465,6 +678,10 @@ export const useERStore = create<ERState>()(
         set((state) => {
           state.tables = diagram.tables;
           state.relations = diagram.relations;
+          state.memos = diagram.memos ?? [];
+          state.sampleDataByTableId = Object.fromEntries(
+            (diagram.tables ?? []).map((t) => [t.id, generateSampleData(t, 5)])
+          );
           state.selectedTableId = null;
           state.selectedColumnId = null;
           state.history = [];
@@ -483,6 +700,7 @@ export const useERStore = create<ERState>()(
           state.isDirty = false;
           state.isSaving = false;
           state.saveError = null;
+          state.sampleDataByTableId = {};
         });
       }
     },
@@ -493,7 +711,7 @@ export const useERStore = create<ERState>()(
 
     saveToDB: async () => {
       clearQueuedSave();
-      const { tables, relations, currentProjectId, currentProjectPassphrase } = get();
+      const { tables, relations, memos, currentProjectId, currentProjectPassphrase } = get();
       if (!currentProjectId) return;
 
       set((state) => {
@@ -504,7 +722,7 @@ export const useERStore = create<ERState>()(
       try {
         await saveDiagram(
           currentProjectId,
-          { tables, relations },
+          { tables, relations, memos },
           { passphrase: currentProjectPassphrase || undefined }
         );
         set((state) => {

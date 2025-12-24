@@ -294,6 +294,10 @@ export async function importJSONDiagram(): Promise<ERDiagram | null> {
     if (!diagram.relations || !Array.isArray(diagram.relations)) {
       diagram.relations = [];
     }
+
+    if (!('memos' in diagram) || !Array.isArray((diagram as ERDiagram).memos)) {
+      (diagram as ERDiagram).memos = [];
+    }
     
     return diagram;
   } catch (error) {

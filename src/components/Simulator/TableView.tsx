@@ -2,9 +2,12 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Table } from '../../types';
 import { generateSampleData } from '../../lib';
+import { getRefDisplayLabel } from './recordLabel';
 
 interface TableViewProps {
   table: Table;
+  tables: Table[];
+  sampleDataByTableId: Record<string, Record<string, unknown>[]>;
   searchQuery?: string;
   data?: Record<string, unknown>[];
   selectedRowKey?: string | null;
@@ -13,6 +16,8 @@ interface TableViewProps {
 
 export function TableView({
   table,
+  tables,
+  sampleDataByTableId,
   searchQuery = '',
   data,
   selectedRowKey = null,
@@ -93,7 +98,14 @@ export function TableView({
                 >
                   {table.columns.map((column) => (
                     <td key={column.id} className="px-3 py-2 text-xs text-zinc-700 whitespace-nowrap">
-                      {String(row[column.id] ?? '')}
+                      {column.type === 'Ref'
+                        ? getRefDisplayLabel({
+                            tables,
+                            sampleDataByTableId,
+                            column,
+                            value: row[column.id],
+                          })
+                        : String(row[column.id] ?? '')}
                     </td>
                   ))}
                 </tr>

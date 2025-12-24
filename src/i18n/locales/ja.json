@@ -32,7 +32,9 @@
     "description": "説明",
     "type": "タイプ",
     "required": "必須",
-    "optional": "任意"
+    "optional": "任意",
+    "collapseSidebar": "サイドバーを折り畳む",
+    "expandSidebar": "サイドバーを展開"
   },
   "app": {
     "title": "WaiwaiER Desktop",
@@ -54,6 +56,7 @@
   },
   "project": {
     "projects": "プロジェクト",
+    "noProjectAutosaveWarning": "プロジェクト未選択：自動保存されません",
     "newProject": "新規プロジェクト",
     "projectName": "プロジェクト名",
     "createProject": "プロジェクトを作成",
@@ -104,6 +107,9 @@
     "columns": "カラム",
     "deleteColumn": "カラムを削除",
     "deleteColumnConfirm": "カラム「{{name}}」を削除しますか？",
+    "dummyData": "ダミーデータ",
+    "dummyDataPreview": "プレビュー（シミュレーターと一致）",
+    "dummyDataPlaceholder": "1行に1つ入力（複数行可）",
     "constraints": {
       "required": "必須",
       "unique": "ユニーク",
@@ -204,6 +210,18 @@
       "defaultKeyColumnName": "固定キーカラム名",
       "defaultKeyColumnNamePlaceholder": "例: _RowID",
       "description": "テーブル追加時、キーカラム名は「プレフィックス + テーブル名（入力値） + サフィックス」で自動生成されます。固定キーカラム名が設定されている場合は、そちらが優先されます。"
+    },
+    "relationLabel": {
+      "title": "線ラベル",
+      "initialMode": "新規リレーションの初期値",
+      "customText": "カスタム文字",
+      "customTextPlaceholder": "例: 1:N",
+      "description": "新規作成されるリレーション（線）のラベル初期値を指定します。『非表示』の場合は空文字（=非表示）として保存されます。",
+      "modes": {
+        "auto": "自動（1:N / 1:1 / N:M）",
+        "hidden": "非表示",
+        "custom": "カスタム"
+      }
     }
   },
   "license": {

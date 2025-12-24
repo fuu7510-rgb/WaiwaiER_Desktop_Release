@@ -1,9 +1,13 @@
-import { memo, useMemo } from 'react';
-import { BaseEdge } from 'reactflow';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { BaseEdge, EdgeLabelRenderer } from 'reactflow';
 import type { EdgeProps, Position } from 'reactflow';
+
+import { useERStore } from '../../stores';
 
 interface RelationEdgeData {
   label?: string;
+  rawLabel?: string;
+  autoLabel?: string;
   offsetIndex?: number;  // 同じテーブルペア間のエッジのインデックス
   totalEdges?: number;   // 同じテーブルペア間のエッジの総数
   isDimmed?: boolean;
@@ -112,10 +116,60 @@ export const RelationEdge = memo(({
   style,
   markerEnd,
 }: EdgeProps<RelationEdgeData>) => {
+  const updateRelation = useERStore((state) => state.updateRelation);
+
   const offsetIndex = data?.offsetIndex ?? 0;
   const totalEdges = data?.totalEdges ?? 1;
   const label = data?.label;
+  const rawLabel = data?.rawLabel;
+  const autoLabel = data?.autoLabel;
   const isDimmed = data?.isDimmed ?? false;
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftLabel, setDraftLabel] = useState(label ?? '');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const ignoreBlurRef = useRef(false);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setDraftLabel(label ?? '');
+    }
+  }, [isEditing, label]);
+
+  useEffect(() => {
+    if (!isEditing) return;
+    const id = window.requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [isEditing]);
+
+  const commit = useCallback(() => {
+    const trimmed = draftLabel.trim();
+
+    // 空文字は「非表示」として保存する
+    if (trimmed.length === 0) {
+      updateRelation(id, { label: '' });
+      setIsEditing(false);
+      return;
+    }
+
+    // 現在が自動ラベル(=未設定)で、入力も自動ラベルと同じなら未設定のままにする
+    if (rawLabel === undefined && autoLabel && trimmed === autoLabel) {
+      updateRelation(id, { label: undefined });
+      setIsEditing(false);
+      return;
+    }
+
+    updateRelation(id, { label: trimmed });
+    setIsEditing(false);
+  }, [autoLabel, draftLabel, id, rawLabel, updateRelation]);
+
+  const cancel = useCallback(() => {
+    setDraftLabel(label ?? '');
+    setIsEditing(false);
+  }, [label]);
 
   // 曲線のオフセット量を計算（エッジが複数ある場合に曲線の膨らみで分散）
   const curvature = useMemo(() => {
@@ -167,9 +221,83 @@ export const RelationEdge = memo(({
           strokeWidth={3}
           paintOrder="stroke"
           opacity={isDimmed ? 0.3 : 1}
+          style={{ cursor: 'text', pointerEvents: 'all' }}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            setIsEditing(true);
+          }}
         >
           {label}
         </text>
+      )}
+
+      {!isEditing && rawLabel === '' && (
+        <EdgeLabelRenderer>
+          <div
+            className="nodrag nopan"
+            style={{
+              position: 'absolute',
+              width: 28,
+              height: 16,
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              pointerEvents: 'all',
+              cursor: 'text',
+              opacity: isDimmed ? 0.3 : 1,
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              setIsEditing(true);
+            }}
+          />
+        </EdgeLabelRenderer>
+      )}
+
+      {isEditing && (
+        <EdgeLabelRenderer>
+          <div
+            className="nodrag nopan"
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              pointerEvents: 'all',
+              opacity: isDimmed ? 0.6 : 1,
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+          >
+            <input
+              ref={inputRef}
+              value={draftLabel}
+              onChange={(e) => setDraftLabel(e.target.value)}
+              onBlur={() => {
+                if (ignoreBlurRef.current) {
+                  ignoreBlurRef.current = false;
+                  return;
+                }
+                commit();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  ignoreBlurRef.current = true;
+                  commit();
+                }
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  ignoreBlurRef.current = true;
+                  cancel();
+                }
+              }}
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                color: '#6366f1',
+              }}
+              className="rounded border border-zinc-200 bg-white px-1 py-0.5 leading-none shadow-sm"
+            />
+          </div>
+        </EdgeLabelRenderer>
       )}
     </>
   );

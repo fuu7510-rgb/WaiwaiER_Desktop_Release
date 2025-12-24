@@ -11,17 +11,19 @@
     "dialog:allow-save",
     "dialog:allow-open",
     "fs:default",
+    "fs:allow-read-file",
     "fs:allow-read-text-file",
+    "fs:allow-write-file",
     "fs:allow-write-text-file",
     {
       "identifier": "fs:scope",
       "allow": [
-        "$DOCUMENT/*",
-        "$DOWNLOAD/*",
-        "$DESKTOP/*",
-        "$HOME/*",
-        "$APPDATA/*",
-        "$APPLOCALDATA/*"
+        "$DOCUMENT/**",
+        "$DOWNLOAD/**",
+        "$DESKTOP/**",
+        "$HOME/**",
+        "$APPDATA/**",
+        "$APPLOCALDATA/**"
       ]
     },
     "sql:default",

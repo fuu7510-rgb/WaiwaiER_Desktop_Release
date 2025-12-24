@@ -17,11 +17,13 @@ import { useERStore } from '../../stores';
 import { useUIStore } from '../../stores';
 import { Button } from '../common/Button';
 import { TableNode } from './TableNode';
+import { MemoNode } from './MemoNode';
 import { RelationEdge } from './RelationEdge';
-import type { Table, Relation } from '../../types';
+import type { Table, Relation, Memo } from '../../types';
 
 const nodeTypes = {
   tableNode: TableNode,
+  memoNode: MemoNode,
 };
 
 const edgeTypes = {
@@ -29,8 +31,16 @@ const edgeTypes = {
 };
 
 function EREditorInner() {
-  const { tables, relations, moveTable, addRelation, addColumn, updateColumn, selectTable, selectedTableId } = useERStore();
-  const { isRelationHighlightEnabled, isGridVisible, toggleGridVisible } = useUIStore();
+  const { tables, relations, memos, moveTable, moveMemo, addMemo, addRelation, addColumn, updateColumn, selectTable, selectedTableId } = useERStore();
+  const {
+    isRelationHighlightEnabled,
+    toggleRelationHighlight,
+    isGridVisible,
+    toggleGridVisible,
+    isMemosVisible,
+    toggleMemosVisible,
+    settings,
+  } = useUIStore();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   const relatedGraph = useMemo(() => {
@@ -113,6 +123,18 @@ function EREditorInner() {
     };
   }, [relatedGraph, selectedTableId]);
 
+  const memoToNode = useCallback((memo: Memo): Node => {
+    return {
+      id: memo.id,
+      type: 'memoNode',
+      position: memo.position,
+      dragHandle: '.memo-drag-handle',
+      data: {
+        memo,
+      },
+    };
+  }, []);
+
   // 同じテーブルペア間のリレーション数をカウントするマップを作成
   const edgeOffsetMap = useMemo(() => {
     const pairCount = new Map<string, number>();
@@ -142,7 +164,12 @@ function EREditorInner() {
   // リレーションをReact Flowエッジに変換
   const relationToEdge = useCallback((relation: Relation): Edge => {
     const offsetInfo = edgeOffsetMap.get(relation.id) || { offsetIndex: 0, totalEdges: 1 };
-    const label = relation.type === 'one-to-many' ? '1:N' : relation.type === 'one-to-one' ? '1:1' : 'N:M';
+    const autoLabel = relation.type === 'one-to-many' ? '1:N' : relation.type === 'one-to-one' ? '1:1' : 'N:M';
+    // label の扱い:
+    // - undefined: 自動ラベルを表示
+    // - ''      : ラベル非表示
+    // - それ以外: 任意ラベルを表示
+    const effectiveLabel = relation.label === undefined ? autoLabel : relation.label;
 
     const isDimmed = relatedGraph.hasSelection && !relatedGraph.relatedEdgeIds.has(relation.id);
     const edgeStyle = relatedGraph.hasSelection
@@ -162,7 +189,9 @@ function EREditorInner() {
       animated: true,
       style: edgeStyle,
       data: {
-        label,
+        label: effectiveLabel,
+        rawLabel: relation.label,
+        autoLabel,
         offsetIndex: offsetInfo.offsetIndex,
         totalEdges: offsetInfo.totalEdges,
         isDimmed,
@@ -170,13 +199,19 @@ function EREditorInner() {
     };
   }, [edgeOffsetMap, relatedGraph]);
 
-  const [nodes, setNodes] = useNodesState(tables.map(tableToNode));
+  const [nodes, setNodes] = useNodesState([
+    ...tables.map(tableToNode),
+    ...(isMemosVisible ? memos.map(memoToNode) : []),
+  ]);
   const [edges, setEdges] = useEdgesState(relations.map(relationToEdge));
 
   // ストアの変更を監視してノードとエッジを更新
   useEffect(() => {
-    setNodes(tables.map(tableToNode));
-  }, [tables, tableToNode, setNodes]);
+    setNodes([
+      ...tables.map(tableToNode),
+      ...(isMemosVisible ? memos.map(memoToNode) : []),
+    ]);
+  }, [isMemosVisible, memos, memoToNode, tables, tableToNode, setNodes]);
 
   useEffect(() => {
     setEdges(relations.map(relationToEdge));
@@ -191,9 +226,13 @@ function EREditorInner() {
 
   const onNodeDragStop = useCallback(
     (_: React.MouseEvent, node: Node) => {
-      moveTable(node.id, node.position);
+      if (node.type === 'memoNode') {
+        moveMemo(node.id, node.position);
+      } else {
+        moveTable(node.id, node.position);
+      }
     },
-    [moveTable]
+    [moveMemo, moveTable]
   );
 
   const onEdgesChange = useCallback(
@@ -257,11 +296,19 @@ function EREditorInner() {
           targetTableId: connection.target,
           targetColumnId: targetColumnId,
           type: 'one-to-many',
+          label:
+            settings.relationLabelInitialMode === 'auto'
+              ? undefined
+              : settings.relationLabelInitialMode === 'hidden'
+                ? ''
+                : settings.relationLabelInitialCustomText.trim().length > 0
+                  ? settings.relationLabelInitialCustomText.trim()
+                  : '',
         });
       }
       setEdges((eds) => addEdge(connection, eds));
     },
-    [addRelation, addColumn, updateColumn, setEdges, tables]
+    [addRelation, addColumn, settings.relationLabelInitialCustomText, settings.relationLabelInitialMode, updateColumn, setEdges, tables]
   );
 
   const onPaneClick = useCallback(() => {
@@ -309,7 +356,42 @@ function EREditorInner() {
         />
       </ReactFlow>
 
-      <div className="absolute left-16 bottom-3 z-10">
+      <div className="absolute left-16 bottom-3 z-10 flex flex-col gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={toggleMemosVisible}
+          aria-pressed={isMemosVisible}
+          title={isMemosVisible ? 'メモを非表示' : 'メモを表示'}
+        >
+          {isMemosVisible ? 'メモ: ON' : 'メモ: OFF'}
+        </Button>
+
+        {isMemosVisible && (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            const offset = memos.length * 24;
+            addMemo({ x: 200 + offset, y: 200 + offset });
+          }}
+          title="好きな場所にメモを追加"
+        >
+          メモ追加
+        </Button>
+        )}
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={toggleRelationHighlight}
+          aria-pressed={isRelationHighlightEnabled}
+          title={isRelationHighlightEnabled ? '関連強調をOFF' : '関連強調をON'}
+        >
+          {isRelationHighlightEnabled ? '関連強調: ON' : '関連強調: OFF'}
+        </Button>
         <Button
           type="button"
           variant="secondary"

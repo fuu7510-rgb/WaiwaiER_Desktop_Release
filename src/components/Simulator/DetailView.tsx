@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { Table } from '../../types';
 import { generateSampleRow } from '../../lib';
 import { TABLE_BG_COLOR_CLASSES } from '../../lib/constants';
+import { getRowLabel } from './recordLabel';
 
 interface DetailViewProps {
   table: Table;
@@ -11,7 +12,6 @@ interface DetailViewProps {
 export function DetailView({ table }: DetailViewProps) {
   const { t } = useTranslation();
   const sampleData = useMemo(() => generateSampleRow(table), [table]);
-  const labelColumn = table.columns.find((c) => c.isLabel) || table.columns[0];
 
   return (
     <div className="max-w-xl mx-auto">
@@ -21,7 +21,7 @@ export function DetailView({ table }: DetailViewProps) {
           className={`px-4 py-3 text-white ${TABLE_BG_COLOR_CLASSES[table.color || '#6366f1']}`}
         >
           <h2 className="text-sm font-medium">
-            {String(sampleData[labelColumn?.id] ?? table.name)}
+            {getRowLabel(table, sampleData, { fallback: table.name }) || table.name}
           </h2>
           <p className="text-[10px] opacity-75">{table.name}</p>
         </div>

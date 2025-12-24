@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Dialog, Button, Input, Select } from '../common';
 import { useUIStore, useProjectStore } from '../../stores';
-import type { Language, Theme } from '../../types';
+import type { Language, Theme, RelationLabelInitialMode } from '../../types';
 
 interface SettingsDialogProps {
   isOpen: boolean;
@@ -22,6 +22,12 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     { value: 'light', label: t('settings.themes.light') },
     { value: 'dark', label: t('settings.themes.dark') },
     { value: 'system', label: t('settings.themes.system') },
+  ];
+
+  const relationLabelModeOptions = [
+    { value: 'auto', label: t('settings.relationLabel.modes.auto') },
+    { value: 'hidden', label: t('settings.relationLabel.modes.hidden') },
+    { value: 'custom', label: t('settings.relationLabel.modes.custom') },
   ];
 
   return (
@@ -102,6 +108,33 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
             
             <p className="text-[10px] text-zinc-400">
               {t('settings.keyColumn.description')}
+            </p>
+          </div>
+        </section>
+
+        {/* Relation Label Settings */}
+        <section>
+          <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2.5">{t('settings.relationLabel.title')}</h3>
+
+          <div className="space-y-2.5">
+            <Select
+              label={t('settings.relationLabel.initialMode')}
+              value={settings.relationLabelInitialMode}
+              options={relationLabelModeOptions}
+              onChange={(e) => updateSettings({ relationLabelInitialMode: e.target.value as RelationLabelInitialMode })}
+            />
+
+            {settings.relationLabelInitialMode === 'custom' && (
+              <Input
+                label={t('settings.relationLabel.customText')}
+                placeholder={t('settings.relationLabel.customTextPlaceholder')}
+                value={settings.relationLabelInitialCustomText}
+                onChange={(e) => updateSettings({ relationLabelInitialCustomText: e.target.value })}
+              />
+            )}
+
+            <p className="text-[10px] text-zinc-400">
+              {t('settings.relationLabel.description')}
             </p>
           </div>
         </section>

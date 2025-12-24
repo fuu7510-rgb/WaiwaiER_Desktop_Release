@@ -51,9 +51,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside
-      className="bg-white border-r border-zinc-200 flex flex-col h-full w-[280px]"
-    >
+    <aside className="bg-white border-r border-zinc-200 flex flex-col h-full w-[280px]">
       {/* Tables List Header */}
       <div className="p-4 border-b border-zinc-100 flex items-center justify-between bg-white sticky top-0 z-10">
         <h2 className="text-sm font-bold text-zinc-600 uppercase tracking-wider mt-[6px] mb-[6px] ml-[6px] mr-[6px] align-bottom">

@@ -4,9 +4,10 @@ import { useERStore } from '../../stores';
 import { Button, ConfirmDialog, Input } from '../common';
 import { TableView } from './TableView';
 import { TABLE_BG_COLOR_CLASSES } from '../../lib/constants';
-import { formatValue, generateSampleData } from '../../lib';
+import { formatValue } from '../../lib';
 import type { Column } from '../../types';
 import { Select } from '../common/Select';
+import { getRefDisplayLabel, getRowLabel } from './recordLabel';
 
 function getInputType(column: Column): string {
   switch (column.type) {
@@ -53,13 +54,20 @@ function formatEnumList(values: Set<string>): string {
 
 export function Simulator() {
   const { t } = useTranslation();
-  const { tables, selectedTableId, selectTable } = useERStore();
+  const {
+    tables,
+    selectedTableId,
+    selectTable,
+    sampleDataByTableId,
+    ensureSampleData,
+    regenerateSampleData,
+    updateSampleRow,
+  } = useERStore();
   const [tableQuery, setTableQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRow, setSelectedRow] = useState<Record<string, unknown> | null>(null);
   const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
-  const [tableRowsById, setTableRowsById] = useState<Record<string, Record<string, unknown>[]>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [draftRow, setDraftRow] = useState<Record<string, unknown> | null>(null);
   const [isRegenerateConfirmOpen, setIsRegenerateConfirmOpen] = useState(false);
@@ -79,20 +87,10 @@ export function Simulator() {
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
-      // Ref候補用に、全テーブル分のデータを（未作成なら）用意する
-      setTableRowsById((prev) => {
-        let changed = false;
-        const next: Record<string, Record<string, unknown>[]> = { ...prev };
-        for (const table of tables) {
-          if (next[table.id]) continue;
-          next[table.id] = generateSampleData(table, 5);
-          changed = true;
-        }
-        return changed ? next : prev;
-      });
+      ensureSampleData();
     });
     return () => cancelAnimationFrame(raf);
-  }, [tables]);
+  }, [ensureSampleData, tables]);
 
   const doRegenerateDummyData = () => {
     setSelectedRow(null);
@@ -101,16 +99,10 @@ export function Simulator() {
     setIsEditing(false);
     setDraftRow(null);
 
-    setTableRowsById(() => {
-      const next: Record<string, Record<string, unknown>[]> = {};
-      for (const table of tables) {
-        next[table.id] = generateSampleData(table, 5);
-      }
-      return next;
-    });
+    regenerateSampleData();
   };
 
-  const tableRows = selectedTable?.id ? tableRowsById[selectedTable.id] ?? [] : [];
+  const tableRows = selectedTable?.id ? sampleDataByTableId[selectedTable.id] ?? [] : [];
 
   const selectedTableKeyColumnId = useMemo(() => {
     return selectedTable?.columns.find((c) => c.isKey)?.id ?? selectedTable?.columns[0]?.id;
@@ -222,6 +214,8 @@ export function Simulator() {
           <div className="flex-1 overflow-hidden">
             <TableView
               table={selectedTable}
+              tables={tables}
+              sampleDataByTableId={sampleDataByTableId}
               searchQuery={searchQuery}
               data={tableRows}
               selectedRowKey={selectedRowKey}
@@ -246,8 +240,10 @@ export function Simulator() {
                   <div className="min-w-0">
                     <h3 className="text-sm font-medium truncate">
                       {(() => {
-                        const labelCol = selectedTable.columns.find((c) => c.isLabel) ?? selectedTable.columns[0];
-                        return String(selectedRow[labelCol?.id] ?? selectedTable.name);
+                        return (
+                          getRowLabel(selectedTable, selectedRow, { fallback: selectedTable.name }) ||
+                          selectedTable.name
+                        );
                       })()}
                     </h3>
                     <p className="text-[10px] opacity-75 truncate">{selectedTable.name}</p>
@@ -286,13 +282,7 @@ export function Simulator() {
                             if (!selectedTable.id) return;
                             if (selectedRowIndex === null) return;
                             if (!draftRow) return;
-                            setTableRowsById((prev) => {
-                              const current = prev[selectedTable.id] ?? [];
-                              if (!current[selectedRowIndex]) return prev;
-                              const next = current.slice();
-                              next[selectedRowIndex] = { ...next[selectedRowIndex], ...draftRow };
-                              return { ...prev, [selectedTable.id]: next };
-                            });
+                            updateSampleRow(selectedTable.id, selectedRowIndex, draftRow);
                             setSelectedRow(draftRow);
                             setSelectedRowKey(makeSelectedRowKey(draftRow, selectedRowIndex));
                             setIsEditing(false);
@@ -344,7 +334,14 @@ export function Simulator() {
                     </div>
                     <div className="flex-1 min-w-0 text-xs text-zinc-700 break-words">
                       {!isEditing ? (
-                        formatValue(selectedRow[column.id], column.type)
+                        column.type === 'Ref'
+                          ? getRefDisplayLabel({
+                              tables,
+                              sampleDataByTableId,
+                              column,
+                              value: selectedRow[column.id],
+                            })
+                          : formatValue(selectedRow[column.id], column.type)
                       ) : (
                         (() => {
                           const currentValue = (draftRow ?? selectedRow)[column.id];
@@ -439,17 +436,16 @@ export function Simulator() {
                           if (column.type === 'Ref') {
                             const refTableId = column.constraints.refTableId;
                             const refTable = refTableId ? tables.find((tb) => tb.id === refTableId) : undefined;
-                            const refRows = refTableId ? tableRowsById[refTableId] ?? [] : [];
+                            const refRows = refTableId ? sampleDataByTableId[refTableId] ?? [] : [];
                             const refKeyColId =
                               column.constraints.refColumnId ??
                               refTable?.columns.find((c) => c.isKey)?.id ??
                               refTable?.columns[0]?.id;
-                            const refLabelColId = refTable?.columns.find((c) => c.isLabel)?.id ?? refTable?.columns[0]?.id;
 
                             const options = refTable && refKeyColId
                               ? refRows.map((r) => {
                                   const v = String(r[refKeyColId] ?? '').trim();
-                                  const label = String(r[refLabelColId ?? refKeyColId] ?? v);
+                                  const label = getRowLabel(refTable, r, { fallback: v }) || v;
                                   return { value: v, label };
                                 }).filter((opt) => opt.value)
                               : [];

@@ -122,9 +122,44 @@ function createSampleDataContext(): SampleDataContext {
   return { uniqueByColumnId, nextUniqueId };
 }
 
+function pickDummyValue(column: Column, index: number): string | null {
+  const values = (column.dummyValues ?? [])
+    .map((v) => String(v).trim())
+    .filter((v) => v.length > 0);
+  if (values.length === 0) return null;
+  return values[index % values.length];
+}
+
+function coerceDummyValue(raw: string, type: ColumnType): unknown {
+  const trimmed = String(raw ?? '').trim();
+  if (trimmed.length === 0) return '';
+
+  if (type === 'Number' || type === 'ChangeCounter') {
+    const n = Number.parseInt(trimmed, 10);
+    return Number.isFinite(n) ? n : trimmed;
+  }
+  if (type === 'Decimal' || type === 'Progress') {
+    const n = Number.parseFloat(trimmed);
+    return Number.isFinite(n) ? n : trimmed;
+  }
+  if (type === 'Yes/No') {
+    const lower = trimmed.toLowerCase();
+    if (lower === 'yes' || lower === 'true' || lower === '1') return 'Yes';
+    if (lower === 'no' || lower === 'false' || lower === '0') return 'No';
+    return trimmed;
+  }
+
+  return trimmed;
+}
+
 // カラムタイプに応じたサンプルデータを生成
 function generateValueForColumn(column: Column, index: number, ctx: SampleDataContext): unknown {
   const { type, constraints } = column;
+
+  const dummy = pickDummyValue(column, index);
+  if (dummy !== null) {
+    return coerceDummyValue(dummy, type);
+  }
   
   switch (type) {
     case 'Text': {

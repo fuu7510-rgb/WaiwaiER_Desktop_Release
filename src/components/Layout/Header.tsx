@@ -8,19 +8,20 @@ export function Header() {
   const {
     viewMode,
     setViewMode,
+    isSidebarOpen,
+    toggleSidebar,
     openSettings,
     openProjectDialog,
     openExportDialog,
     settings,
     setLanguage,
-    isRelationHighlightEnabled,
-    toggleRelationHighlight,
   } = useUIStore();
   const { undo, redo, history, historyIndex, importDiagram, isDirty, isSaving, saveError } = useERStore();
   const { currentProjectId, projects } = useProjectStore();
   const { license, setShowLicenseDialog } = useLicenseStore();
   
   const currentProject = projects.find((p) => p.id === currentProjectId);
+  const showNoProjectWarning = !currentProjectId;
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
   const isPro = license.plan === 'pro';
@@ -49,6 +50,35 @@ export function Header() {
     <header className="h-11 bg-white border-b border-zinc-200 px-3 flex items-center justify-between shrink-0">
       {/* Left: Logo and Project */}
       <div className="flex items-center gap-3">
+        {/* Sidebar Toggle (Editor only) */}
+        {viewMode === 'editor' && (
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="p-1.5 text-zinc-500 hover:bg-zinc-100 rounded transition-colors"
+            title={t(isSidebarOpen ? 'common.collapseSidebar' : 'common.expandSidebar')}
+            aria-label={t(isSidebarOpen ? 'common.collapseSidebar' : 'common.expandSidebar')}
+          >
+            {isSidebarOpen ? (
+              <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path
+                  fillRule="evenodd"
+                  d="M12.707 4.293a1 1 0 010 1.414L8.414 10l4.293 4.293a1 1 0 01-1.414 1.414l-5-5a1 1 0 010-1.414l5-5a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path
+                  fillRule="evenodd"
+                  d="M7.293 4.293a1 1 0 011.414 0l5 5a1 1 0 010 1.414l-5 5a1 1 0 11-1.414-1.414L11.586 10 7.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            )}
+          </button>
+        )}
+
         <h1 className="text-sm font-semibold text-indigo-600 flex items-center gap-1.5">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
             <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" />
@@ -84,6 +114,25 @@ export function Header() {
               {saveError ? '保存エラー' : isSaving ? '保存中' : isDirty ? '未保存' : '保存済み'}
             </span>
           </div>
+        )}
+
+        {showNoProjectWarning && (
+          <button
+            type="button"
+            onClick={openProjectDialog}
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-50/80 text-amber-700 text-[10px] whitespace-nowrap hover:bg-amber-50 transition-colors"
+            title={t('project.noProjectAutosaveWarning')}
+            aria-label={t('project.noProjectAutosaveWarning')}
+          >
+            <svg className="w-3 h-3 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.72-1.36 3.486 0l6.518 11.59c.75 1.334-.213 2.99-1.743 2.99H3.482c-1.53 0-2.493-1.656-1.743-2.99l6.518-11.59zM11 14a1 1 0 10-2 0 1 1 0 002 0zm-1-2a1 1 0 01-1-1V8a1 1 0 012 0v3a1 1 0 01-1 1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span>{t('project.noProjectAutosaveWarning')}</span>
+          </button>
         )}
         
         <button
@@ -165,19 +214,6 @@ export function Header() {
             </svg>
           </button>
         </div>
-
-        {/* Relation Highlight Toggle */}
-        <button
-          onClick={toggleRelationHighlight}
-          className={`px-2 py-0.5 text-xs rounded font-medium transition-colors border ${
-            isRelationHighlightEnabled
-              ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
-              : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
-          }`}
-          title={t('editor.relationHighlight', '関連強調')}
-        >
-          {t('editor.relationHighlight', '関連強調')}: {isRelationHighlightEnabled ? 'ON' : 'OFF'}
-        </button>
 
         {/* License Badge */}
         <button

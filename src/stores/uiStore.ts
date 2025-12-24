@@ -23,6 +23,7 @@ interface UIState {
   // ERエディタ表示
   isRelationHighlightEnabled: boolean;
   isGridVisible: boolean;
+  isMemosVisible: boolean;
   
   // 設定
   settings: AppSettings;
@@ -49,6 +50,7 @@ interface UIState {
   // ERエディタ表示操作
   toggleRelationHighlight: () => void;
   toggleGridVisible: () => void;
+  toggleMemosVisible: () => void;
   
   // 設定操作
   updateSettings: (settings: Partial<AppSettings>) => void;
@@ -68,6 +70,8 @@ const defaultSettings: AppSettings = {
   keyColumnPrefix: '',
   keyColumnSuffix: '',
   defaultKeyColumnName: '',
+  relationLabelInitialMode: 'auto',
+  relationLabelInitialCustomText: '',
 };
 
 export const useUIStore = create<UIState>()(
@@ -85,6 +89,7 @@ export const useUIStore = create<UIState>()(
       sidebarWidth: 280,
       isRelationHighlightEnabled: true,
       isGridVisible: true,
+      isMemosVisible: true,
       settings: defaultSettings,
       
       // ビュー操作
@@ -111,6 +116,8 @@ export const useUIStore = create<UIState>()(
         set((state) => ({ isRelationHighlightEnabled: !state.isRelationHighlightEnabled })),
 
       toggleGridVisible: () => set((state) => ({ isGridVisible: !state.isGridVisible })),
+
+      toggleMemosVisible: () => set((state) => ({ isMemosVisible: !state.isMemosVisible })),
       
       // 設定操作
       updateSettings: (settings) =>
@@ -134,6 +141,7 @@ export const useUIStore = create<UIState>()(
         sidebarWidth: state.sidebarWidth,
         isRelationHighlightEnabled: state.isRelationHighlightEnabled,
         isGridVisible: state.isGridVisible,
+        isMemosVisible: state.isMemosVisible,
       }),
     }
   )
