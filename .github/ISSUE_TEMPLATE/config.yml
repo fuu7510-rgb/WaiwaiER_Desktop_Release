@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: セキュリティ/機密事項の連絡
+    url: mailto:fuu.7510@gmail.com
+    about: 機密情報を含む場合はIssuesに書かず、こちらに連絡してください。
