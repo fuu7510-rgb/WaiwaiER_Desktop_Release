@@ -39,13 +39,13 @@ export function Sidebar() {
     >
       {/* Tables List Header */}
       <div className="p-4 border-b border-zinc-100 flex items-center justify-between bg-white sticky top-0 z-10">
-        <h2 className="text-xs font-bold text-zinc-600 uppercase tracking-wider">
+        <h2 className="text-sm font-bold text-zinc-600 uppercase tracking-wider mt-[6px] mb-[6px] ml-[6px] mr-[6px]">
           {t('table.tables')} <span className="text-zinc-400 ml-1">({tables.length})</span>
         </h2>
         <Button
           size="sm"
           onClick={() => setIsAddingTable(true)}
-          className="shadow-none"
+          className="shadow-none text-[11.4px] pt-[3px] pb-[3px] pl-[6px] pr-[6px] m-[6px]"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -83,13 +83,13 @@ export function Sidebar() {
       <div className="flex-1 overflow-y-auto">
         {tables.length === 0 ? (
           <div className="p-8 text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-zinc-100 mb-3 text-zinc-400">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-zinc-100 mb-3 text-zinc-400 align-middle">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
             </div>
-            <p className="text-sm text-zinc-500 mb-1 font-medium">{t('editor.noTables')}</p>
-            <p className="text-xs text-zinc-400">
+            <p className="text-sm text-zinc-500 mb-1 font-medium align-middle">{t('editor.noTables')}</p>
+            <p className="text-xs text-zinc-400 align-middle">
               {t('editor.clickAddTable')}
             </p>
           </div>
