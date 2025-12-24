@@ -15,6 +15,7 @@ import 'reactflow/dist/style.css';
 
 import { useERStore } from '../../stores';
 import { useUIStore } from '../../stores';
+import { Button } from '../common/Button';
 import { TableNode } from './TableNode';
 import { RelationEdge } from './RelationEdge';
 import type { Table, Relation } from '../../types';
@@ -29,7 +30,7 @@ const edgeTypes = {
 
 function EREditorInner() {
   const { tables, relations, moveTable, addRelation, addColumn, updateColumn, selectTable, selectedTableId } = useERStore();
-  const { isRelationHighlightEnabled } = useUIStore();
+  const { isRelationHighlightEnabled, isGridVisible, toggleGridVisible } = useUIStore();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   const relatedGraph = useMemo(() => {
@@ -268,7 +269,7 @@ function EREditorInner() {
   }, [selectTable]);
 
   return (
-    <div ref={reactFlowWrapper} className="w-full h-full">
+    <div ref={reactFlowWrapper} className="w-full h-full relative">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -285,7 +286,14 @@ function EREditorInner() {
         deleteKeyCode="Delete"
         className="bg-zinc-50"
       >
-        <Background color="#e4e4e7" gap={15} />
+        {isGridVisible && (
+          <Background
+            color="currentColor"
+            className="text-zinc-300"
+            gap={15}
+            lineWidth={1.5}
+          />
+        )}
         <Controls className="!bg-white !border-zinc-200 !shadow-sm [&>button]:!border-zinc-200 [&>button]:!bg-white [&>button:hover]:!bg-zinc-50" />
         <MiniMap
           nodeStrokeColor={(n) => {
@@ -300,6 +308,19 @@ function EREditorInner() {
           maskColor="rgba(0, 0, 0, 0.05)"
         />
       </ReactFlow>
+
+      <div className="absolute left-16 bottom-3 z-10">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={toggleGridVisible}
+          aria-pressed={isGridVisible}
+          title={isGridVisible ? 'グリッドを非表示' : 'グリッドを表示'}
+        >
+          {isGridVisible ? 'グリッド: ON' : 'グリッド: OFF'}
+        </Button>
+      </div>
     </div>
   );
 }

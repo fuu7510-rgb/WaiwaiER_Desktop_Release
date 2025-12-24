@@ -31,7 +31,7 @@ function getInputType(column: Column): string {
   }
 }
 
-function renderFormField(column: Column, columnId: string, _t: (key: string) => string) {
+function renderFormField(column: Column, columnId: string) {
   const inputType = getInputType(column);
   const baseInputClass = "w-full px-2.5 py-1.5 text-xs border border-zinc-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400";
 
@@ -125,7 +125,7 @@ export function FormView({ table }: FormViewProps) {
       <div className="bg-white rounded-lg shadow-sm border border-zinc-100 overflow-hidden">
         {/* Header */}
         <div 
-          className={`px-4 py-3 text-white ${bgClasses[table.color || '#6366f1'] || 'bg-[#6366f1]'}`}
+          className={`px-4 py-3 text-white ${TABLE_BG_COLOR_CLASSES[table.color || '#6366f1'] || 'bg-indigo-500'}`}
         >
           <h2 className="text-sm font-medium">{table.name}</h2>
           <p className="text-[10px] opacity-75">新規作成フォーム</p>
@@ -150,7 +150,7 @@ export function FormView({ table }: FormViewProps) {
                   ({t(`columnTypes.${column.type}`)})
                 </span>
               </label>
-              {renderFormField(column, column.id, t)}
+              {renderFormField(column, column.id)}
               {column.description && (
                 <p className="mt-0.5 text-[9px] text-zinc-400">{column.description}</p>
               )}

@@ -1,26 +1,57 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Table } from '../../types';
-import { generateSampleData, formatValue } from '../../lib';
+import { generateSampleData } from '../../lib';
 
 interface TableViewProps {
   table: Table;
+  searchQuery?: string;
+  data?: Record<string, unknown>[];
+  selectedRowKey?: string | null;
+  onRowClick?: (row: Record<string, unknown>, rowKey: string, rowIndex: number) => void;
 }
 
-export function TableView({ table }: TableViewProps) {
+export function TableView({
+  table,
+  searchQuery = '',
+  data,
+  selectedRowKey = null,
+  onRowClick,
+}: TableViewProps) {
   const { t } = useTranslation();
   const sampleData = useMemo(() => generateSampleData(table, 5), [table]);
+  const rows = data ?? sampleData;
+
+  const keyColumnId = useMemo(() => {
+    return table.columns.find((c) => c.isKey)?.id ?? table.columns[0]?.id;
+  }, [table.columns]);
+
+  const indexedRows = useMemo(() => rows.map((row, index) => ({ row, index })), [rows]);
+
+  const filteredData = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return indexedRows;
+    return indexedRows.filter(({ row }) =>
+      table.columns.some((column) => String(row[column.id] ?? '').toLowerCase().includes(q))
+    );
+  }, [indexedRows, searchQuery, table.columns]);
+
+  const getRowKey = (row: Record<string, unknown>, fallbackIndex: number): string => {
+    const keyValue = keyColumnId ? row[keyColumnId] : undefined;
+    const keyString = String(keyValue ?? '').trim();
+    return keyString ? `${keyColumnId}:${keyString}` : `row:${fallbackIndex}`;
+  };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-zinc-100">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-zinc-100">
-          <thead className="bg-zinc-50">
+    <div className="h-full bg-white border border-zinc-200 overflow-auto">
+      <div className="min-w-full">
+        <table className="min-w-full border-collapse">
+          <thead className="sticky top-0 z-10 bg-zinc-50 border-b border-zinc-200">
             <tr>
               {table.columns.map((column) => (
                 <th
                   key={column.id}
-                  className="px-3 py-2 text-left text-[10px] font-medium text-zinc-500 uppercase tracking-wider"
+                  className="px-3 py-2 text-left text-[10px] font-medium text-zinc-500 uppercase tracking-wider whitespace-nowrap"
                 >
                   <div className="flex items-center gap-1">
                     {column.isKey && (
@@ -38,19 +69,28 @@ export function TableView({ table }: TableViewProps) {
               ))}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-zinc-100">
-            {sampleData.length === 0 ? (
+          <tbody className="bg-white">
+            {filteredData.length === 0 ? (
               <tr>
                 <td
                   colSpan={table.columns.length}
-                  className="px-3 py-6 text-center text-zinc-400 text-xs"
+                  className="px-3 py-8 text-center text-zinc-400 text-xs"
                 >
                   {t('simulator.noData')}
                 </td>
               </tr>
             ) : (
-              sampleData.map((row, rowIndex) => (
-                <tr key={rowIndex} className="hover:bg-zinc-50">
+              filteredData.map(({ row, index: originalIndex }) => (
+                <tr
+                  key={originalIndex}
+                  onClick={() => {
+                    if (!onRowClick) return;
+                    onRowClick(row, getRowKey(row, originalIndex), originalIndex);
+                  }}
+                  className={`border-b border-zinc-100 hover:bg-zinc-50 ${
+                    selectedRowKey === getRowKey(row, originalIndex) ? 'bg-zinc-100' : ''
+                  } ${onRowClick ? 'cursor-pointer' : ''}`}
+                >
                   {table.columns.map((column) => (
                     <td key={column.id} className="px-3 py-2 text-xs text-zinc-700 whitespace-nowrap">
                       {String(row[column.id] ?? '')}

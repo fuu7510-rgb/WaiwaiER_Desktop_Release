@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Handle, Position } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { useTranslation } from 'react-i18next';
@@ -186,14 +186,56 @@ interface ColumnRowProps {
 
 const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) => {
   const { t } = useTranslation();
-  const { selectColumn, selectedColumnId, reorderColumn } = useERStore();
+  const { selectColumn, selectedColumnId, reorderColumn, updateColumn } = useERStore();
   const isSelected = selectedColumnId === column.id;
   const typeClass = columnTypeClasses[column.type] || 'bg-slate-500';
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editName, setEditName] = useState(column.name);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (isEditingName) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [isEditingName]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     selectColumn(tableId, column.id);
   }, [tableId, column.id, selectColumn]);
+
+  const handleNameDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    selectColumn(tableId, column.id);
+    setIsEditingName(true);
+    setEditName(column.name);
+  }, [column.id, column.name, selectColumn, tableId]);
+
+  const handleNameSubmit = useCallback(() => {
+    const next = editName.trim();
+    if (!next) {
+      setIsEditingName(false);
+      setEditName(column.name);
+      return;
+    }
+
+    if (next !== column.name) {
+      updateColumn(tableId, column.id, { name: next });
+    }
+    setIsEditingName(false);
+  }, [column.id, column.name, editName, tableId, updateColumn]);
+
+  const handleNameKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleNameSubmit();
+    } else if (e.key === 'Escape') {
+      e.stopPropagation();
+      setIsEditingName(false);
+      setEditName(column.name);
+    }
+  }, [column.name, handleNameSubmit]);
 
   const handleMoveUp = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -269,7 +311,23 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
       </div>
 
       {/* Column name */}
-      <span className="flex-1 text-[11px] truncate text-zinc-700">{column.name}</span>
+      <span className="flex-1 min-w-0 text-[11px] text-zinc-700" onDoubleClick={handleNameDoubleClick}>
+        {isEditingName ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            onBlur={handleNameSubmit}
+            onKeyDown={handleNameKeyDown}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full bg-white border border-zinc-200 rounded px-1 py-0.5 text-[11px] text-zinc-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+            aria-label={t('table.columnName')}
+          />
+        ) : (
+          <span className="block truncate">{column.name}</span>
+        )}
+      </span>
 
       {/* Column type badge */}
       <span

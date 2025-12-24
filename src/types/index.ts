@@ -121,11 +121,9 @@ export interface LicenseState {
 // UI関連の型定義
 
 export type ViewMode = 'editor' | 'simulator';
-export type SimulatorView = 'table' | 'deck' | 'detail' | 'form';
 
 export interface UIState {
   viewMode: ViewMode;
-  simulatorView: SimulatorView;
   selectedTableId: string | null;
   selectedColumnId: string | null;
   zoom: number;

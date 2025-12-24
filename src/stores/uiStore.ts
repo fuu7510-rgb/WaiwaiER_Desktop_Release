@@ -1,11 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ViewMode, SimulatorView, Language, Theme, AppSettings } from '../types';
+import type { ViewMode, Language, Theme, AppSettings } from '../types';
 
 interface UIState {
   // ビュー状態
   viewMode: ViewMode;
-  simulatorView: SimulatorView;
   
   // キャンバス状態
   zoom: number;
@@ -23,13 +22,13 @@ interface UIState {
 
   // ERエディタ表示
   isRelationHighlightEnabled: boolean;
+  isGridVisible: boolean;
   
   // 設定
   settings: AppSettings;
   
   // アクション
   setViewMode: (mode: ViewMode) => void;
-  setSimulatorView: (view: SimulatorView) => void;
   setZoom: (zoom: number) => void;
   setPanPosition: (position: { x: number; y: number }) => void;
   
@@ -49,6 +48,7 @@ interface UIState {
 
   // ERエディタ表示操作
   toggleRelationHighlight: () => void;
+  toggleGridVisible: () => void;
   
   // 設定操作
   updateSettings: (settings: Partial<AppSettings>) => void;
@@ -75,7 +75,6 @@ export const useUIStore = create<UIState>()(
     (set) => ({
       // 初期状態
       viewMode: 'editor',
-      simulatorView: 'table',
       zoom: 1,
       panPosition: { x: 0, y: 0 },
       isSettingsOpen: false,
@@ -85,11 +84,11 @@ export const useUIStore = create<UIState>()(
       isSidebarOpen: true,
       sidebarWidth: 280,
       isRelationHighlightEnabled: true,
+      isGridVisible: true,
       settings: defaultSettings,
       
       // ビュー操作
       setViewMode: (mode) => set({ viewMode: mode }),
-      setSimulatorView: (view) => set({ simulatorView: view }),
       setZoom: (zoom) => set({ zoom: Math.max(0.1, Math.min(3, zoom)) }),
       setPanPosition: (position) => set({ panPosition: position }),
       
@@ -110,6 +109,8 @@ export const useUIStore = create<UIState>()(
       // ERエディタ表示操作
       toggleRelationHighlight: () =>
         set((state) => ({ isRelationHighlightEnabled: !state.isRelationHighlightEnabled })),
+
+      toggleGridVisible: () => set((state) => ({ isGridVisible: !state.isGridVisible })),
       
       // 設定操作
       updateSettings: (settings) =>
@@ -132,6 +133,7 @@ export const useUIStore = create<UIState>()(
         isSidebarOpen: state.isSidebarOpen,
         sidebarWidth: state.sidebarWidth,
         isRelationHighlightEnabled: state.isRelationHighlightEnabled,
+        isGridVisible: state.isGridVisible,
       }),
     }
   )

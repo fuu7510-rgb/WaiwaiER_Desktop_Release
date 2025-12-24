@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Table } from '../../types';
-import { generateSampleRow, formatValue } from '../../lib';
+import { generateSampleRow } from '../../lib';
 import { TABLE_BG_COLOR_CLASSES } from '../../lib/constants';
 
 interface DetailViewProps {

@@ -1,19 +1,28 @@
 import { useMemo } from 'react';
 import type { Table } from '../../types';
-import { generateSampleData, formatValue } from '../../lib';
+import { generateSampleData } from '../../lib';
 
 interface DeckViewProps {
   table: Table;
+  searchQuery?: string;
 }
 
-export function DeckView({ table }: DeckViewProps) {
-  const sampleData = useMemo(() => generateSampleData(table, 6), [table]);
+export function DeckView({ table, searchQuery = '' }: DeckViewProps) {
+  const sampleData = useMemo(() => generateSampleData(table, 5), [table]);
   const labelColumn = table.columns.find((c) => c.isLabel) || table.columns[0];
   const keyColumn = table.columns.find((c) => c.isKey) || table.columns[0];
 
+  const filteredData = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return sampleData;
+    return sampleData.filter((row) =>
+      table.columns.some((column) => String(row[column.id] ?? '').toLowerCase().includes(q))
+    );
+  }, [sampleData, searchQuery, table.columns]);
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      {sampleData.map((row, index) => (
+      {filteredData.map((row, index) => (
         <div
           key={index}
           className="bg-white rounded-lg shadow-sm border border-zinc-100 p-3 hover:shadow-md transition-shadow cursor-pointer"

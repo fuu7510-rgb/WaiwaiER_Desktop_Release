@@ -16,6 +16,7 @@ interface MainLayoutProps {
 export function MainLayout({ children }: MainLayoutProps) {
   const { i18n } = useTranslation();
   const { 
+    viewMode,
     settings, 
     isProjectDialogOpen, 
     closeProjectDialog, 
@@ -60,7 +61,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   console.log('MainLayout rendering');
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50" style={{ backgroundColor: '#f0f0f0', minHeight: '100vh' }}>
+    <div className="h-screen flex flex-col bg-gray-50 min-h-screen">
       {/* ライセンス警告バナー */}
       {warning && (
         <div className="bg-yellow-100 border-b border-yellow-300 px-4 py-2 text-sm text-yellow-800 flex items-center justify-between">
@@ -77,7 +78,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       <Header />
       
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar />
+        {viewMode === 'editor' && <Sidebar />}
         <main className="flex-1 overflow-hidden">
           {children}
         </main>
