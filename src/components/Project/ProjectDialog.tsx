@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, Button, Input } from '../common';
-import { useProjectStore, useERStore } from '../../stores';
+import { useProjectStore, useERStore, useLicenseStore } from '../../stores';
+import { hashPassphrase, verifyPassphrase } from '../../lib/crypto';
 
 interface ProjectDialogProps {
   isOpen: boolean;
@@ -11,36 +12,150 @@ interface ProjectDialogProps {
 export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
   const { t } = useTranslation();
   const { projects, currentProjectId, createProject, openProject, deleteProject, canCreateProject, getProjectLimit, subscriptionPlan } = useProjectStore();
-  const { clearDiagram } = useERStore();
+  const { clearDiagram, loadFromDB, setCurrentProjectId, setCurrentProjectPassphrase, saveToDB, isDirty } = useERStore();
+  const { limits } = useLicenseStore();
   
   const [isCreating, setIsCreating] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [isEncrypted, setIsEncrypted] = useState(false);
+  const [passphrase, setPassphrase] = useState('');
+  const [confirmPassphrase, setConfirmPassphrase] = useState('');
+  const [passphraseError, setPassphraseError] = useState<string | null>(null);
+
+  const [unlockProjectId, setUnlockProjectId] = useState<string | null>(null);
+  const [unlockPassphrase, setUnlockPassphrase] = useState('');
+  const [unlockError, setUnlockError] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  const handleCreate = useCallback(() => {
+  const generateSaltBase64 = () => {
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
+  };
+
+  const handleCreate = useCallback(async () => {
     if (!newProjectName.trim()) return;
     
     if (!canCreateProject()) {
       alert(t('project.limits.maxProjects', { max: getProjectLimit() }));
       return;
     }
+
+    setPassphraseError(null);
+
+    let passphraseSalt: string | undefined;
+    let passphraseHash: string | undefined;
+    let runtimePassphrase: string | null = null;
+
+    if (isEncrypted) {
+      if (!limits.canEncrypt) {
+        alert('暗号化機能はProプランで利用可能です');
+        return;
+      }
+      if (!passphrase) {
+        setPassphraseError('パスフレーズを入力してください');
+        return;
+      }
+      if (passphrase !== confirmPassphrase) {
+        setPassphraseError('パスフレーズが一致しません');
+        return;
+      }
+
+      passphraseSalt = generateSaltBase64();
+      passphraseHash = await hashPassphrase(passphrase, passphraseSalt);
+      runtimePassphrase = passphrase;
+    }
     
-    const projectId = createProject(newProjectName.trim(), isEncrypted);
+    const projectId = createProject(newProjectName.trim(), {
+      isEncrypted,
+      passphraseSalt,
+      passphraseHash,
+    });
     if (projectId) {
+      // 先にER側の状態をセットしてから初期データを保存
+      setCurrentProjectId(projectId);
+      setCurrentProjectPassphrase(runtimePassphrase);
       clearDiagram();
+      await saveToDB();
+
       openProject(projectId);
       setNewProjectName('');
+      setIsEncrypted(false);
+      setPassphrase('');
+      setConfirmPassphrase('');
       setIsCreating(false);
       onClose();
     }
-  }, [newProjectName, isEncrypted, canCreateProject, createProject, clearDiagram, openProject, onClose, t, getProjectLimit]);
+  }, [newProjectName, isEncrypted, passphrase, confirmPassphrase, limits.canEncrypt, canCreateProject, createProject, clearDiagram, openProject, onClose, t, getProjectLimit, setCurrentProjectId, setCurrentProjectPassphrase, saveToDB]);
 
-  const handleOpen = useCallback((projectId: string) => {
-    // TODO: 実際のプロジェクトデータを読み込む
+  const handleOpen = useCallback(async (projectId: string) => {
+    const project = projects.find((p) => p.id === projectId);
+    if (!project) return;
+
+    // プロジェクト切替前に、現在の編集中データを確実に保存
+    if (currentProjectId && currentProjectId !== projectId && isDirty) {
+      await saveToDB();
+    }
+
+    if (project.isEncrypted) {
+      // 解除フローへ
+      setUnlockProjectId(projectId);
+      setUnlockPassphrase('');
+      setUnlockError(null);
+      return;
+    }
+
+    setCurrentProjectId(projectId);
+    setCurrentProjectPassphrase(null);
+    await loadFromDB(projectId, { passphrase: null });
     openProject(projectId);
     onClose();
-  }, [openProject, onClose]);
+  }, [projects, loadFromDB, openProject, onClose, setCurrentProjectId, setCurrentProjectPassphrase, currentProjectId, isDirty, saveToDB]);
+
+  const handleUnlockAndOpen = useCallback(async () => {
+    if (!unlockProjectId) return;
+    const project = projects.find((p) => p.id === unlockProjectId);
+    if (!project) return;
+
+    setUnlockError(null);
+    if (!unlockPassphrase) {
+      setUnlockError('パスフレーズを入力してください');
+      return;
+    }
+    if (!project.passphraseSalt || !project.passphraseHash) {
+      setUnlockError('このプロジェクトの暗号化情報が不完全です');
+      return;
+    }
+
+    const ok = await verifyPassphrase(unlockPassphrase, project.passphraseSalt, project.passphraseHash);
+    if (!ok) {
+      setUnlockError('パスフレーズが正しくありません');
+      return;
+    }
+
+    // プロジェクト切替前に、現在の編集中データを確実に保存
+    if (currentProjectId && currentProjectId !== project.id && isDirty) {
+      await saveToDB();
+    }
+
+    setCurrentProjectId(project.id);
+    setCurrentProjectPassphrase(unlockPassphrase);
+
+    try {
+      await loadFromDB(project.id, { passphrase: unlockPassphrase });
+    } catch (e) {
+      console.error(e);
+      setUnlockError('復号に失敗しました');
+      return;
+    }
+
+    openProject(project.id);
+    setUnlockProjectId(null);
+    setUnlockPassphrase('');
+    setUnlockError(null);
+    onClose();
+  }, [unlockProjectId, unlockPassphrase, projects, loadFromDB, openProject, onClose, setCurrentProjectId, setCurrentProjectPassphrase, currentProjectId, isDirty, saveToDB]);
 
   const handleDelete = useCallback((projectId: string) => {
     deleteProject(projectId);
@@ -80,6 +195,26 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
                 {t('project.encryption.enable')}
               </span>
             </label>
+
+            {isEncrypted && (
+              <div className="space-y-2">
+                <Input
+                  type="password"
+                  label={t('project.encryption.passphrase')}
+                  value={passphrase}
+                  onChange={(e) => setPassphrase(e.target.value)}
+                  placeholder={t('project.encryption.passphrase')}
+                />
+                <Input
+                  type="password"
+                  label={t('project.encryption.passphraseConfirm')}
+                  value={confirmPassphrase}
+                  onChange={(e) => setConfirmPassphrase(e.target.value)}
+                  placeholder={t('project.encryption.passphraseConfirm')}
+                  error={passphraseError || undefined}
+                />
+              </div>
+            )}
             
             {isEncrypted && (
               <p className="text-[10px] text-amber-600 bg-amber-50/80 p-2 rounded flex items-start gap-1">
@@ -152,6 +287,34 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
                     <Button size="sm" onClick={() => handleOpen(project.id)}>
                       開く
                     </Button>
+                  )}
+
+                  {unlockProjectId === project.id && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-44">
+                        <Input
+                          type="password"
+                          value={unlockPassphrase}
+                          onChange={(e) => setUnlockPassphrase(e.target.value)}
+                          placeholder={t('project.encryption.passphrase')}
+                          error={unlockError || undefined}
+                        />
+                      </div>
+                      <Button size="sm" onClick={handleUnlockAndOpen}>
+                        解除
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          setUnlockProjectId(null);
+                          setUnlockPassphrase('');
+                          setUnlockError(null);
+                        }}
+                      >
+                        ×
+                      </Button>
+                    </div>
                   )}
                   
                   {deleteConfirmId === project.id ? (

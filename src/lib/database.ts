@@ -3,6 +3,7 @@
  * Tauri環境ではSQLiteを使用し、ブラウザ環境ではLocalStorageを使用
  */
 import type { Project, ERDiagram } from '../types';
+import { decryptData, encryptData } from './crypto';
 
 // Tauri環境かどうかをチェック
 function isTauriEnv(): boolean {
@@ -18,6 +19,62 @@ const STORAGE_KEYS = {
   DIAGRAMS: 'waiwaier_diagrams',
   SETTINGS: 'waiwaier_settings',
 };
+
+type EncryptedDiagramPayload = {
+  v: 1;
+  encrypted: string;
+  salt: string;
+  iv: string;
+};
+
+function isEncryptedDiagramPayload(value: unknown): value is EncryptedDiagramPayload {
+  if (!value || typeof value !== 'object') return false;
+  const obj = value as Record<string, unknown>;
+  return (
+    obj.v === 1 &&
+    typeof obj.encrypted === 'string' &&
+    typeof obj.salt === 'string' &&
+    typeof obj.iv === 'string'
+  );
+}
+
+async function encodeDiagramForStorage(diagram: ERDiagram, passphrase?: string): Promise<ERDiagram | EncryptedDiagramPayload> {
+  if (!passphrase) return diagram;
+  const json = JSON.stringify(diagram);
+  const { encrypted, salt, iv } = await encryptData(json, passphrase);
+  return { v: 1, encrypted, salt, iv };
+}
+
+async function decodeDiagramFromStorage(value: unknown, passphrase?: string): Promise<ERDiagram | null> {
+  if (!value) return null;
+
+  if (isEncryptedDiagramPayload(value)) {
+    if (!passphrase) {
+      throw new Error('このプロジェクトは暗号化されています。パスフレーズを入力してください。');
+    }
+    const json = await decryptData(value.encrypted, value.salt, value.iv, passphrase);
+    return JSON.parse(json) as ERDiagram;
+  }
+
+  // 平文(従来形式)
+  if (typeof value === 'object') {
+    const obj = value as ERDiagram;
+    if (Array.isArray((obj as ERDiagram).tables) && Array.isArray((obj as ERDiagram).relations)) {
+      return obj;
+    }
+  }
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return decodeDiagramFromStorage(parsed, passphrase);
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
 
 function getLocalStorageData<T>(key: string, defaultValue: T): T {
   try {
@@ -61,15 +118,15 @@ const localStorageDb = {
     setLocalStorageData(STORAGE_KEYS.DIAGRAMS, diagrams);
   },
 
-  async saveDiagram(projectId: string, diagram: ERDiagram): Promise<void> {
-    const diagrams = getLocalStorageData<Record<string, ERDiagram>>(STORAGE_KEYS.DIAGRAMS, {});
-    diagrams[projectId] = diagram;
+  async saveDiagram(projectId: string, diagram: ERDiagram, options?: { passphrase?: string }): Promise<void> {
+    const diagrams = getLocalStorageData<Record<string, unknown>>(STORAGE_KEYS.DIAGRAMS, {});
+    diagrams[projectId] = await encodeDiagramForStorage(diagram, options?.passphrase);
     setLocalStorageData(STORAGE_KEYS.DIAGRAMS, diagrams);
   },
 
-  async loadDiagram(projectId: string): Promise<ERDiagram | null> {
-    const diagrams = getLocalStorageData<Record<string, ERDiagram>>(STORAGE_KEYS.DIAGRAMS, {});
-    return diagrams[projectId] || null;
+  async loadDiagram(projectId: string, options?: { passphrase?: string }): Promise<ERDiagram | null> {
+    const diagrams = getLocalStorageData<Record<string, unknown>>(STORAGE_KEYS.DIAGRAMS, {});
+    return decodeDiagramFromStorage(diagrams[projectId], options?.passphrase);
   },
 
   async saveSetting(key: string, value: string): Promise<void> {
@@ -110,11 +167,27 @@ async function initTauriDatabase(): Promise<TauriDatabase> {
       name TEXT NOT NULL,
       description TEXT,
       is_encrypted INTEGER DEFAULT 0,
+      passphrase_salt TEXT,
+      passphrase_hash TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       last_opened_at TEXT
     )
   `);
+
+  // 既存DB向けの軽量マイグレーション（列追加）
+  try {
+    const cols = await database.select<{ name: string }[]>('PRAGMA table_info(projects)');
+    const existing = new Set(cols.map((c) => c.name));
+    if (!existing.has('passphrase_salt')) {
+      await database.execute('ALTER TABLE projects ADD COLUMN passphrase_salt TEXT');
+    }
+    if (!existing.has('passphrase_hash')) {
+      await database.execute('ALTER TABLE projects ADD COLUMN passphrase_hash TEXT');
+    }
+  } catch (e) {
+    console.warn('Failed to ensure projects encryption columns:', e);
+  }
 
   await database.execute(`
     CREATE TABLE IF NOT EXISTS diagrams (
@@ -143,13 +216,15 @@ const tauriDb = {
   async saveProject(project: Project): Promise<void> {
     const database = await initTauriDatabase();
     await database.execute(
-      `INSERT OR REPLACE INTO projects (id, name, description, is_encrypted, created_at, updated_at, last_opened_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      `INSERT OR REPLACE INTO projects (id, name, description, is_encrypted, passphrase_salt, passphrase_hash, created_at, updated_at, last_opened_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         project.id,
         project.name,
         project.description || null,
         project.isEncrypted ? 1 : 0,
+        project.passphraseSalt || null,
+        project.passphraseHash || null,
         project.createdAt,
         project.updatedAt,
         project.lastOpenedAt || null,
@@ -165,6 +240,8 @@ const tauriDb = {
         name: string;
         description: string | null;
         is_encrypted: number;
+        passphrase_salt?: string | null;
+        passphrase_hash?: string | null;
         created_at: string;
         updated_at: string;
         last_opened_at: string | null;
@@ -176,6 +253,8 @@ const tauriDb = {
       name: row.name,
       description: row.description || undefined,
       isEncrypted: row.is_encrypted === 1,
+      passphraseSalt: row.passphrase_salt || undefined,
+      passphraseHash: row.passphrase_hash || undefined,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       lastOpenedAt: row.last_opened_at || undefined,
@@ -188,10 +267,11 @@ const tauriDb = {
     await database.execute('DELETE FROM diagrams WHERE project_id = $1', [projectId]);
   },
 
-  async saveDiagram(projectId: string, diagram: ERDiagram): Promise<void> {
+  async saveDiagram(projectId: string, diagram: ERDiagram, options?: { passphrase?: string }): Promise<void> {
     const database = await initTauriDatabase();
     const now = new Date().toISOString();
-    const data = JSON.stringify(diagram);
+    const stored = await encodeDiagramForStorage(diagram, options?.passphrase);
+    const data = JSON.stringify(stored);
 
     const existing = await database.select<{ id: string }[]>(
       'SELECT id FROM diagrams WHERE project_id = $1',
@@ -211,7 +291,7 @@ const tauriDb = {
     }
   },
 
-  async loadDiagram(projectId: string): Promise<ERDiagram | null> {
+  async loadDiagram(projectId: string, options?: { passphrase?: string }): Promise<ERDiagram | null> {
     const database = await initTauriDatabase();
     const rows = await database.select<{ data: string }[]>(
       'SELECT data FROM diagrams WHERE project_id = $1',
@@ -221,7 +301,8 @@ const tauriDb = {
     if (rows.length === 0) return null;
 
     try {
-      return JSON.parse(rows[0].data) as ERDiagram;
+      const parsed = JSON.parse(rows[0].data) as unknown;
+      return await decodeDiagramFromStorage(parsed, options?.passphrase);
     } catch {
       return null;
     }
@@ -265,12 +346,12 @@ export async function deleteProject(projectId: string): Promise<void> {
   return getDb().deleteProject(projectId);
 }
 
-export async function saveDiagram(projectId: string, diagram: ERDiagram): Promise<void> {
-  return getDb().saveDiagram(projectId, diagram);
+export async function saveDiagram(projectId: string, diagram: ERDiagram, options?: { passphrase?: string }): Promise<void> {
+  return getDb().saveDiagram(projectId, diagram, options);
 }
 
-export async function loadDiagram(projectId: string): Promise<ERDiagram | null> {
-  return getDb().loadDiagram(projectId);
+export async function loadDiagram(projectId: string, options?: { passphrase?: string }): Promise<ERDiagram | null> {
+  return getDb().loadDiagram(projectId, options);
 }
 
 export async function saveSetting(key: string, value: string): Promise<void> {

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
-import { useUIStore, useERStore, useLicenseStore, initializeLicenseStore } from '../../stores';
+import { useUIStore, useERStore, useLicenseStore, initializeLicenseStore, useProjectStore } from '../../stores';
 import { ProjectDialog } from '../Project/ProjectDialog';
 import { SettingsDialog } from '../Settings/SettingsDialog';
 import { ExportDialog } from '../Export';
@@ -27,11 +27,31 @@ export function MainLayout({ children }: MainLayoutProps) {
   } = useUIStore();
   const { undo, redo } = useERStore();
   const { showLicenseDialog, setShowLicenseDialog, warning } = useLicenseStore();
+  const { loadProjectsFromDB, projects, currentProjectId } = useProjectStore();
+  const { loadFromDB, currentProjectId: erCurrentProjectId, setCurrentProjectId, setCurrentProjectPassphrase } = useERStore();
 
   // ライセンス初期化
   useEffect(() => {
     initializeLicenseStore();
   }, []);
+
+  // プロジェクト一覧をDBからロード（Tauri環境で永続化を優先）
+  useEffect(() => {
+    void loadProjectsFromDB();
+  }, [loadProjectsFromDB]);
+
+  // 起動時/切替時に、非暗号プロジェクトはER図を自動ロード
+  useEffect(() => {
+    if (!currentProjectId) return;
+    if (erCurrentProjectId === currentProjectId) return;
+    const project = projects.find((p) => p.id === currentProjectId);
+    if (!project) return;
+    if (project.isEncrypted) return;
+
+    setCurrentProjectPassphrase(null);
+    setCurrentProjectId(project.id);
+    void loadFromDB(project.id, { passphrase: null });
+  }, [currentProjectId, erCurrentProjectId, projects, loadFromDB, setCurrentProjectId, setCurrentProjectPassphrase]);
 
   // 言語変更の監視
   useEffect(() => {

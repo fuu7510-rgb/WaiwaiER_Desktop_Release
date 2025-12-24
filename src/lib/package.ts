@@ -7,9 +7,6 @@ import { save, open } from '@tauri-apps/plugin-dialog';
 import {
   writeFile,
   readFile,
-  mkdir,
-  exists,
-  BaseDirectory,
 } from '@tauri-apps/plugin-fs';
 import { loadDiagram, saveDiagram, saveProject, loadProjects } from './database';
 import { encryptData, decryptData } from './crypto';
@@ -31,7 +28,7 @@ interface PackageMetadata {
 // パッケージコンテンツの型定義
 interface PackageContent {
   metadata: PackageMetadata;
-  diagram: string; // JSON string (暗号化時は暗号化済み)
+  diagram: string | { v: 1; encrypted: string; salt: string; iv: string }; // JSON string (暗号化時は暗号化済み)
 }
 
 // 現在のバージョン
@@ -47,12 +44,12 @@ export async function exportPackage(
 ): Promise<{ success: boolean; error?: string; path?: string }> {
   try {
     // ダイアグラムデータを取得
-    const diagramJson = await loadDiagram(project.id);
-    if (!diagramJson) {
+    const diagram = await loadDiagram(project.id, { passphrase });
+    if (!diagram) {
       return { success: false, error: 'ダイアグラムデータが見つかりません' };
     }
 
-    const diagram = JSON.parse(diagramJson);
+    const diagramJson = JSON.stringify(diagram);
 
     // メタデータを構築
     const metadata: PackageMetadata = {
@@ -68,7 +65,7 @@ export async function exportPackage(
     };
 
     // ダイアグラムデータを準備（暗号化オプション）
-    let diagramData = diagramJson;
+    let diagramData: PackageContent['diagram'] = diagramJson;
     if (passphrase) {
       diagramData = await encryptData(diagramJson, passphrase);
     }
@@ -142,7 +139,7 @@ export async function importPackage(
     const metadata = packageContent.metadata;
 
     // 暗号化されている場合はパスフレーズが必要
-    let diagramJson = packageContent.diagram;
+    let diagramJson = typeof packageContent.diagram === 'string' ? packageContent.diagram : JSON.stringify(packageContent.diagram);
     if (metadata.isEncrypted) {
       if (!passphrase) {
         return {
@@ -152,7 +149,17 @@ export async function importPackage(
       }
 
       try {
-        diagramJson = await decryptData(packageContent.diagram, passphrase);
+        if (typeof packageContent.diagram === 'string') {
+          // 旧形式（未暗号化扱い）
+          diagramJson = packageContent.diagram;
+        } else {
+          diagramJson = await decryptData(
+            packageContent.diagram.encrypted,
+            packageContent.diagram.salt,
+            packageContent.diagram.iv,
+            passphrase
+          );
+        }
       } catch {
         return { success: false, error: 'パスフレーズが正しくありません' };
       }
@@ -182,13 +189,13 @@ export async function importPackage(
       name: newProjectName,
       description: metadata.description,
       isEncrypted: metadata.isEncrypted,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     // プロジェクトとダイアグラムを保存
     await saveProject(newProject);
-    await saveDiagram(newProjectId, diagramJson);
+    await saveDiagram(newProjectId, JSON.parse(diagramJson));
 
     return { success: true, project: newProject };
   } catch (error) {

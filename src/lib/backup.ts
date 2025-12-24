@@ -159,7 +159,6 @@ export async function listBackups(projectId?: string): Promise<BackupMetadata[]>
 
 // バックアップマネージャー（自動バックアップ用）
 let backupIntervalId: number | null = null;
-let lastBackupProjectId: string | null = null;
 let getDiagramFn: (() => ERDiagram) | null = null;
 let getProjectInfoFn: (() => { id: string; name: string } | null) | null = null;
 
@@ -188,7 +187,6 @@ export function startAutoBackup(
     
     try {
       await createBackup(projectInfo.id, projectInfo.name, diagram, 'auto');
-      lastBackupProjectId = projectInfo.id;
       console.log(`Auto backup created for project: ${projectInfo.name}`);
     } catch (error) {
       console.error('Auto backup failed:', error);

@@ -16,7 +16,7 @@ export function Header() {
     isRelationHighlightEnabled,
     toggleRelationHighlight,
   } = useUIStore();
-  const { undo, redo, history, historyIndex, importDiagram } = useERStore();
+  const { undo, redo, history, historyIndex, importDiagram, isDirty, isSaving, saveError } = useERStore();
   const { currentProjectId, projects } = useProjectStore();
   const { license, setShowLicenseDialog } = useLicenseStore();
   
@@ -60,6 +60,29 @@ export function Header() {
           <div className="flex items-center gap-1.5 px-2 py-0.5 bg-zinc-100 rounded text-xs">
             <span className="font-medium text-zinc-700 max-w-32 truncate">{currentProject.name}</span>
             {currentProject.isEncrypted && <span className="text-xs">🔒</span>}
+            <span
+              className={
+                `text-[10px] px-1.5 py-0.5 rounded-full font-medium ` +
+                (saveError
+                  ? 'bg-zinc-200 text-zinc-700'
+                  : isSaving
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : isDirty
+                      ? 'bg-zinc-200 text-zinc-700'
+                      : 'bg-indigo-100 text-indigo-700')
+              }
+              title={
+                saveError
+                  ? `保存エラー: ${saveError}`
+                  : isSaving
+                    ? '保存中...'
+                    : isDirty
+                      ? '未保存の変更があります'
+                      : '保存済み'
+              }
+            >
+              {saveError ? '保存エラー' : isSaving ? '保存中' : isDirty ? '未保存' : '保存済み'}
+            </span>
           </div>
         )}
         

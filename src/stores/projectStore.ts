@@ -21,7 +21,14 @@ interface ProjectState {
   
   // アクション
   loadProjectsFromDB: () => Promise<void>;
-  createProject: (name: string, isEncrypted?: boolean) => string | null;
+  createProject: (
+    name: string,
+    options?: {
+      isEncrypted?: boolean;
+      passphraseSalt?: string;
+      passphraseHash?: string;
+    }
+  ) => string | null;
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => void;
   openProject: (id: string) => void;
@@ -57,16 +64,20 @@ export const useProjectStore = create<ProjectState>()(
         }
       },
       
-      createProject: (name, isEncrypted = false) => {
+      createProject: (name, options) => {
         if (!get().canCreateProject()) {
           return null;
         }
+
+        const isEncrypted = options?.isEncrypted ?? false;
         
         const now = new Date().toISOString();
         const project: Project = {
           id: uuidv4(),
           name,
           isEncrypted,
+          passphraseSalt: options?.passphraseSalt,
+          passphraseHash: options?.passphraseHash,
           createdAt: now,
           updatedAt: now,
         };

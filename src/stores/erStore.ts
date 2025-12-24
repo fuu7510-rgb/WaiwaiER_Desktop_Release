@@ -8,6 +8,12 @@ interface ERState {
   // ER図データ
   tables: Table[];
   relations: Relation[];
+
+  // 保存状態
+  isDirty: boolean;
+  isSaving: boolean;
+  lastSavedAt: string | null;
+  saveError: string | null;
   
   // 選択状態
   selectedTableId: string | null;
@@ -19,6 +25,9 @@ interface ERState {
   
   // 現在のプロジェクトID（永続化用）
   currentProjectId: string | null;
+
+  // 暗号化プロジェクト用パスフレーズ（メモリのみ、永続化しない）
+  currentProjectPassphrase: string | null;
   
   // アクション
   // テーブル操作
@@ -56,8 +65,10 @@ interface ERState {
   
   // 永続化
   setCurrentProjectId: (projectId: string | null) => void;
-  loadFromDB: (projectId: string) => Promise<void>;
-  saveToDB: () => void;
+  setCurrentProjectPassphrase: (passphrase: string | null) => void;
+  loadFromDB: (projectId: string, options?: { passphrase?: string | null }) => Promise<void>;
+  queueSaveToDB: () => void;
+  saveToDB: () => Promise<void>;
 }
 
 const createDefaultColumn = (order: number, customName?: string): Column => ({
@@ -93,14 +104,45 @@ const arrayMove = <T,>(array: T[], fromIndex: number, toIndex: number): T[] => {
 };
 
 export const useERStore = create<ERState>()(
-  immer((set, get) => ({
+  immer((set, get) => {
+    let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    const markDirty = () => {
+      set((state) => {
+        state.isDirty = true;
+        state.saveError = null;
+      });
+    };
+
+    const clearQueuedSave = () => {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+        saveTimeout = null;
+      }
+    };
+
+    const queueSave = () => {
+      markDirty();
+      clearQueuedSave();
+      saveTimeout = setTimeout(() => {
+        void get().saveToDB();
+      }, 400);
+    };
+
+    return {
     tables: [],
     relations: [],
+
+    isDirty: false,
+    isSaving: false,
+    lastSavedAt: null,
+    saveError: null,
     selectedTableId: null,
     selectedColumnId: null,
     history: [],
     historyIndex: -1,
     currentProjectId: null,
+    currentProjectPassphrase: null,
     
     // テーブル操作
     addTable: (name, position = { x: 100, y: 100 }, options) => {
@@ -109,7 +151,7 @@ export const useERStore = create<ERState>()(
         state.tables.push(table);
       });
       get().saveHistory(`テーブル「${name}」を追加`);
-      get().saveToDB();
+      get().queueSaveToDB();
       return table.id;
     },
     
@@ -121,7 +163,7 @@ export const useERStore = create<ERState>()(
         }
       });
       get().saveHistory('テーブルを更新');
-      get().saveToDB();
+      get().queueSaveToDB();
     },
     
     deleteTable: (id) => {
@@ -139,7 +181,7 @@ export const useERStore = create<ERState>()(
       if (table) {
         get().saveHistory(`テーブル「${table.name}」を削除`);
       }
-      get().saveToDB();
+      get().queueSaveToDB();
     },
     
     moveTable: (id, position) => {
@@ -150,6 +192,7 @@ export const useERStore = create<ERState>()(
         }
       });
       get().saveHistory('テーブルを移動');
+      get().queueSaveToDB();
     },
 
     reorderTables: (activeTableId, overTableId) => {
@@ -161,7 +204,7 @@ export const useERStore = create<ERState>()(
         state.tables = arrayMove(state.tables, oldIndex, newIndex);
       });
       get().saveHistory('テーブルの順序を変更');
-      get().saveToDB();
+      get().queueSaveToDB();
     },
     
     duplicateTable: (id) => {
@@ -182,6 +225,7 @@ export const useERStore = create<ERState>()(
         state.tables.push(newTable);
       });
       get().saveHistory(`テーブル「${source.name}」を複製`);
+      get().queueSaveToDB();
       return newTable.id;
     },
     
@@ -204,7 +248,7 @@ export const useERStore = create<ERState>()(
         }
       });
       get().saveHistory(`カラム「${newColumn.name}」を追加`);
-      get().saveToDB();
+      get().queueSaveToDB();
       return newColumn.id;
     },
     
@@ -220,7 +264,7 @@ export const useERStore = create<ERState>()(
         }
       });
       get().saveHistory('カラムを更新');
-      get().saveToDB();
+      get().queueSaveToDB();
     },
     
     deleteColumn: (tableId, columnId) => {
@@ -241,7 +285,7 @@ export const useERStore = create<ERState>()(
         }
       });
       get().saveHistory('カラムを削除');
-      get().saveToDB();
+      get().queueSaveToDB();
     },
     
     reorderColumn: (tableId, columnId, newOrder) => {
@@ -270,7 +314,7 @@ export const useERStore = create<ERState>()(
         }
       });
       get().saveHistory('カラムの順序を変更');
-      get().saveToDB();
+      get().queueSaveToDB();
     },
     
     // リレーション操作
@@ -280,7 +324,7 @@ export const useERStore = create<ERState>()(
         state.relations.push({ ...relation, id });
       });
       get().saveHistory('リレーションを追加');
-      get().saveToDB();
+      get().queueSaveToDB();
       return id;
     },
     
@@ -292,7 +336,7 @@ export const useERStore = create<ERState>()(
         }
       });
       get().saveHistory('リレーションを更新');
-      get().saveToDB();
+      get().queueSaveToDB();
     },
     
     deleteRelation: (id) => {
@@ -300,7 +344,7 @@ export const useERStore = create<ERState>()(
         state.relations = state.relations.filter((r) => r.id !== id);
       });
       get().saveHistory('リレーションを削除');
-      get().saveToDB();
+      get().queueSaveToDB();
     },
     
     // 選択操作
@@ -330,6 +374,7 @@ export const useERStore = create<ERState>()(
           state.tables = entry.state.tables;
           state.relations = entry.state.relations;
         });
+        get().queueSaveToDB();
       }
     },
     
@@ -342,6 +387,7 @@ export const useERStore = create<ERState>()(
           state.tables = entry.state.tables;
           state.relations = entry.state.relations;
         });
+        get().queueSaveToDB();
       }
     },
     
@@ -379,7 +425,7 @@ export const useERStore = create<ERState>()(
         state.historyIndex = -1;
       });
       get().saveHistory('ダイアグラムをインポート');
-      get().saveToDB();
+      get().queueSaveToDB();
     },
     
     exportDiagram: () => {
@@ -395,7 +441,7 @@ export const useERStore = create<ERState>()(
         state.selectedColumnId = null;
       });
       get().saveHistory('ダイアグラムをクリア');
-      get().saveToDB();
+      get().queueSaveToDB();
     },
     
     // 永続化
@@ -404,9 +450,17 @@ export const useERStore = create<ERState>()(
         state.currentProjectId = projectId;
       });
     },
+
+    setCurrentProjectPassphrase: (passphrase) => {
+      set((state) => {
+        state.currentProjectPassphrase = passphrase;
+      });
+    },
     
-    loadFromDB: async (projectId) => {
-      const diagram = await loadDiagram(projectId);
+    loadFromDB: async (projectId, options) => {
+      clearQueuedSave();
+      const passphrase = options?.passphrase ?? get().currentProjectPassphrase;
+      const diagram = await loadDiagram(projectId, { passphrase: passphrase ?? undefined });
       if (diagram) {
         set((state) => {
           state.tables = diagram.tables;
@@ -416,22 +470,58 @@ export const useERStore = create<ERState>()(
           state.history = [];
           state.historyIndex = -1;
           state.currentProjectId = projectId;
+          state.currentProjectPassphrase = passphrase ?? null;
+          state.isDirty = false;
+          state.isSaving = false;
+          state.saveError = null;
         });
         get().saveHistory('プロジェクトを読み込み');
       } else {
         set((state) => {
           state.currentProjectId = projectId;
+          state.currentProjectPassphrase = passphrase ?? null;
+          state.isDirty = false;
+          state.isSaving = false;
+          state.saveError = null;
         });
       }
     },
-    
-    saveToDB: () => {
-      const { tables, relations, currentProjectId } = get();
-      if (currentProjectId) {
-        saveDiagram(currentProjectId, { tables, relations }).catch((error) => {
-          console.error('Failed to save diagram to DB:', error);
+
+    queueSaveToDB: () => {
+      queueSave();
+    },
+
+    saveToDB: async () => {
+      clearQueuedSave();
+      const { tables, relations, currentProjectId, currentProjectPassphrase } = get();
+      if (!currentProjectId) return;
+
+      set((state) => {
+        state.isSaving = true;
+        state.saveError = null;
+      });
+
+      try {
+        await saveDiagram(
+          currentProjectId,
+          { tables, relations },
+          { passphrase: currentProjectPassphrase || undefined }
+        );
+        set((state) => {
+          state.isSaving = false;
+          state.isDirty = false;
+          state.lastSavedAt = new Date().toISOString();
+          state.saveError = null;
+        });
+      } catch (error) {
+        console.error('Failed to save diagram to DB:', error);
+        set((state) => {
+          state.isSaving = false;
+          state.isDirty = true;
+          state.saveError = error instanceof Error ? error.message : String(error);
         });
       }
     },
-  }))
+  };
+  })
 );

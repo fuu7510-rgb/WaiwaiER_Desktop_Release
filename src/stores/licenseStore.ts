@@ -2,7 +2,7 @@
  * ライセンス状態管理ストア
  */
 import { create } from 'zustand';
-import type { LicenseInfo, LicenseLimits, LicensePlan } from '../lib/license';
+import type { LicenseInfo, LicenseLimits } from '../lib/license';
 import {
   validateCurrentLicense,
   getLicenseLimits,

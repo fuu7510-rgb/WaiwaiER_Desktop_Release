@@ -90,6 +90,12 @@ export interface Project {
   name: string;
   description?: string;
   isEncrypted: boolean;
+  /**
+   * パスフレーズ自体は保存しない。
+   * 検証用にソルトとハッシュのみ保持する。
+   */
+  passphraseSalt?: string;
+  passphraseHash?: string;
   createdAt: string;
   updatedAt: string;
   lastOpenedAt?: string;

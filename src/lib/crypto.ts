@@ -9,6 +9,23 @@
 
 // Web Crypto APIを使用した暗号化
 
+export type EncryptedPayloadV1 = {
+  v: 1;
+  encrypted: string;
+  salt: string;
+  iv: string;
+};
+
+function ensureArrayBufferView(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy as Uint8Array<ArrayBuffer>;
+}
+
+function ensureArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  return ensureArrayBufferView(bytes).buffer;
+}
+
 // PBKDF2で鍵導出（Web Crypto APIで利用可能）
 // 注: Argon2idはWebAssemblyモジュールが必要なため、
 // MVPではPBKDF2をフォールバックとして使用
@@ -29,7 +46,7 @@ async function deriveKey(
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt,
+      salt: ensureArrayBuffer(salt),
       iterations,
       hash: 'SHA-256',
     },
@@ -54,24 +71,25 @@ function generateIV(): Uint8Array {
 export async function encryptData(
   data: string,
   passphrase: string
-): Promise<{ encrypted: string; salt: string; iv: string }> {
-  const salt = generateSalt();
-  const iv = generateIV();
-  const key = await deriveKey(passphrase, salt);
+): Promise<EncryptedPayloadV1> {
+  const saltBytes: Uint8Array<ArrayBuffer> = ensureArrayBufferView(generateSalt());
+  const ivBytes: Uint8Array<ArrayBuffer> = ensureArrayBufferView(generateIV());
+  const key = await deriveKey(passphrase, saltBytes);
   
   const encoder = new TextEncoder();
   const encodedData = encoder.encode(data);
   
   const encryptedBuffer = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
+    { name: 'AES-GCM', iv: ivBytes },
     key,
     encodedData
   );
   
   return {
+    v: 1,
     encrypted: arrayBufferToBase64(encryptedBuffer),
-    salt: arrayBufferToBase64(salt),
-    iv: arrayBufferToBase64(iv),
+    salt: arrayBufferToBase64(saltBytes),
+    iv: arrayBufferToBase64(ivBytes),
   };
 }
 
