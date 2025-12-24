@@ -39,13 +39,13 @@ export function Sidebar() {
     >
       {/* Tables List Header */}
       <div className="p-4 border-b border-zinc-100 flex items-center justify-between bg-white sticky top-0 z-10">
-        <h2 className="text-sm font-bold text-zinc-600 uppercase tracking-wider mt-[6px] mb-[6px] ml-[6px] mr-[6px]">
+        <h2 className="text-sm font-bold text-zinc-600 uppercase tracking-wider mt-[6px] mb-[6px] ml-[6px] mr-[6px] align-bottom">
           {t('table.tables')} <span className="text-zinc-400 ml-1">({tables.length})</span>
         </h2>
         <Button
           size="sm"
           onClick={() => setIsAddingTable(true)}
-          className="shadow-none text-[11.4px] pt-[3px] pb-[3px] pl-[6px] pr-[6px] m-[6px]"
+          className="shadow-none text-[11.4px] px-3 py-1.5 m-[6px]"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -69,10 +69,10 @@ export function Sidebar() {
             className="mb-3"
           />
           <div className="flex gap-2 justify-end">
-            <Button size="sm" variant="secondary" onClick={() => setIsAddingTable(false)}>
+            <Button size="sm" variant="secondary" onClick={() => setIsAddingTable(false)} className="m-[3px]">
               {t('common.cancel')}
             </Button>
-            <Button size="sm" onClick={handleAddTable}>
+            <Button size="sm" onClick={handleAddTable} className="m-[3px]">
               {t('common.create')}
             </Button>
           </div>

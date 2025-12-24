@@ -12,9 +12,10 @@
 4. [開発コマンド一覧](#開発コマンド一覧)
 5. [開発フロー](#開発フロー)
 6. [プロジェクト構造](#プロジェクト構造)
-7. [デバッグ方法](#デバッグ方法)
-8. [ビルドと配布](#ビルドと配布)
-9. [トラブルシューティング](#トラブルシューティング)
+7. [UI編集ガイド](#ui編集ガイド)
+8. [デバッグ方法](#デバッグ方法)
+9. [ビルドと配布](#ビルドと配布)
+10. [トラブルシューティング](#トラブルシューティング)
 
 ---
 
@@ -221,6 +222,157 @@ WaiwaiER_Desktop/
 
 ---
 
+## UI編集ガイド
+
+このプロジェクトでは、Tailwind CSS v4 と独自のユーティリティ関数を使用してUIを構築しています。
+
+### cn ユーティリティ関数
+
+クラス名のマージには `cn` 関数を使用します。この関数は `clsx` と `tailwind-merge` を組み合わせたもので、Tailwindクラスの競合を自動的に解決します。
+
+```typescript
+import { cn } from '@/lib';
+
+// 基本的な使い方
+cn('px-2 py-1', 'px-4')  // => 'py-1 px-4' (px-4が優先)
+
+// 条件付きクラス
+cn('bg-red-500', isActive && 'bg-blue-500')
+
+// 複数のクラスをマージ
+cn(baseStyles, variantStyles, className)
+```
+
+**ファイル**: `src/lib/cn.ts`
+
+### 共通コンポーネント
+
+共通コンポーネントは `src/components/common/` に配置されています。
+
+| コンポーネント | 説明 | カスタマイズ方法 |
+|--------------|------|-----------------|
+| `Button` | ボタン | `variant`, `size`, `className` props |
+| `Input` | 入力フィールド | `className` prop |
+| `Select` | セレクトボックス | `className` prop |
+| `Dialog` | モーダルダイアログ | `className` prop |
+
+#### Button コンポーネントの使用例
+
+```tsx
+import { Button } from '@/components/common';
+
+// デフォルト（primary, md）
+<Button onClick={handleClick}>送信</Button>
+
+// バリエーション
+<Button variant="secondary" size="sm">キャンセル</Button>
+<Button variant="danger" size="lg">削除</Button>
+<Button variant="ghost">ゴースト</Button>
+
+// カスタムスタイルの追加
+<Button className="px-6 py-3 shadow-lg">カスタムボタン</Button>
+```
+
+**利用可能なバリエーション:**
+- `variant`: `primary` | `secondary` | `danger` | `ghost`
+- `size`: `sm` | `md` | `lg`
+
+### Tailwind CSS v4 での注意点
+
+このプロジェクトはTailwind CSS v4を使用しています。
+
+#### CSSリセットについて
+
+グローバルなCSSリセットは `src/index.css` の `@layer base` 内に記述する必要があります。
+`@layer` の外に書くと、Tailwindのユーティリティクラスを上書きしてしまう可能性があります。
+
+```css
+/* ✅ 正しい書き方 */
+@import "tailwindcss";
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    margin: 0;
+    box-sizing: border-box;
+  }
+}
+
+/* ❌ 避けるべき書き方 */
+* {
+  padding: 0;  /* これがTailwindのパディングクラスを上書きする可能性あり */
+}
+```
+
+#### クラスの上書き
+
+`cn` 関数を使用すると、後から渡したクラスが優先されます：
+
+```tsx
+// Button の sizeStyles.sm は 'px-2.5 py-1' を含む
+// className で px-3 py-1.5 を渡すと、これらが優先される
+<Button size="sm" className="px-3 py-1.5">
+  カスタムパディング
+</Button>
+```
+
+### スタイリングのベストプラクティス
+
+1. **共通コンポーネントを使用する**: 新しいボタンやフォーム要素を作成する前に、既存の共通コンポーネントを確認してください。
+
+2. **cn 関数を使う**: クラス名をマージする際は必ず `cn` 関数を使用してください。
+
+3. **インラインスタイルを避ける**: 可能な限りTailwindクラスを使用し、インラインスタイルは避けてください。
+
+4. **CSS変数を活用する**: 色やスペーシングはCSS変数（`src/index.css` の `:root`）を参照してください。
+
+### カラーパレット
+
+`:root` で定義されているCSS変数：
+
+| 変数名 | 用途 |
+|--------|------|
+| `--primary` | メインカラー（インディゴ） |
+| `--primary-dark` | プライマリのダークバリエーション |
+| `--primary-light` | プライマリのライトバリエーション |
+| `--background` | 背景色 |
+| `--foreground` | テキスト色 |
+| `--muted` | ミュートされた背景 |
+| `--muted-foreground` | ミュートされたテキスト |
+| `--border` | ボーダー色 |
+| `--destructive` | 削除・エラー用の赤 |
+| `--success` | 成功用の緑 |
+| `--warning` | 警告用のオレンジ |
+
+### 新しいコンポーネントの作成
+
+新しいUIコンポーネントを作成する際のテンプレート：
+
+```tsx
+import { cn } from '@/lib';
+
+interface MyComponentProps {
+  className?: string;
+  children: React.ReactNode;
+}
+
+export function MyComponent({ className, children }: MyComponentProps) {
+  return (
+    <div className={cn(
+      // ベーススタイル
+      'flex items-center justify-center p-4',
+      // カスタムクラスで上書き可能
+      className
+    )}>
+      {children}
+    </div>
+  );
+}
+```
+
+---
+
 ## デバッグ方法
 
 ### フロントエンドのデバッグ
@@ -354,3 +506,4 @@ npm install
 | 日付 | 内容 |
 |-----|------|
 | 2025-12-24 | 初版作成 |
+| 2025-12-24 | UI編集ガイド（cn関数、Tailwind v4、コンポーネント）を追加 |

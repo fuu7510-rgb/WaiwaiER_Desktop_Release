@@ -43,7 +43,7 @@ export function Header() {
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
             <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" />
           </svg>
-          <span>WaiwaiER</span>
+          <span className="text-[15px]">WaiwaiER</span>
         </h1>
         
         {currentProject && (
