@@ -39,7 +39,19 @@
   "app": {
     "title": "WaiwaiER Desktop",
     "subtitle": "ER図エディタ",
-    "version": "バージョン {{version}}"
+    "version": "バージョン {{version}}",
+    "destructiveChangesNotice": "{{channel}}版のため、今後の更新でデータ形式（DB/プロジェクト/エクスポート）が破壊的に変更される可能性があります。定期的にエクスポート/バックアップを推奨します。",
+    "channel": {
+      "alpha": "ALPHA",
+      "beta": "BETA",
+      "stable": "STABLE"
+    }
+  },
+  "about": {
+    "title": "バージョン情報",
+    "open": "バージョン情報",
+    "version": "バージョン",
+    "buildTime": "ビルド日時"
   },
   "menu": {
     "file": "ファイル",
@@ -226,6 +238,8 @@
   },
   "license": {
     "title": "ライセンス",
+    "check": "ライセンスを確認",
+    "valid": "ライセンス有効",
     "currentPlan": "現在のプラン",
     "free": "Free",
     "pro": "Pro",
@@ -247,6 +261,11 @@
   "export": {
     "title": "エクスポート",
     "format": "形式",
+    "descriptions": {
+      "json": "ER図の構造をJSON形式で保存",
+      "excel": "Googleスプレッドシート連携用",
+      "package": "データ移行用パッケージ"
+    },
     "formats": {
       "json": "JSON",
       "excel": "Excel (.xlsx)",
@@ -254,6 +273,22 @@
     },
     "includeData": "サンプルデータを含める",
     "encrypt": "エクスポートを暗号化する",
+    "package": {
+      "encrypt": "パッケージを暗号化する",
+      "proOnly": "(Proプラン限定)",
+      "passphrase": "パスフレーズ",
+      "passphraseConfirm": "パスフレーズ確認"
+    },
+    "errors": {
+      "noProjectSelected": "プロジェクトが選択されていません",
+      "enterPassphrase": "パスフレーズを入力してください",
+      "passphraseMismatch": "パスフレーズが一致しません",
+      "encryptProOnly": "暗号化機能はProプランで利用可能です",
+      "failed": "エクスポートに失敗しました"
+    },
+    "info": {
+      "tablesCount": "テーブル数"
+    },
     "exportSuccess": "エクスポートが完了しました",
     "exportError": "エクスポートに失敗しました"
   },

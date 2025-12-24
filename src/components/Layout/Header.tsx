@@ -5,6 +5,13 @@ import type { ViewMode } from '../../types';
 
 export function Header() {
   const { t } = useTranslation();
+  const releaseChannel = (import.meta.env.VITE_RELEASE_CHANNEL || 'alpha').toLowerCase();
+  const channelLabel =
+    releaseChannel === 'beta'
+      ? t('app.channel.beta')
+      : releaseChannel === 'stable'
+        ? t('app.channel.stable')
+        : t('app.channel.alpha');
   const {
     viewMode,
     setViewMode,
@@ -84,6 +91,9 @@ export function Header() {
             <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" />
           </svg>
           <span className="text-[15px]">WaiwaiER</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-100 text-zinc-600 font-medium">
+            {channelLabel}
+          </span>
         </h1>
         
         {currentProject && (

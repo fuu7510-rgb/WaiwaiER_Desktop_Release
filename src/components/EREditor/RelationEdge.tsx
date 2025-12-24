@@ -130,11 +130,10 @@ export const RelationEdge = memo(({
   const inputRef = useRef<HTMLInputElement>(null);
   const ignoreBlurRef = useRef(false);
 
-  useEffect(() => {
-    if (!isEditing) {
-      setDraftLabel(label ?? '');
-    }
-  }, [isEditing, label]);
+  const startEditing = useCallback(() => {
+    setDraftLabel(label ?? '');
+    setIsEditing(true);
+  }, [label]);
 
   useEffect(() => {
     if (!isEditing) return;
@@ -224,7 +223,7 @@ export const RelationEdge = memo(({
           style={{ cursor: 'text', pointerEvents: 'all' }}
           onDoubleClick={(e) => {
             e.stopPropagation();
-            setIsEditing(true);
+            startEditing();
           }}
         >
           {label}
@@ -247,7 +246,7 @@ export const RelationEdge = memo(({
             onMouseDown={(e) => e.stopPropagation()}
             onDoubleClick={(e) => {
               e.stopPropagation();
-              setIsEditing(true);
+              startEditing();
             }}
           />
         </EdgeLabelRenderer>

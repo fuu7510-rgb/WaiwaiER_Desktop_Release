@@ -33,7 +33,7 @@ interface PackageContent {
 
 // 現在のバージョン
 const PACKAGE_VERSION = '1.0.0';
-const APP_VERSION = '1.0.0';
+const APP_VERSION = (typeof __APP_VERSION__ === 'string' && __APP_VERSION__) || '0.0.0';
 
 /**
  * プロジェクトを .waiwai パッケージとしてエクスポート

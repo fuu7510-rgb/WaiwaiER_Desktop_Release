@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface DialogProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface DialogProps {
 }
 
 export function Dialog({ isOpen, onClose, title, children, footer, size = 'md' }: DialogProps) {
+  const { t } = useTranslation();
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       onClose();
@@ -53,7 +55,8 @@ export function Dialog({ isOpen, onClose, title, children, footer, size = 'md' }
           <button
             onClick={onClose}
             className="p-1 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded transition-colors"
-            title="閉じる"
+            title={t('common.close')}
+            aria-label={t('common.close')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -13,7 +13,7 @@ interface LicenseDialogProps {
 
 export const LicenseDialog: React.FC<LicenseDialogProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
-  const { license, limits, activate, deactivate, isLoading } = useLicenseStore();
+  const { license, limits, activate, isLoading } = useLicenseStore();
   const [licenseKey, setLicenseKey] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -30,12 +30,6 @@ export const LicenseDialog: React.FC<LicenseDialogProps> = ({ isOpen, onClose })
     } else {
       setLicenseKey('');
       onClose();
-    }
-  };
-
-  const handleDeactivate = () => {
-    if (confirm('ライセンスを解除しますか？Freeプランに戻ります。')) {
-      deactivate();
     }
   };
 
@@ -130,16 +124,10 @@ export const LicenseDialog: React.FC<LicenseDialogProps> = ({ isOpen, onClose })
 
         {/* Pro プランの場合のアクション */}
         {isPro && (
-          <div className="flex justify-between items-center">
+          <div className="flex justify-end items-center">
             <div className="text-sm text-gray-500">
               最終検証: {license.lastVerifiedAt.toLocaleString('ja-JP')}
             </div>
-            <button
-              onClick={handleDeactivate}
-              className="text-sm text-red-600 hover:text-red-700"
-            >
-              ライセンスを解除
-            </button>
           </div>
         )}
 

@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, Button, Input, Select } from '../common';
 import { useUIStore, useProjectStore } from '../../stores';
 import type { Language, Theme, RelationLabelInitialMode } from '../../types';
+import { getAppInfo } from '../../lib/appInfo';
 
 interface SettingsDialogProps {
   isOpen: boolean;
@@ -10,8 +12,25 @@ interface SettingsDialogProps {
 
 export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
   const { t } = useTranslation();
-  const { settings, updateSettings, setLanguage, setTheme } = useUIStore();
+  const { settings, updateSettings, setLanguage, setTheme, openAboutDialog } = useUIStore();
   const { subscriptionPlan } = useProjectStore();
+
+  const [appVersion, setAppVersion] = useState<string>('');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+
+    void (async () => {
+      const info = await getAppInfo();
+      if (cancelled) return;
+      setAppVersion(info.version);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   const languageOptions = [
     { value: 'ja', label: '日本語' },
@@ -220,7 +239,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  ライセンス有効
+                  {t('license.valid')}
                 </p>
                 <Button variant="secondary" size="sm">{t('license.deactivate')}</Button>
               </div>
@@ -232,7 +251,12 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
         <section className="border-t border-zinc-100 pt-3">
           <div className="text-center text-[10px] text-zinc-400">
             <p className="font-medium text-zinc-500">{t('app.title')}</p>
-            <p>{t('app.version', { version: '0.1.0' })}</p>
+            <p>{t('app.version', { version: appVersion || '0.0.0' })}</p>
+            <div className="mt-2 flex justify-center">
+              <Button variant="secondary" size="sm" onClick={openAboutDialog}>
+                {t('about.open')}
+              </Button>
+            </div>
             <p className="mt-1">© 2025 Fuaze. All rights reserved.</p>
           </div>
         </section>

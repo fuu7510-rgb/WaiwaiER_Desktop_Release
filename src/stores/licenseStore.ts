@@ -4,12 +4,7 @@
 import { create } from 'zustand';
 import type { LicenseInfo, LicenseLimits } from '../lib/license';
 import {
-  validateCurrentLicense,
   getLicenseLimits,
-  activateLicense,
-  clearLicense,
-  tryOnlineVerification,
-  getLicenseWarning,
   canCreateProject,
   canCreateTable,
 } from '../lib/license';
@@ -40,9 +35,9 @@ interface LicenseState {
   setShowLicenseDialog: (show: boolean) => void;
 }
 
-// Freeプランの初期値
+// アルファでは常にProプランとして扱う（アクティベート機能は未提供）
 const initialLicense: LicenseInfo = {
-  plan: 'free',
+  plan: 'pro',
   expiresAt: null,
   activatedAt: new Date(),
   lastVerifiedAt: new Date(),
@@ -61,52 +56,26 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
 
   // ライセンス情報を更新
   refreshLicense: () => {
-    const license = validateCurrentLicense();
-    const limits = getLicenseLimits(license);
-    const warning = getLicenseWarning(license);
-    set({ license, limits, warning });
+    const limits = getLicenseLimits(initialLicense);
+    set({ license: initialLicense, limits, warning: null });
   },
 
   // ライセンスをアクティベート
   activate: async (licenseKey: string) => {
-    set({ isLoading: true });
-    try {
-      const result = await activateLicense(licenseKey);
-      if (result.success && result.license) {
-        const limits = getLicenseLimits(result.license);
-        const warning = getLicenseWarning(result.license);
-        set({
-          license: result.license,
-          limits,
-          warning,
-          isLoading: false,
-          showLicenseDialog: false,
-        });
-      } else {
-        set({ isLoading: false });
-      }
-      return { success: result.success, error: result.error };
-    } catch (error) {
-      set({ isLoading: false });
-      return { success: false, error: 'ライセンスの処理中にエラーが発生しました' };
-    }
+    void licenseKey;
+    return { success: false, error: '現在アクティベート機能は利用できません（アルファでは常にProです）' };
   },
 
   // ライセンスを解除
   deactivate: () => {
-    clearLicense();
-    const license = validateCurrentLicense();
-    const limits = getLicenseLimits(license);
-    set({ license, limits, warning: null });
+    // アルファでは常にPro扱い
+    const limits = getLicenseLimits(initialLicense);
+    set({ license: initialLicense, limits, warning: null });
   },
 
   // オンライン検証を試行
   checkOnline: async () => {
-    const success = await tryOnlineVerification();
-    if (success) {
-      get().refreshLicense();
-    }
-    return success;
+    return false;
   },
 
   // プロジェクト作成可能かチェック
@@ -128,17 +97,4 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
 export function initializeLicenseStore(): void {
   const store = useLicenseStore.getState();
   store.refreshLicense();
-
-  // バックグラウンドでオンライン検証を試行
-  setTimeout(() => {
-    store.checkOnline();
-  }, 5000);
-
-  // 定期的にオンライン検証を試行（1時間ごと）
-  setInterval(
-    () => {
-      store.checkOnline();
-    },
-    60 * 60 * 1000
-  );
 }

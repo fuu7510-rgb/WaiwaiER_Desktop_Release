@@ -39,7 +39,19 @@
   "app": {
     "title": "WaiwaiER Desktop",
     "subtitle": "ER Diagram Editor",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "destructiveChangesNotice": "This is a {{channel}} build. Future updates may introduce breaking changes to data formats (DB / projects / exports). Please export/backup regularly.",
+    "channel": {
+      "alpha": "ALPHA",
+      "beta": "BETA",
+      "stable": "STABLE"
+    }
+  },
+  "about": {
+    "title": "About / Version",
+    "open": "About / Version",
+    "version": "Version",
+    "buildTime": "Build time"
   },
   "menu": {
     "file": "File",
@@ -226,6 +238,8 @@
   },
   "license": {
     "title": "License",
+    "check": "Check license",
+    "valid": "License active",
     "currentPlan": "Current Plan",
     "free": "Free",
     "pro": "Pro",
@@ -247,6 +261,11 @@
   "export": {
     "title": "Export",
     "format": "Format",
+    "descriptions": {
+      "json": "Save the ER diagram structure as JSON",
+      "excel": "For Google Sheets / AppSheet integration",
+      "package": "Package for data migration"
+    },
     "formats": {
       "json": "JSON",
       "excel": "Excel (.xlsx)",
@@ -254,6 +273,22 @@
     },
     "includeData": "Include sample data",
     "encrypt": "Encrypt export",
+    "package": {
+      "encrypt": "Encrypt package",
+      "proOnly": "(Pro plan only)",
+      "passphrase": "Passphrase",
+      "passphraseConfirm": "Confirm passphrase"
+    },
+    "errors": {
+      "noProjectSelected": "No project selected",
+      "enterPassphrase": "Please enter a passphrase",
+      "passphraseMismatch": "Passphrases do not match",
+      "encryptProOnly": "Encryption is available on the Pro plan",
+      "failed": "Export failed"
+    },
+    "info": {
+      "tablesCount": "Tables"
+    },
     "exportSuccess": "Export completed",
     "exportError": "Export failed"
   },

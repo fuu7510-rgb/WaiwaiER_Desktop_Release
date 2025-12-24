@@ -1,1 +1,2 @@
-export { ExportDialog, importJSONDiagram } from './ExportDialog';
+export { ExportDialog } from './ExportDialog';
+export { importJSONDiagram } from './importJSONDiagram';

@@ -8,13 +8,22 @@ import { ProjectDialog } from '../Project/ProjectDialog';
 import { SettingsDialog } from '../Settings/SettingsDialog';
 import { ExportDialog } from '../Export';
 import { LicenseDialog } from '../License';
+import { AboutDialog } from '../About';
 
 interface MainLayoutProps {
   children: ReactNode;
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
+  const releaseChannel = (import.meta.env.VITE_RELEASE_CHANNEL || 'alpha').toLowerCase();
+  const showDestructiveBanner = releaseChannel !== 'stable';
+  const channelLabel =
+    releaseChannel === 'beta'
+      ? t('app.channel.beta')
+      : releaseChannel === 'stable'
+        ? t('app.channel.stable')
+        : t('app.channel.alpha');
   const { 
     viewMode,
     settings, 
@@ -23,7 +32,9 @@ export function MainLayout({ children }: MainLayoutProps) {
     isSettingsOpen, 
     closeSettings,
     isExportDialogOpen,
-    closeExportDialog
+    closeExportDialog,
+    isAboutDialogOpen,
+    closeAboutDialog,
   } = useUIStore();
   const { undo, redo } = useERStore();
   const { showLicenseDialog, setShowLicenseDialog, warning } = useLicenseStore();
@@ -77,9 +88,6 @@ export function MainLayout({ children }: MainLayoutProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // デバッグ: コンポーネントがレンダリングされているか確認
-  console.log('MainLayout rendering');
-
   return (
     <div className="h-screen flex flex-col bg-gray-50 min-h-screen">
       {/* ライセンス警告バナー */}
@@ -90,8 +98,15 @@ export function MainLayout({ children }: MainLayoutProps) {
             onClick={() => setShowLicenseDialog(true)}
             className="text-yellow-900 underline hover:no-underline"
           >
-            ライセンスを確認
+            {t('license.check')}
           </button>
+        </div>
+      )}
+
+      {/* 破壊的変更の注意（常時表示：stable以外） */}
+      {showDestructiveBanner && (
+        <div className="bg-amber-50 border-b border-amber-200 px-3 py-1.5 text-[11px] text-amber-900">
+          <span className="block truncate">{t('app.destructiveChangesNotice', { channel: channelLabel })}</span>
         </div>
       )}
       
@@ -120,6 +135,11 @@ export function MainLayout({ children }: MainLayoutProps) {
       <LicenseDialog
         isOpen={showLicenseDialog}
         onClose={() => setShowLicenseDialog(false)}
+      />
+
+      <AboutDialog
+        isOpen={isAboutDialogOpen}
+        onClose={closeAboutDialog}
       />
     </div>
   );

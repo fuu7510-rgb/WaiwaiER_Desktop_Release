@@ -50,7 +50,7 @@ export const useProjectStore = create<ProjectState>()(
       projects: [],
       currentProjectId: null,
       isLoading: false,
-      subscriptionPlan: 'free',
+      subscriptionPlan: 'pro',
       
       loadProjectsFromDB: async () => {
         set({ isLoading: true });
@@ -162,14 +162,24 @@ export const useProjectStore = create<ProjectState>()(
       },
       
       setSubscriptionPlan: (plan) => {
-        set({ subscriptionPlan: plan });
+        // 現状アクティベート機能は未提供のため、常にProとして扱う
+        if (plan === 'pro') set({ subscriptionPlan: 'pro' });
       },
     }),
     {
       name: 'waiwaier-projects',
+      version: 2,
+      migrate: (persistedState) => {
+        // 旧データでfreeが保存されていても、アルファでは常にPro扱いにする
+        const state = persistedState as Partial<ProjectState> | undefined;
+        return {
+          ...state,
+          subscriptionPlan: 'pro',
+        } as ProjectState;
+      },
       partialize: (state) => ({
         projects: state.projects,
-        subscriptionPlan: state.subscriptionPlan,
+        // subscriptionPlanは永続化しない（常にPro扱い）
       }),
     }
   )

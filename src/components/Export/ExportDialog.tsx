@@ -1,12 +1,11 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { save, open } from '@tauri-apps/plugin-dialog';
-import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
+import { save } from '@tauri-apps/plugin-dialog';
+import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { Dialog, Button } from '../common';
 import { useERStore, useProjectStore, useLicenseStore } from '../../stores';
 import { generateSampleData, exportPackage } from '../../lib';
-import type { ERDiagram } from '../../types';
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -92,22 +91,22 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
 
   const handleExportPackage = useCallback(async () => {
     if (!currentProject) {
-      alert('プロジェクトが選択されていません');
+      alert(t('export.errors.noProjectSelected'));
       return;
     }
 
     // 暗号化オプションでパスフレーズ確認
     if (encryptPackage) {
       if (!passphrase) {
-        alert('パスフレーズを入力してください');
+        alert(t('export.errors.enterPassphrase'));
         return;
       }
       if (passphrase !== confirmPassphrase) {
-        alert('パスフレーズが一致しません');
+        alert(t('export.errors.passphraseMismatch'));
         return;
       }
       if (!limits.canEncrypt) {
-        alert('暗号化機能はProプランで利用可能です');
+        alert(t('export.errors.encryptProOnly'));
         return;
       }
     }
@@ -126,7 +125,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
         setConfirmPassphrase('');
         setEncryptPackage(false);
       } else {
-        alert(result.error || 'エクスポートに失敗しました');
+        alert(result.error || t('export.errors.failed'));
       }
     } catch (error) {
       console.error('Package export failed:', error);
@@ -151,9 +150,9 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
   }, [format, handleExportJSON, handleExportExcel, handleExportPackage]);
 
   const formats: { id: ExportFormat; label: string; description: string }[] = [
-    { id: 'json', label: t('export.formats.json'), description: 'ER図の構造をJSON形式で保存' },
-    { id: 'excel', label: t('export.formats.excel'), description: 'Googleスプレッドシート連携用' },
-    { id: 'package', label: t('export.formats.package'), description: 'データ移行用パッケージ' },
+    { id: 'json', label: t('export.formats.json'), description: t('export.descriptions.json') },
+    { id: 'excel', label: t('export.formats.excel'), description: t('export.descriptions.excel') },
+    { id: 'package', label: t('export.formats.package'), description: t('export.descriptions.package') },
   ];
 
   return (
@@ -218,9 +217,9 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
                 className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 disabled:opacity-50"
               />
               <span className="text-xs text-zinc-600">
-                パッケージを暗号化する
+                {t('export.package.encrypt')}
                 {!limits.canEncrypt && (
-                  <span className="text-[10px] text-amber-600 ml-1">(Proプラン限定)</span>
+                  <span className="text-[10px] text-amber-600 ml-1">{t('export.package.proOnly')}</span>
                 )}
               </span>
             </label>
@@ -228,7 +227,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
             {encryptPackage && (
               <div className="space-y-2 pl-5">
                 <div>
-                  <label className="block text-[10px] text-zinc-500 mb-1">パスフレーズ</label>
+                  <label className="block text-[10px] text-zinc-500 mb-1">{t('export.package.passphrase')}</label>
                   <input
                     type="password"
                     value={passphrase}
@@ -238,7 +237,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-zinc-500 mb-1">パスフレーズ確認</label>
+                  <label className="block text-[10px] text-zinc-500 mb-1">{t('export.package.passphraseConfirm')}</label>
                   <input
                     type="password"
                     value={confirmPassphrase}
@@ -248,7 +247,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
                   />
                 </div>
                 {passphrase && confirmPassphrase && passphrase !== confirmPassphrase && (
-                  <p className="text-[10px] text-red-500">パスフレーズが一致しません</p>
+                  <p className="text-[10px] text-red-500">{t('export.errors.passphraseMismatch')}</p>
                 )}
               </div>
             )}
@@ -257,7 +256,10 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
 
         {/* Info */}
         <div className="bg-zinc-50 rounded p-2.5 text-[10px] text-zinc-500">
-          <p>テーブル数: <span className="font-medium text-zinc-700">{tables.length}</span></p>
+          <p>
+            {t('export.info.tablesCount')}:{' '}
+            <span className="font-medium text-zinc-700">{tables.length}</span>
+          </p>
         </div>
 
         {/* Actions */}
@@ -272,36 +274,4 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
       </div>
     </Dialog>
   );
-}
-
-// JSONインポート機能
-export async function importJSONDiagram(): Promise<ERDiagram | null> {
-  try {
-    const filePath = await open({
-      filters: [{ name: 'JSON', extensions: ['json'] }],
-      multiple: false,
-    });
-    
-    if (!filePath) return null;
-    
-    const content = await readTextFile(filePath as string);
-    const diagram = JSON.parse(content) as ERDiagram;
-    
-    // 基本的なバリデーション
-    if (!diagram.tables || !Array.isArray(diagram.tables)) {
-      throw new Error('Invalid diagram format: tables missing');
-    }
-    if (!diagram.relations || !Array.isArray(diagram.relations)) {
-      diagram.relations = [];
-    }
-
-    if (!('memos' in diagram) || !Array.isArray((diagram as ERDiagram).memos)) {
-      (diagram as ERDiagram).memos = [];
-    }
-    
-    return diagram;
-  } catch (error) {
-    console.error('Import failed:', error);
-    throw error;
-  }
 }

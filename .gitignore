@@ -45,3 +45,7 @@ coverage
 
 # Tauri
 src-tauri/target
+
+# Release artifacts
+release
+
