@@ -10,11 +10,22 @@ import {
 } from '@tauri-apps/plugin-fs';
 import { loadDiagram, saveDiagram, saveProject, loadProjects } from './database';
 import { encryptData, decryptData } from './crypto';
+import { decodeAndMigrateDiagram, encodeDiagramEnvelope, DIAGRAM_SCHEMA_VERSION, MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION } from './diagramSchema';
 import type { Project } from '../types';
 
 // パッケージメタデータの型定義
 interface PackageMetadata {
   version: string;
+  /**
+   * パッケージ形式の世代。直近2世代のみサポート。
+   * 旧パッケージには存在しないため optional。
+   */
+  packageFormatVersion?: number;
+  /**
+   * ER図JSONのスキーマ世代。直近2世代のみサポート。
+   * 旧パッケージには存在しないため optional。
+   */
+  diagramSchemaVersion?: number;
   appVersion: string;
   exportedAt: string;
   projectId: string;
@@ -35,6 +46,19 @@ interface PackageContent {
 const PACKAGE_VERSION = '1.0.0';
 const APP_VERSION = (typeof __APP_VERSION__ === 'string' && __APP_VERSION__) || '0.0.0';
 
+function normalizePackageFormatVersion(metadata: PackageMetadata): number {
+  if (typeof metadata.packageFormatVersion === 'number') return metadata.packageFormatVersion;
+
+  // 旧: version(semver) の major を formatVersion と見なす
+  const raw = metadata.version;
+  if (typeof raw !== 'string') return 0;
+  const major = Number.parseInt(raw.split('.')[0] || '0', 10);
+  return Number.isFinite(major) ? major : 0;
+}
+
+const PACKAGE_FORMAT_VERSION = 1;
+const MIN_SUPPORTED_PACKAGE_FORMAT_VERSION = Math.max(0, PACKAGE_FORMAT_VERSION - 2);
+
 /**
  * プロジェクトを .waiwai パッケージとしてエクスポート
  */
@@ -49,11 +73,14 @@ export async function exportPackage(
       return { success: false, error: 'ダイアグラムデータが見つかりません' };
     }
 
-    const diagramJson = JSON.stringify(diagram);
+    // パッケージ内のダイアグラムは常に envelope 形式で格納する
+    const diagramJson = JSON.stringify(encodeDiagramEnvelope(diagram));
 
     // メタデータを構築
     const metadata: PackageMetadata = {
       version: PACKAGE_VERSION,
+      packageFormatVersion: PACKAGE_FORMAT_VERSION,
+      diagramSchemaVersion: DIAGRAM_SCHEMA_VERSION,
       appVersion: APP_VERSION,
       exportedAt: new Date().toISOString(),
       projectId: project.id,
@@ -138,6 +165,24 @@ export async function importPackage(
 
     const metadata = packageContent.metadata;
 
+    // パッケージ形式の世代チェック（直近2世代のみ）
+    const packageFormatVersion = normalizePackageFormatVersion(metadata);
+    if (packageFormatVersion > PACKAGE_FORMAT_VERSION) {
+      return { success: false, error: 'このパッケージは新しいバージョンで作成されています。アプリをアップデートしてください。' };
+    }
+    if (packageFormatVersion < MIN_SUPPORTED_PACKAGE_FORMAT_VERSION) {
+      return { success: false, error: 'このパッケージは古すぎるため、このバージョンではインポートできません。中間バージョンを経由してアップデートしてください。' };
+    }
+
+    // ダイアグラムスキーマ世代チェック（直近2世代のみ）
+    const diagramSchemaVersion = typeof metadata.diagramSchemaVersion === 'number' ? metadata.diagramSchemaVersion : 0;
+    if (diagramSchemaVersion > DIAGRAM_SCHEMA_VERSION) {
+      return { success: false, error: 'このパッケージ内のデータは新しいバージョンで作成されています。アプリをアップデートしてください。' };
+    }
+    if (diagramSchemaVersion < MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION) {
+      return { success: false, error: 'このパッケージ内のデータは古すぎるため、このバージョンではインポートできません。中間バージョンを経由してアップデートしてください。' };
+    }
+
     // 暗号化されている場合はパスフレーズが必要
     let diagramJson = typeof packageContent.diagram === 'string' ? packageContent.diagram : JSON.stringify(packageContent.diagram);
     if (metadata.isEncrypted) {
@@ -163,6 +208,12 @@ export async function importPackage(
       } catch {
         return { success: false, error: 'パスフレーズが正しくありません' };
       }
+    }
+
+    // ダイアグラムは v0(legacy) / v1(envelope) の両方を受け入れてmigrate
+    const diagram = decodeAndMigrateDiagram(diagramJson);
+    if (!diagram) {
+      return { success: false, error: 'ダイアグラムデータの読み込みに失敗しました' };
     }
 
     // 既存プロジェクトとの競合チェック
@@ -195,7 +246,7 @@ export async function importPackage(
 
     // プロジェクトとダイアグラムを保存
     await saveProject(newProject);
-    await saveDiagram(newProjectId, JSON.parse(diagramJson));
+    await saveDiagram(newProjectId, diagram);
 
     return { success: true, project: newProject };
   } catch (error) {

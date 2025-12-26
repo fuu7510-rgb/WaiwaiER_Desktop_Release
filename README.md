@@ -28,6 +28,8 @@ Tauri 2.x + React + TypeScriptで構築されています。
 
 ## 開発
 
+データ互換性（直近2世代のマイグレーション運用）: `docs/DATA_COMPATIBILITY.md`
+
 ### 必要条件
 
 - Node.js 18+

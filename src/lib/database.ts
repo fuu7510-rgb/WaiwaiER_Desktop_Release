@@ -4,6 +4,7 @@
  */
 import type { Project, ERDiagram } from '../types';
 import { decryptData, encryptData } from './crypto';
+import { decodeAndMigrateDiagram, encodeDiagramEnvelope } from './diagramSchema';
 
 // Tauri環境かどうかをチェック
 function isTauriEnv(): boolean {
@@ -38,9 +39,13 @@ function isEncryptedDiagramPayload(value: unknown): value is EncryptedDiagramPay
   );
 }
 
-async function encodeDiagramForStorage(diagram: ERDiagram, passphrase?: string): Promise<ERDiagram | EncryptedDiagramPayload> {
-  if (!passphrase) return diagram;
-  const json = JSON.stringify(diagram);
+async function encodeDiagramForStorage(
+  diagram: ERDiagram,
+  passphrase?: string
+): Promise<ReturnType<typeof encodeDiagramEnvelope> | EncryptedDiagramPayload> {
+  const envelope = encodeDiagramEnvelope(diagram);
+  if (!passphrase) return envelope;
+  const json = JSON.stringify(envelope);
   const { encrypted, salt, iv } = await encryptData(json, passphrase);
   return { v: 1, encrypted, salt, iv };
 }
@@ -53,27 +58,12 @@ async function decodeDiagramFromStorage(value: unknown, passphrase?: string): Pr
       throw new Error('このプロジェクトは暗号化されています。パスフレーズを入力してください。');
     }
     const json = await decryptData(value.encrypted, value.salt, value.iv, passphrase);
-    return JSON.parse(json) as ERDiagram;
+    // 暗号化ペイロードの中身は v0(legacy) / v1(envelope) の両方を受け入れてmigrate
+    return decodeAndMigrateDiagram(json);
   }
 
-  // 平文(従来形式)
-  if (typeof value === 'object') {
-    const obj = value as ERDiagram;
-    if (Array.isArray((obj as ERDiagram).tables) && Array.isArray((obj as ERDiagram).relations)) {
-      return obj;
-    }
-  }
-
-  if (typeof value === 'string') {
-    try {
-      const parsed = JSON.parse(value) as unknown;
-      return decodeDiagramFromStorage(parsed, passphrase);
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
+  // 平文: v0(legacy) / v1(envelope) の両方を受け入れてmigrate
+  return decodeAndMigrateDiagram(value);
 }
 
 function getLocalStorageData<T>(key: string, defaultValue: T): T {
@@ -113,7 +103,7 @@ const localStorageDb = {
       projects.filter((p) => p.id !== projectId)
     );
     // ダイアグラムも削除
-    const diagrams = getLocalStorageData<Record<string, ERDiagram>>(STORAGE_KEYS.DIAGRAMS, {});
+    const diagrams = getLocalStorageData<Record<string, unknown>>(STORAGE_KEYS.DIAGRAMS, {});
     delete diagrams[projectId];
     setLocalStorageData(STORAGE_KEYS.DIAGRAMS, diagrams);
   },
