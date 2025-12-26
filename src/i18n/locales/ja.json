@@ -119,7 +119,7 @@
     "columns": "カラム",
     "deleteColumn": "カラムを削除",
     "deleteColumnConfirm": "カラム「{{name}}」を削除しますか？",
-    "dummyData": "ダミーデータ",
+    "dummyData": "サンプルデータ",
     "dummyDataPreview": "プレビュー（シミュレーターと一致）",
     "dummyDataPlaceholder": "1行に1つ入力（複数行可）",
     "constraints": {
@@ -262,6 +262,11 @@
   "export": {
     "title": "エクスポート",
     "format": "形式",
+    "jsonText": {
+      "hint": "下のテキストをコピーしてご利用ください。",
+      "copied": "コピーしました",
+      "copyFailed": "コピーに失敗しました"
+    },
     "descriptions": {
       "json": "ER図の構造をJSON形式で保存",
       "excel": "Googleスプレッドシート連携用",
@@ -297,6 +302,9 @@
     "title": "インポート",
     "selectFile": "ファイルを選択",
     "dropFile": "ファイルをドロップ",
+    "pasteHint": "JSONテキストを貼り付けてインポートできます。ファイルから読み込む場合は「ファイルを選択」を押してください。",
+    "pastePlaceholder": "ここにJSONを貼り付け",
+    "pasteEmpty": "JSONテキストが空です",
     "importSuccess": "インポートが完了しました",
     "importError": "インポートに失敗しました",
     "invalidFormat": "無効なファイル形式です"

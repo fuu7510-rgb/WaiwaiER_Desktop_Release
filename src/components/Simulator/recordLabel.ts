@@ -7,7 +7,7 @@ function isMeaninglessIdLikeLabel(value: string): boolean {
   // 例: C644L9TN / C644L9TN 3TRX7MFL のような8桁英数字の羅列
   if (/^[A-Z0-9]{8}(\s+[A-Z0-9]{8})*$/.test(s)) return true;
 
-  // 例: ROW-0001（ダミー/自動補完のキー）
+  // 例: ROW-0001（サンプル/自動補完のキー）
   if (/^ROW-\d{4,}$/.test(s)) return true;
 
   return false;

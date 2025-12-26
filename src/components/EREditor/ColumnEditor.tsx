@@ -158,7 +158,7 @@ export function ColumnEditor() {
         </div>
       </div>
 
-      {/* ダミーデータ */}
+      {/* サンプルデータ */}
       <div className="border-t border-zinc-100 pt-3">
         <h4 className="font-medium text-xs text-zinc-500 mb-2">{t('column.dummyData')}</h4>
 

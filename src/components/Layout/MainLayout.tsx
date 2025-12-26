@@ -6,7 +6,7 @@ import { Sidebar } from './Sidebar';
 import { useUIStore, useERStore, useLicenseStore, initializeLicenseStore, useProjectStore } from '../../stores';
 import { ProjectDialog } from '../Project/ProjectDialog';
 import { SettingsDialog } from '../Settings/SettingsDialog';
-import { ExportDialog } from '../Export';
+import { ExportDialog, ImportDialog } from '../Export';
 import { LicenseDialog } from '../License';
 import { AboutDialog } from '../About';
 
@@ -31,6 +31,8 @@ export function MainLayout({ children }: MainLayoutProps) {
     closeProjectDialog, 
     isSettingsOpen, 
     closeSettings,
+    isImportDialogOpen,
+    closeImportDialog,
     isExportDialogOpen,
     closeExportDialog,
     isAboutDialogOpen,
@@ -144,6 +146,10 @@ export function MainLayout({ children }: MainLayoutProps) {
       <SettingsDialog
         isOpen={isSettingsOpen}
         onClose={closeSettings}
+      />
+      <ImportDialog
+        isOpen={isImportDialogOpen}
+        onClose={closeImportDialog}
       />
       <ExportDialog
         isOpen={isExportDialogOpen}

@@ -8,7 +8,7 @@
 - `src/components/Simulator/Simulator.tsx`（左ナビ + TableView + 右ペイン編集）
 - `src/components/Simulator/TableView.tsx`（一覧表示、検索、Refラベル表示）
 - `src/stores/erStore.ts`（sampleDataByTableId、reorderTables、reorderColumn、reorderSampleRows）
-- `src/lib/sampleData.ts`（ダミーデータ生成）
+- `src/lib/sampleData.ts`（サンプルデータ生成）
 - 既存の並べ替えUI例:
   - `src/components/Layout/Sidebar.tsx`（テーブルの並べ替え: DnD優先 + 上下ボタン）
   - `src/components/EREditor/TableNode.tsx`（カラムの並べ替え: DnD優先 + 上下ボタン）
@@ -17,9 +17,9 @@
 
 ## ゴール
 
-- シミュレーターのダミーデータが「固定5行」ではなく、初期は5行程度で、最大100行まで扱える。
+- シミュレーターのサンプルデータが「固定5行」ではなく、初期は5行程度で、最大100行まで扱える。
 - 自動生成文字列が“ランダムで役に立たない”問題を解消し、原則「空欄」ベースにする（必要最小限のみ生成）。
-- 「ダミー更新」ボタンを廃止し、全体再生成に頼らない。
+- 「サンプルデータ更新」ボタンを廃止し、全体再生成に頼らない。
 - Ref表示で、祖先（親の親など）のラベルがID羅列になるケースを改善する。
 - Simulator上で、テーブル順／カラム順を入れ替え可能にする。
 
@@ -65,7 +65,7 @@
 - 例外（必要最小限のみ生成）:
   - Ref整合性のためのキー（参照先のkey列が空だとRefが成立しない）
   - ただし“ランダムID”ではなく、**決定的で読みやすい**値にする（例: `ROW-0001` など）
-  - `dummyValues`（ユーザーが明示したダミー候補）がある場合はそれを優先
+  - `dummyValues`（ユーザーが明示したサンプル候補）がある場合はそれを優先
 
 受け入れ条件:
 - Text/Number/Dateなど、ほとんどの型が空欄で初期化される。
@@ -77,10 +77,10 @@
 
 ---
 
-### 3) ダミー更新ボタン不要（全体更新しない）
+### 3) サンプルデータ更新ボタン不要（全体更新しない）
 
 現状:
-- （v0.1.1時点）Simulator上部の「ダミー更新（全再生成）」UIは撤去済み。
+- （v0.1.1時点）Simulator上部の「サンプルデータ更新（全再生成）」UIは撤去済み。
 
 方針:
 - ボタンとConfirmDialogを削除。
@@ -163,8 +163,8 @@
 
 ## 実装ステップ（提案）
 
-1. ダミー更新ボタン削除（低リスク・早期にUX固定）
-2. ダミー生成の空欄化 + 読みやすいキー生成（sampleData.ts）
+1. サンプルデータ更新ボタン削除（低リスク・早期にUX固定）
+2. サンプルデータ生成の空欄化 + 読みやすいキー生成（sampleData.ts）
 3. RowLabel戦略改善（recordLabel.ts）
 4. sampleData生成の「行数維持 + 上限100」対応（erStore.ts）
 5. Simulatorでのテーブル順入れ替え（Simulator.tsx、Sidebar実装流用）

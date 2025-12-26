@@ -119,7 +119,7 @@
     "columns": "Columns",
     "deleteColumn": "Delete Column",
     "deleteColumnConfirm": "Are you sure you want to delete column \"{{name}}\"?",
-    "dummyData": "Dummy Data",
+    "dummyData": "Sample Data",
     "dummyDataPreview": "Preview (matches Simulator)",
     "dummyDataPlaceholder": "One value per line (multi-line supported)",
     "constraints": {
@@ -262,6 +262,14 @@
   "export": {
     "title": "Export",
     "format": "Format",
+    "jsonText": {
+    "pasteHint": "You can import by pasting JSON text. To load from a file, click \"Select file\".",
+    "pastePlaceholder": "Paste JSON here",
+    "pasteEmpty": "JSON text is empty",
+      "hint": "Copy the text below.",
+      "copied": "Copied",
+      "copyFailed": "Copy failed"
+    },
     "descriptions": {
       "json": "Save the ER diagram structure as JSON",
       "excel": "For Google Sheets / AppSheet integration",

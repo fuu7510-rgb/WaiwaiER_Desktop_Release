@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { useUIStore, useERStore, useProjectStore, useLicenseStore } from '../../stores';
-import { importJSONDiagram } from '../Export';
 import type { ViewMode } from '../../types';
 
 export function Header() {
@@ -19,6 +18,7 @@ export function Header() {
     toggleSidebar,
     openSettings,
     openProjectDialog,
+    openImportDialog,
     openExportDialog,
     settings,
     setLanguage,
@@ -30,7 +30,6 @@ export function Header() {
     historyIndex,
     deletedSampleRowStack,
     undoDeleteSampleRow,
-    importDiagram,
     isDirty,
     isSaving,
     saveError,
@@ -65,17 +64,6 @@ export function Header() {
     setLanguage(settings.language === 'ja' ? 'en' : 'ja');
   };
 
-  const handleImport = async () => {
-    try {
-      const diagram = await importJSONDiagram();
-      if (diagram) {
-        importDiagram(diagram);
-      }
-    } catch (error) {
-      console.error('Import failed:', error);
-      alert(t('import.importError'));
-    }
-  };
 
   return (
     <header className="h-11 bg-white border-b border-zinc-200 px-3 flex items-center justify-between shrink-0">
@@ -120,6 +108,22 @@ export function Header() {
           </span>
         </h1>
         
+        <button
+          type="button"
+          onClick={openProjectDialog}
+          className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-zinc-200 bg-white text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          title={t('project.projects')}
+          aria-label={t('project.projects')}
+        >
+          <svg className="w-3.5 h-3.5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h10" />
+          </svg>
+          <span>{t('project.projects')}</span>
+          <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
         {currentProject && (
           <div className="flex items-center gap-1.5 px-2 py-0.5 bg-zinc-100 rounded text-xs">
             <span className="font-medium text-zinc-700 max-w-32 truncate">{currentProject.name}</span>
@@ -168,13 +172,6 @@ export function Header() {
             <span>{t('project.noProjectAutosaveWarning')}</span>
           </button>
         )}
-        
-        <button
-          onClick={openProjectDialog}
-          className="text-xs text-zinc-500 hover:text-zinc-700 transition-colors"
-        >
-          {t('project.projects')}
-        </button>
       </div>
 
       {/* Center: View Mode Toggle */}
@@ -206,7 +203,7 @@ export function Header() {
         {/* Import/Export */}
         <div className="flex border border-zinc-200 rounded">
           <button
-            onClick={handleImport}
+            onClick={openImportDialog}
             className="p-1 text-zinc-500 hover:bg-zinc-50 transition-colors"
             title={t('common.import')}
           >

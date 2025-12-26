@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Dialog, Button, Input } from '../common';
 import { useProjectStore, useERStore, useLicenseStore } from '../../stores';
 import { hashPassphrase, verifyPassphrase } from '../../lib/crypto';
+import { exportPackage, importPackage, importPackageFromFile } from '../../lib';
 
 interface ProjectDialogProps {
   isOpen: boolean;
@@ -11,7 +12,7 @@ interface ProjectDialogProps {
 
 export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
   const { t } = useTranslation();
-  const { projects, currentProjectId, createProject, openProject, deleteProject, canCreateProject, getProjectLimit, subscriptionPlan } = useProjectStore();
+  const { projects, currentProjectId, createProject, openProject, deleteProject, canCreateProject, getProjectLimit, subscriptionPlan, loadProjectsFromDB } = useProjectStore();
   const { clearDiagram, loadFromDB, setCurrentProjectId, setCurrentProjectPassphrase, saveToDB, isDirty } = useERStore();
   const { limits } = useLicenseStore();
   
@@ -26,6 +27,9 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
   const [unlockPassphrase, setUnlockPassphrase] = useState('');
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const [isImporting, setIsImporting] = useState(false);
+  const [exportingProjectId, setExportingProjectId] = useState<string | null>(null);
 
   const generateSaltBase64 = () => {
     const bytes = crypto.getRandomValues(new Uint8Array(16));
@@ -162,6 +166,79 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
     setDeleteConfirmId(null);
   }, [deleteProject]);
 
+  const handleImportProject = useCallback(async () => {
+    try {
+      setIsImporting(true);
+
+      const result = await importPackage();
+
+      if (result.success) {
+        await loadProjectsFromDB();
+        alert(t('import.importSuccess'));
+        return;
+      }
+
+      if (result.requiresPassphrase && result.filePath) {
+        const pw = window.prompt(t('project.encryption.passphrase'));
+        if (pw == null) return;
+
+        const retry = await importPackageFromFile(result.filePath, pw);
+        if (retry.success) {
+          await loadProjectsFromDB();
+          alert(t('import.importSuccess'));
+          return;
+        }
+
+        alert(retry.error || t('import.importError'));
+        return;
+      }
+
+      if (result.error && result.error !== 'キャンセルされました') {
+        alert(result.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert(t('import.importError'));
+    } finally {
+      setIsImporting(false);
+    }
+  }, [loadProjectsFromDB, t]);
+
+  const handleExportProject = useCallback(async (projectId: string) => {
+    const targetProject = projects.find((p) => p.id === projectId);
+    if (!targetProject) return;
+
+    try {
+      setExportingProjectId(projectId);
+
+      // 念のため、編集中の内容を保存してから書き出す
+      if (currentProjectId === targetProject.id && isDirty) {
+        await saveToDB();
+      }
+
+      let passphrase: string | undefined;
+      if (targetProject.isEncrypted) {
+        const pw = window.prompt(t('project.encryption.passphrase'));
+        if (pw == null) return;
+        if (!pw) {
+          alert(t('export.errors.enterPassphrase'));
+          return;
+        }
+        passphrase = pw;
+      }
+
+      const result = await exportPackage(targetProject, passphrase);
+      if (!result.success) {
+        alert(result.error || t('export.errors.failed'));
+      }
+    } catch (e) {
+      console.error(e);
+      alert(t('export.exportError'));
+    } finally {
+      setExportingProjectId(null);
+    }
+  }, [projects, currentProjectId, isDirty, saveToDB, t]);
+
   return (
     <Dialog
       isOpen={isOpen}
@@ -241,6 +318,19 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
           </Button>
         )}
 
+        {/* Import */}
+        <div className="flex">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-full"
+            onClick={handleImportProject}
+            disabled={isImporting}
+          >
+            {isImporting ? t('common.loading') : t('common.import')}
+          </Button>
+        </div>
+
         {/* Plan Info */}
         {subscriptionPlan === 'free' && (
           <div className="bg-zinc-50 rounded p-2.5 text-[10px] text-zinc-500">
@@ -283,6 +373,15 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
                 </div>
                 
                 <div className="flex gap-1.5">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleExportProject(project.id)}
+                    disabled={exportingProjectId !== null}
+                  >
+                    {exportingProjectId === project.id ? t('common.loading') : t('common.export')}
+                  </Button>
+
                   {currentProjectId !== project.id && (
                     <Button size="sm" onClick={() => handleOpen(project.id)}>
                       開く
