@@ -3,7 +3,54 @@ import { immer } from 'zustand/middleware/immer';
 import { v4 as uuidv4 } from 'uuid';
 import type { Table, Column, Relation, Memo, ERDiagram, ColumnType, HistoryEntry } from '../types';
 import { saveDiagram, loadDiagram } from '../lib/database';
-import { generateSampleData } from '../lib/sampleData';
+
+const DEFAULT_SAMPLE_ROWS = 5;
+const MAX_SAMPLE_ROWS = 100;
+
+function makeDefaultKeyValue(rowIndex: number): string {
+  return `ROW-${String(rowIndex + 1).padStart(4, '0')}`;
+}
+
+function syncSampleRowsToTableSchema(params: {
+  table: Table;
+  currentRows: Record<string, unknown>[] | undefined;
+  desiredRowCount?: number;
+}): Record<string, unknown>[] {
+  const { table } = params;
+  const currentRows = params.currentRows ?? [];
+
+  const nextCountRaw =
+    params.desiredRowCount ?? (currentRows.length > 0 ? currentRows.length : DEFAULT_SAMPLE_ROWS);
+  const nextCount = Math.min(Math.max(nextCountRaw, 0), MAX_SAMPLE_ROWS);
+
+  const baseRows = currentRows.slice(0, nextCount);
+  const rows: Record<string, unknown>[] = [];
+
+  for (let i = 0; i < nextCount; i++) {
+    const current = baseRows[i] ?? {};
+    const out: Record<string, unknown> = {};
+
+    for (const column of table.columns) {
+      if (column.id in current) {
+        out[column.id] = current[column.id];
+        continue;
+      }
+      // 新規カラムは原則空欄。Keyだけは参照成立のため決定的に埋める。
+      out[column.id] = column.isKey ? makeDefaultKeyValue(i) : '';
+    }
+
+    // Keyが空なら補完
+    const keyCol = table.columns.find((c) => c.isKey);
+    if (keyCol) {
+      const raw = String(out[keyCol.id] ?? '').trim();
+      if (!raw) out[keyCol.id] = makeDefaultKeyValue(i);
+    }
+
+    rows.push(out);
+  }
+
+  return rows;
+}
 
 interface ERState {
   // ER図データ
@@ -13,6 +60,13 @@ interface ERState {
 
   // シミュレーター用サンプルデータ（tableId -> rows）
   sampleDataByTableId: Record<string, Record<string, unknown>[]>;
+
+  // シミュレーター用: 削除Undoスタック（永続化しない）
+  deletedSampleRowStack: {
+    tableId: string;
+    rowIndex: number;
+    row: Record<string, unknown>;
+  }[];
 
   // 保存状態
   isDirty: boolean;
@@ -54,6 +108,10 @@ interface ERState {
   regenerateSampleData: () => void;
   regenerateSampleDataForTable: (tableId: string) => void;
   updateSampleRow: (tableId: string, rowIndex: number, updates: Record<string, unknown>) => void;
+  appendSampleRow: (tableId: string) => void;
+  deleteSampleRow: (tableId: string, rowIndex: number) => void;
+  undoDeleteSampleRow: () => void;
+  reorderSampleRows: (tableId: string, fromIndex: number, toIndex: number) => void;
   
   // リレーション操作
   addRelation: (relation: Omit<Relation, 'id'>) => string;
@@ -239,6 +297,8 @@ export const useERStore = create<ERState>()(
 
     sampleDataByTableId: {},
 
+    deletedSampleRowStack: [],
+
     isDirty: false,
     isSaving: false,
     lastSavedAt: null,
@@ -255,7 +315,7 @@ export const useERStore = create<ERState>()(
       const table = createDefaultTable(name, position, options?.keyColumnName);
       set((state) => {
         state.tables.push(table);
-        state.sampleDataByTableId[table.id] = generateSampleData(table, 5);
+        state.sampleDataByTableId[table.id] = syncSampleRowsToTableSchema({ table, currentRows: undefined });
       });
       get().saveHistory(`テーブル「${name}」を追加`);
       get().queueSaveToDB();
@@ -331,7 +391,7 @@ export const useERStore = create<ERState>()(
       
       set((state) => {
         state.tables.push(newTable);
-        state.sampleDataByTableId[newTable.id] = generateSampleData(newTable, 5);
+        state.sampleDataByTableId[newTable.id] = syncSampleRowsToTableSchema({ table: newTable, currentRows: undefined });
       });
       get().saveHistory(`テーブル「${source.name}」を複製`);
       get().queueSaveToDB();
@@ -354,7 +414,8 @@ export const useERStore = create<ERState>()(
         if (t) {
           t.columns.push(newColumn);
           t.updatedAt = new Date().toISOString();
-          state.sampleDataByTableId[tableId] = generateSampleData(t, 5);
+          const synced = syncSampleRowsToTableSchema({ table: t, currentRows: state.sampleDataByTableId[tableId] });
+          state.sampleDataByTableId = normalizeRefValues({ tables: state.tables, sampleDataByTableId: { ...state.sampleDataByTableId, [tableId]: synced } });
         }
       });
       get().saveHistory(`カラム「${newColumn.name}」を追加`);
@@ -370,7 +431,8 @@ export const useERStore = create<ERState>()(
           if (column) {
             Object.assign(column, updates);
             table.updatedAt = new Date().toISOString();
-            state.sampleDataByTableId[tableId] = generateSampleData(table, 5);
+            const synced = syncSampleRowsToTableSchema({ table, currentRows: state.sampleDataByTableId[tableId] });
+            state.sampleDataByTableId = normalizeRefValues({ tables: state.tables, sampleDataByTableId: { ...state.sampleDataByTableId, [tableId]: synced } });
           }
         }
       });
@@ -384,7 +446,8 @@ export const useERStore = create<ERState>()(
         if (table) {
           table.columns = table.columns.filter((c) => c.id !== columnId);
           table.updatedAt = new Date().toISOString();
-          state.sampleDataByTableId[tableId] = generateSampleData(table, 5);
+          const synced = syncSampleRowsToTableSchema({ table, currentRows: state.sampleDataByTableId[tableId] });
+          state.sampleDataByTableId = normalizeRefValues({ tables: state.tables, sampleDataByTableId: { ...state.sampleDataByTableId, [tableId]: synced } });
           
           // リレーションも削除
           state.relations = state.relations.filter(
@@ -422,7 +485,8 @@ export const useERStore = create<ERState>()(
             });
             table.columns.sort((a, b) => a.order - b.order);
             table.updatedAt = new Date().toISOString();
-            state.sampleDataByTableId[tableId] = generateSampleData(table, 5);
+            const synced = syncSampleRowsToTableSchema({ table, currentRows: state.sampleDataByTableId[tableId] });
+            state.sampleDataByTableId = normalizeRefValues({ tables: state.tables, sampleDataByTableId: { ...state.sampleDataByTableId, [tableId]: synced } });
           }
         }
       });
@@ -436,7 +500,10 @@ export const useERStore = create<ERState>()(
       set((state) => {
         const next: Record<string, Record<string, unknown>[]> = {};
         for (const table of tables) {
-          next[table.id] = state.sampleDataByTableId[table.id] ?? generateSampleData(table, 5);
+          next[table.id] = syncSampleRowsToTableSchema({
+            table,
+            currentRows: state.sampleDataByTableId[table.id],
+          });
         }
         state.sampleDataByTableId = normalizeRefValues({ tables, sampleDataByTableId: next });
       });
@@ -447,9 +514,12 @@ export const useERStore = create<ERState>()(
       set((state) => {
         const next: Record<string, Record<string, unknown>[]> = {};
         for (const table of tables) {
-          next[table.id] = generateSampleData(table, 5);
+          next[table.id] = syncSampleRowsToTableSchema({ table, currentRows: undefined });
         }
         state.sampleDataByTableId = normalizeRefValues({ tables, sampleDataByTableId: next });
+
+        // データが総入れ替えになるため削除Undoは無効化
+        state.deletedSampleRowStack = [];
       });
     },
 
@@ -460,9 +530,12 @@ export const useERStore = create<ERState>()(
       set((state) => {
         const next = {
           ...state.sampleDataByTableId,
-          [tableId]: generateSampleData(table, 5),
+          [tableId]: syncSampleRowsToTableSchema({ table, currentRows: undefined }),
         };
         state.sampleDataByTableId = normalizeRefValues({ tables, sampleDataByTableId: next });
+
+        // 対象テーブルのデータが総入れ替えになるため削除Undoは無効化
+        state.deletedSampleRowStack = [];
       });
     },
 
@@ -473,6 +546,114 @@ export const useERStore = create<ERState>()(
         const next = current.slice();
         next[rowIndex] = { ...next[rowIndex], ...updates };
         state.sampleDataByTableId[tableId] = next;
+
+        // 行内容の変更で整合が取れなくなる可能性があるため削除Undoは無効化
+        state.deletedSampleRowStack = [];
+      });
+    },
+
+    appendSampleRow: (tableId) => {
+      const tables = get().tables;
+      const table = tables.find((t) => t.id === tableId);
+      if (!table) return;
+      set((state) => {
+        const current = state.sampleDataByTableId[tableId] ?? [];
+        if (current.length >= MAX_SAMPLE_ROWS) return;
+        const rowIndex = current.length;
+        const appended = syncSampleRowsToTableSchema({
+          table,
+          currentRows: [...current, {}],
+          desiredRowCount: rowIndex + 1,
+        });
+        state.sampleDataByTableId = normalizeRefValues({
+          tables: state.tables,
+          sampleDataByTableId: { ...state.sampleDataByTableId, [tableId]: appended },
+        });
+
+        // 行番号が変わるため削除Undoは無効化
+        state.deletedSampleRowStack = [];
+      });
+    },
+
+    deleteSampleRow: (tableId, rowIndex) => {
+      const tables = get().tables;
+      const table = tables.find((t) => t.id === tableId);
+      if (!table) return;
+      set((state) => {
+        const current = state.sampleDataByTableId[tableId] ?? [];
+        if (rowIndex < 0 || rowIndex >= current.length) return;
+
+        const deletedRow = current[rowIndex];
+
+        const next = current.slice();
+        next.splice(rowIndex, 1);
+
+        // 削除後もスキーマ整合（新規列の空欄補完、Key補完など）
+        const synced = syncSampleRowsToTableSchema({ table, currentRows: next, desiredRowCount: next.length });
+        state.sampleDataByTableId = normalizeRefValues({
+          tables: state.tables,
+          sampleDataByTableId: { ...state.sampleDataByTableId, [tableId]: synced },
+        });
+
+        state.deletedSampleRowStack.push({
+          tableId,
+          rowIndex,
+          row: { ...(deletedRow ?? {}) },
+        });
+      });
+    },
+
+    undoDeleteSampleRow: () => {
+      const tables = get().tables;
+      const stack = get().deletedSampleRowStack;
+      const last = stack[stack.length - 1];
+      if (!last) return;
+
+      const table = tables.find((t) => t.id === last.tableId);
+      if (!table) {
+        set((state) => {
+          state.deletedSampleRowStack.pop();
+        });
+        return;
+      }
+
+      set((state) => {
+        const restored = state.deletedSampleRowStack.pop();
+        if (!restored) return;
+
+        const current = state.sampleDataByTableId[restored.tableId] ?? [];
+
+        // 復元は元の位置を優先。範囲外なら末尾。
+        const insertIndex = Math.min(Math.max(restored.rowIndex, 0), current.length);
+        const next = current.slice();
+        next.splice(insertIndex, 0, restored.row);
+
+        const desiredCount = Math.min(next.length, MAX_SAMPLE_ROWS);
+        const truncated = next.slice(0, desiredCount);
+        const synced = syncSampleRowsToTableSchema({
+          table,
+          currentRows: truncated,
+          desiredRowCount: truncated.length,
+        });
+
+        state.sampleDataByTableId = normalizeRefValues({
+          tables: state.tables,
+          sampleDataByTableId: { ...state.sampleDataByTableId, [restored.tableId]: synced },
+        });
+      });
+    },
+
+    reorderSampleRows: (tableId, fromIndex, toIndex) => {
+      set((state) => {
+        const current = state.sampleDataByTableId[tableId] ?? [];
+        if (current.length === 0) return;
+        if (fromIndex === toIndex) return;
+        if (fromIndex < 0 || fromIndex >= current.length) return;
+        if (toIndex < 0 || toIndex >= current.length) return;
+        state.sampleDataByTableId[tableId] = arrayMove(current, fromIndex, toIndex);
+
+        // 行番号が変わるため削除Undoは無効化
+        state.deletedSampleRowStack = [];
       });
     },
     
@@ -628,8 +809,9 @@ export const useERStore = create<ERState>()(
         state.relations = diagram.relations;
         state.memos = diagram.memos ?? [];
         state.sampleDataByTableId = Object.fromEntries(
-          (diagram.tables ?? []).map((t) => [t.id, generateSampleData(t, 5)])
+          (diagram.tables ?? []).map((t) => [t.id, syncSampleRowsToTableSchema({ table: t, currentRows: undefined })])
         );
+        state.deletedSampleRowStack = [];
         state.selectedTableId = null;
         state.selectedColumnId = null;
         state.history = [];
@@ -650,6 +832,7 @@ export const useERStore = create<ERState>()(
         state.relations = [];
         state.memos = [];
         state.sampleDataByTableId = {};
+        state.deletedSampleRowStack = [];
         state.selectedTableId = null;
         state.selectedColumnId = null;
       });
@@ -680,7 +863,7 @@ export const useERStore = create<ERState>()(
           state.relations = diagram.relations;
           state.memos = diagram.memos ?? [];
           state.sampleDataByTableId = Object.fromEntries(
-            (diagram.tables ?? []).map((t) => [t.id, generateSampleData(t, 5)])
+            (diagram.tables ?? []).map((t) => [t.id, syncSampleRowsToTableSchema({ table: t, currentRows: undefined })])
           );
           state.selectedTableId = null;
           state.selectedColumnId = null;

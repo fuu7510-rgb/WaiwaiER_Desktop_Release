@@ -36,7 +36,7 @@ export function MainLayout({ children }: MainLayoutProps) {
     isAboutDialogOpen,
     closeAboutDialog,
   } = useUIStore();
-  const { undo, redo } = useERStore();
+  const { undo, redo, deletedSampleRowStack, undoDeleteSampleRow } = useERStore();
   const { showLicenseDialog, setShowLicenseDialog, warning } = useLicenseStore();
   const { loadProjectsFromDB, projects, currentProjectId } = useProjectStore();
   const { loadFromDB, currentProjectId: erCurrentProjectId, setCurrentProjectId, setCurrentProjectPassphrase } = useERStore();
@@ -71,17 +71,34 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   // キーボードショートカット
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    const target = e.target as HTMLElement | null;
+    const isTypingTarget =
+      !!target &&
+      (target.isContentEditable ||
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT');
+
     // Undo: Ctrl+Z
     if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+      if (isTypingTarget) return;
       e.preventDefault();
+
+      if (viewMode === 'simulator') {
+        if (deletedSampleRowStack.length > 0) undoDeleteSampleRow();
+        return;
+      }
+
       undo();
     }
     // Redo: Ctrl+Y or Ctrl+Shift+Z
     if ((e.ctrlKey && e.key === 'y') || (e.ctrlKey && e.shiftKey && e.key === 'z')) {
+      if (isTypingTarget) return;
+      if (viewMode === 'simulator') return;
       e.preventDefault();
       redo();
     }
-  }, [undo, redo]);
+  }, [deletedSampleRowStack.length, redo, undo, undoDeleteSampleRow, viewMode]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);

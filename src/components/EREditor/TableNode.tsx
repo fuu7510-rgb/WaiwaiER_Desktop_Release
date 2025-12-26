@@ -1,4 +1,7 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Handle, Position } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { useTranslation } from 'react-i18next';
@@ -140,17 +143,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
       </div>
 
       {/* Columns */}
-      <div className="divide-y divide-zinc-100">
-        {table.columns.map((column, index) => (
-          <ColumnRow
-            key={column.id}
-            column={column}
-            tableId={table.id}
-            isFirst={index === 0}
-            isLast={index === table.columns.length - 1}
-          />
-        ))}
-      </div>
+      <TableNodeSortableColumns table={table} />
 
       {/* Add Column Button */}
       <div className="relative">
@@ -177,6 +170,52 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
 
 TableNode.displayName = 'TableNode';
 
+function TableNodeSortableColumns(props: { table: Table }) {
+  const { table } = props;
+  const { reorderColumn } = useERStore();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    })
+  );
+
+  const columnById = useMemo(() => {
+    const m = new Map<string, (typeof table.columns)[number]>();
+    for (const c of table.columns) m.set(c.id, c);
+    return m;
+  }, [table.columns]);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    if (!activeId || !overId || activeId === overId) return;
+    const overColumn = columnById.get(overId);
+    if (!overColumn) return;
+    reorderColumn(table.id, activeId, overColumn.order);
+  };
+
+  return (
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <SortableContext items={table.columns.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+        <div className="divide-y divide-zinc-100 nodrag">
+          {table.columns.map((column, index) => (
+            <ColumnRow
+              key={column.id}
+              column={column}
+              tableId={table.id}
+              isFirst={index === 0}
+              isLast={index === table.columns.length - 1}
+            />
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
+  );
+}
+
 interface ColumnRowProps {
   column: Column;
   tableId: string;
@@ -189,6 +228,16 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
   const { selectColumn, selectedColumnId, reorderColumn, updateColumn } = useERStore();
   const isSelected = selectedColumnId === column.id;
   const typeClass = columnTypeClasses[column.type] || 'bg-slate-500';
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({
+    id: column.id,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.7 : undefined,
+  };
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState(column.name);
@@ -253,12 +302,18 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
       className={`
         relative px-2 py-1 flex items-center gap-1.5 cursor-pointer
         hover:bg-zinc-50 transition-colors group
         ${isSelected ? 'bg-indigo-50' : ''}
+        ${isOver ? 'ring-2 ring-indigo-200 ring-inset' : ''}
+        nodrag
       `}
       onClick={handleClick}
+      {...attributes}
+      {...listeners}
     >
       {/* Left Handle (for incoming connections) */}
       <Handle
@@ -273,6 +328,8 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
         <button
           onClick={handleMoveUp}
           disabled={isFirst}
+          data-reorder-button="true"
+          onPointerDown={(e) => e.stopPropagation()}
           className={`p-0.5 hover:bg-zinc-100 ${isFirst ? 'opacity-20 cursor-not-allowed' : 'text-zinc-500'}`}
           title={t('common.moveUp')}
         >
@@ -283,6 +340,8 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
         <button
           onClick={handleMoveDown}
           disabled={isLast}
+          data-reorder-button="true"
+          onPointerDown={(e) => e.stopPropagation()}
           className={`p-0.5 border-t border-zinc-100 hover:bg-zinc-100 ${isLast ? 'opacity-20 cursor-not-allowed' : 'text-zinc-500'}`}
           title={t('common.moveDown')}
         >

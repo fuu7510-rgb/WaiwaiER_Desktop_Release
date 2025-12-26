@@ -1,5 +1,18 @@
 import type { Column, Table } from '../../types';
 
+function isMeaninglessIdLikeLabel(value: string): boolean {
+  const s = String(value ?? '').trim();
+  if (!s) return true;
+
+  // 例: C644L9TN / C644L9TN 3TRX7MFL のような8桁英数字の羅列
+  if (/^[A-Z0-9]{8}(\s+[A-Z0-9]{8})*$/.test(s)) return true;
+
+  // 例: ROW-0001（ダミー/自動補完のキー）
+  if (/^ROW-\d{4,}$/.test(s)) return true;
+
+  return false;
+}
+
 export function getRowLabel(
   table: Table,
   row: Record<string, unknown>,
@@ -8,16 +21,31 @@ export function getRowLabel(
   const fallback = options?.fallback ?? '';
 
   const labelColumns = table.columns.filter((c) => c.isLabel);
-  const labelColumnIds = (labelColumns.length ? labelColumns : table.columns.slice(0, 1))
-    .map((c) => c.id)
+
+  // まずは isLabel を優先（なければ先頭列）
+  const primaryColumns = (labelColumns.length ? labelColumns : table.columns.slice(0, 1)).filter((c) => c.id);
+  const primaryParts = primaryColumns
+    .map((c) => String(row[c.id] ?? '').trim())
     .filter(Boolean);
 
-  const parts = labelColumnIds
-    .map((id) => String(row[id] ?? '').trim())
-    .filter(Boolean);
+  const primaryLabel = primaryParts.join(' ');
+  if (primaryLabel && !isMeaninglessIdLikeLabel(primaryLabel)) return primaryLabel;
 
-  if (parts.length > 0) return parts.join(' ');
-  return fallback;
+  // isLabel が空/意味なしの場合、非Keyの中から「埋まっている値」を探す
+  const nonKeyColumns = table.columns.filter((c) => !c.isKey && c.id);
+  for (const c of nonKeyColumns) {
+    const v = String(row[c.id] ?? '').trim();
+    if (!v) continue;
+    if (isMeaninglessIdLikeLabel(v)) continue;
+    return v;
+  }
+
+  // それでも無ければ、fallback（例: テーブル名）を優先
+  if (fallback) return fallback;
+
+  // 最終手段: primaryLabel があればそれ（意味なしでも）
+  if (primaryLabel) return primaryLabel;
+  return '';
 }
 
 export function getRefDisplayLabel(params: {
