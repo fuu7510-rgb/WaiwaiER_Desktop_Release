@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Table } from '../../types';
-import { generateSampleData } from '../../lib';
 import { getRefDisplayLabel } from './recordLabel';
 import { useERStore } from '../../stores';
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
@@ -36,8 +35,7 @@ export function TableView({
 }: TableViewProps) {
   const { t } = useTranslation();
   const { reorderColumn } = useERStore();
-  const sampleData = useMemo(() => generateSampleData(table, 5), [table]);
-  const rows = data ?? sampleData;
+  const rows = data ?? sampleDataByTableId[table.id] ?? [];
 
   const keyColumnId = useMemo(() => {
     return table.columns.find((c) => c.isKey)?.id ?? table.columns[0]?.id;

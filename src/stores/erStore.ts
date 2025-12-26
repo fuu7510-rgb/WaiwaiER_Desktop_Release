@@ -2,10 +2,19 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { v4 as uuidv4 } from 'uuid';
 import type { Table, Column, Relation, Memo, ERDiagram, ColumnType, HistoryEntry } from '../types';
-import { saveDiagram, loadDiagram } from '../lib/database';
+import { saveDiagram, loadDiagram, loadSampleData, saveSampleData } from '../lib/database';
 
 const DEFAULT_SAMPLE_ROWS = 5;
 const MAX_SAMPLE_ROWS = 100;
+
+function getDesiredAutoSampleRowCountFromDummyValues(table: Table): number | null {
+  let maxLen = 0;
+  for (const c of table.columns) {
+    const len = (c.dummyValues ?? []).map((v) => String(v).trim()).filter((v) => v.length > 0).length;
+    if (len > maxLen) maxLen = len;
+  }
+  return maxLen > 0 ? Math.min(maxLen, MAX_SAMPLE_ROWS) : null;
+}
 
 function makeDefaultKeyValue(rowIndex: number): string {
   return `ROW-${String(rowIndex + 1).padStart(4, '0')}`;
@@ -50,6 +59,63 @@ function syncSampleRowsToTableSchema(params: {
   }
 
   return rows;
+}
+
+function isBlankSampleCell(value: unknown): boolean {
+  if (value === null || value === undefined) return true;
+  const s = String(value);
+  return s.trim().length === 0 || s.trim() === '-';
+}
+
+function coerceDummyValueForType(raw: string, type: ColumnType): unknown {
+  const trimmed = String(raw ?? '').trim();
+  if (trimmed.length === 0) return '';
+
+  if (type === 'Number' || type === 'ChangeCounter') {
+    const n = Number.parseInt(trimmed, 10);
+    return Number.isFinite(n) ? n : trimmed;
+  }
+  if (type === 'Decimal' || type === 'Progress') {
+    const n = Number.parseFloat(trimmed);
+    return Number.isFinite(n) ? n : trimmed;
+  }
+  if (type === 'Yes/No') {
+    const lower = trimmed.toLowerCase();
+    if (lower === 'yes' || lower === 'true' || lower === '1') return 'Yes';
+    if (lower === 'no' || lower === 'false' || lower === '0') return 'No';
+    return trimmed;
+  }
+
+  return trimmed;
+}
+
+function applyDummyValuesToSampleRows(params: {
+  rows: Record<string, unknown>[];
+  column: Column;
+  previousDummyValues?: string[];
+}): Record<string, unknown>[] {
+  const { rows, column, previousDummyValues } = params;
+  if (column.isKey) return rows;
+  const values = (column.dummyValues ?? []).map((v) => String(v).trim()).filter((v) => v.length > 0);
+  if (values.length === 0) return rows;
+
+  const previousSet = new Set((previousDummyValues ?? []).map((v) => String(v).trim()).filter((v) => v.length > 0));
+
+  let anyChanged = false;
+  const nextRows = rows.map((row, rowIndex) => {
+    const current = row?.[column.id];
+    const currentTrimmed = String(current ?? '').trim();
+    const shouldReplace = isBlankSampleCell(current) || (previousSet.size > 0 && previousSet.has(currentTrimmed));
+    if (!shouldReplace) return row;
+    // NOTE: Do not wrap/cycle. If dummyValues has fewer entries than rows,
+    // leave remaining rows blank (and clear old dummy values if needed).
+    const picked = values[rowIndex] ?? '';
+    const coerced = coerceDummyValueForType(picked, column.type);
+    anyChanged = true;
+    return { ...row, [column.id]: coerced };
+  });
+
+  return anyChanged ? nextRows : rows;
 }
 
 interface ERState {
@@ -107,6 +173,7 @@ interface ERState {
   ensureSampleData: () => void;
   regenerateSampleData: () => void;
   regenerateSampleDataForTable: (tableId: string) => void;
+  setSampleRowsForTable: (tableId: string, rows: Record<string, unknown>[]) => void;
   updateSampleRow: (tableId: string, rowIndex: number, updates: Record<string, unknown>) => void;
   appendSampleRow: (tableId: string) => void;
   deleteSampleRow: (tableId: string, rowIndex: number) => void;
@@ -262,6 +329,59 @@ function normalizeRefValues(params: {
   }
 
   return next;
+}
+
+function reconcileSampleDataBySchema(params: {
+  tables: Table[];
+  previousSampleDataByTableId: Record<string, Record<string, unknown>[]>;
+}): Record<string, Record<string, unknown>[]> {
+  const { tables, previousSampleDataByTableId } = params;
+  const next: Record<string, Record<string, unknown>[]> = {};
+
+  for (const table of tables) {
+    next[table.id] = syncSampleRowsToTableSchema({
+      table,
+      currentRows: previousSampleDataByTableId[table.id],
+    });
+  }
+
+  return normalizeRefValues({ tables, sampleDataByTableId: next });
+}
+
+function migrateStoredSampleDataToIds(params: {
+  tables: Table[];
+  storedSampleData: Record<string, Record<string, unknown>[]> | null;
+}): Record<string, Record<string, unknown>[]> | null {
+  const { tables, storedSampleData } = params;
+  if (!storedSampleData) return null;
+
+  const out: Record<string, Record<string, unknown>[]> = {};
+
+  for (const table of tables) {
+    const rawRows =
+      (storedSampleData as Record<string, unknown>)[table.id] ??
+      (storedSampleData as Record<string, unknown>)[table.name];
+    if (!Array.isArray(rawRows)) continue;
+
+    out[table.id] = rawRows.map((raw) => {
+      const row = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+      const nextRow: Record<string, unknown> = {};
+
+      for (const column of table.columns) {
+        if (Object.prototype.hasOwnProperty.call(row, column.id)) {
+          nextRow[column.id] = row[column.id];
+          continue;
+        }
+        if (Object.prototype.hasOwnProperty.call(row, column.name)) {
+          nextRow[column.id] = row[column.name];
+        }
+      }
+
+      return nextRow;
+    });
+  }
+
+  return out;
 }
 
 export const useERStore = create<ERState>()(
@@ -429,10 +549,35 @@ export const useERStore = create<ERState>()(
         if (table) {
           const column = table.columns.find((c) => c.id === columnId);
           if (column) {
+            const shouldApplyDummyValues = Object.prototype.hasOwnProperty.call(updates, 'dummyValues');
+            const previousDummyValues = shouldApplyDummyValues
+              ? (column.dummyValues ?? []).map((v) => String(v))
+              : undefined;
             Object.assign(column, updates);
             table.updatedAt = new Date().toISOString();
-            const synced = syncSampleRowsToTableSchema({ table, currentRows: state.sampleDataByTableId[tableId] });
-            state.sampleDataByTableId = normalizeRefValues({ tables: state.tables, sampleDataByTableId: { ...state.sampleDataByTableId, [tableId]: synced } });
+
+            const currentRows = state.sampleDataByTableId[tableId];
+            const desiredAutoCount = shouldApplyDummyValues
+              ? getDesiredAutoSampleRowCountFromDummyValues(table)
+              : null;
+            const shouldAutoResizeRowCount =
+              shouldApplyDummyValues &&
+              desiredAutoCount !== null &&
+              (currentRows?.length ?? 0) === DEFAULT_SAMPLE_ROWS &&
+              desiredAutoCount !== DEFAULT_SAMPLE_ROWS;
+
+            const synced = syncSampleRowsToTableSchema({
+              table,
+              currentRows,
+              desiredRowCount: shouldAutoResizeRowCount ? desiredAutoCount : undefined,
+            });
+            const nextRows = shouldApplyDummyValues
+              ? applyDummyValuesToSampleRows({ rows: synced, column, previousDummyValues })
+              : synced;
+            state.sampleDataByTableId = normalizeRefValues({
+              tables: state.tables,
+              sampleDataByTableId: { ...state.sampleDataByTableId, [tableId]: nextRows },
+            });
           }
         }
       });
@@ -521,6 +666,7 @@ export const useERStore = create<ERState>()(
         // データが総入れ替えになるため削除Undoは無効化
         state.deletedSampleRowStack = [];
       });
+      get().queueSaveToDB();
     },
 
     regenerateSampleDataForTable: (tableId) => {
@@ -537,6 +683,29 @@ export const useERStore = create<ERState>()(
         // 対象テーブルのデータが総入れ替えになるため削除Undoは無効化
         state.deletedSampleRowStack = [];
       });
+      get().queueSaveToDB();
+    },
+
+    setSampleRowsForTable: (tableId, rows) => {
+      const tables = get().tables;
+      const table = tables.find((t) => t.id === tableId);
+      if (!table) return;
+      set((state) => {
+        const desiredRowCount = Math.min(Math.max(rows?.length ?? 0, 0), MAX_SAMPLE_ROWS);
+        const synced = syncSampleRowsToTableSchema({
+          table,
+          currentRows: rows,
+          desiredRowCount,
+        });
+        state.sampleDataByTableId = normalizeRefValues({
+          tables: state.tables,
+          sampleDataByTableId: { ...state.sampleDataByTableId, [tableId]: synced },
+        });
+
+        // 行が増減・再構成されるため削除Undoは無効化
+        state.deletedSampleRowStack = [];
+      });
+      get().queueSaveToDB();
     },
 
     updateSampleRow: (tableId, rowIndex, updates) => {
@@ -550,6 +719,7 @@ export const useERStore = create<ERState>()(
         // 行内容の変更で整合が取れなくなる可能性があるため削除Undoは無効化
         state.deletedSampleRowStack = [];
       });
+      get().queueSaveToDB();
     },
 
     appendSampleRow: (tableId) => {
@@ -573,6 +743,7 @@ export const useERStore = create<ERState>()(
         // 行番号が変わるため削除Undoは無効化
         state.deletedSampleRowStack = [];
       });
+      get().queueSaveToDB();
     },
 
     deleteSampleRow: (tableId, rowIndex) => {
@@ -601,6 +772,7 @@ export const useERStore = create<ERState>()(
           row: { ...(deletedRow ?? {}) },
         });
       });
+      get().queueSaveToDB();
     },
 
     undoDeleteSampleRow: () => {
@@ -641,6 +813,7 @@ export const useERStore = create<ERState>()(
           sampleDataByTableId: { ...state.sampleDataByTableId, [restored.tableId]: synced },
         });
       });
+      get().queueSaveToDB();
     },
 
     reorderSampleRows: (tableId, fromIndex, toIndex) => {
@@ -655,6 +828,7 @@ export const useERStore = create<ERState>()(
         // 行番号が変わるため削除Undoは無効化
         state.deletedSampleRowStack = [];
       });
+      get().queueSaveToDB();
     },
     
     // リレーション操作
@@ -756,6 +930,10 @@ export const useERStore = create<ERState>()(
           state.tables = entry.state.tables;
           state.relations = entry.state.relations;
           state.memos = entry.state.memos ?? [];
+          state.sampleDataByTableId = reconcileSampleDataBySchema({
+            tables: entry.state.tables,
+            previousSampleDataByTableId: state.sampleDataByTableId,
+          });
         });
         get().queueSaveToDB();
       }
@@ -770,6 +948,10 @@ export const useERStore = create<ERState>()(
           state.tables = entry.state.tables;
           state.relations = entry.state.relations;
           state.memos = entry.state.memos ?? [];
+          state.sampleDataByTableId = reconcileSampleDataBySchema({
+            tables: entry.state.tables,
+            previousSampleDataByTableId: state.sampleDataByTableId,
+          });
         });
         get().queueSaveToDB();
       }
@@ -856,15 +1038,29 @@ export const useERStore = create<ERState>()(
     loadFromDB: async (projectId, options) => {
       clearQueuedSave();
       const passphrase = options?.passphrase ?? get().currentProjectPassphrase;
-      const diagram = await loadDiagram(projectId, { passphrase: passphrase ?? undefined });
+      const resolvedPassphrase = passphrase ?? undefined;
+      const diagram = await loadDiagram(projectId, { passphrase: resolvedPassphrase });
+      const storedSampleData = await loadSampleData(projectId, { passphrase: resolvedPassphrase });
+      const migratedSampleData = diagram
+        ? migrateStoredSampleDataToIds({ tables: diagram.tables ?? [], storedSampleData })
+        : null;
       if (diagram) {
         set((state) => {
           state.tables = diagram.tables;
           state.relations = diagram.relations;
           state.memos = diagram.memos ?? [];
-          state.sampleDataByTableId = Object.fromEntries(
+          const fallback = Object.fromEntries(
             (diagram.tables ?? []).map((t) => [t.id, syncSampleRowsToTableSchema({ table: t, currentRows: undefined })])
-          );
+          ) as Record<string, Record<string, unknown>[]>;
+          const base = migratedSampleData ?? fallback;
+          const next: Record<string, Record<string, unknown>[]> = {};
+          for (const t of diagram.tables ?? []) {
+            next[t.id] = syncSampleRowsToTableSchema({ table: t, currentRows: base[t.id] });
+          }
+          state.sampleDataByTableId = normalizeRefValues({
+            tables: diagram.tables ?? [],
+            sampleDataByTableId: next,
+          });
           state.selectedTableId = null;
           state.selectedColumnId = null;
           state.history = [];
@@ -894,7 +1090,14 @@ export const useERStore = create<ERState>()(
 
     saveToDB: async () => {
       clearQueuedSave();
-      const { tables, relations, memos, currentProjectId, currentProjectPassphrase } = get();
+      const {
+        tables,
+        relations,
+        memos,
+        currentProjectId,
+        currentProjectPassphrase,
+        sampleDataByTableId,
+      } = get();
       if (!currentProjectId) return;
 
       set((state) => {
@@ -908,6 +1111,10 @@ export const useERStore = create<ERState>()(
           { tables, relations, memos },
           { passphrase: currentProjectPassphrase || undefined }
         );
+
+        await saveSampleData(currentProjectId, sampleDataByTableId ?? {}, {
+          passphrase: currentProjectPassphrase || undefined,
+        });
         set((state) => {
           state.isSaving = false;
           state.isDirty = false;

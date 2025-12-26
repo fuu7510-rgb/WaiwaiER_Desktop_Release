@@ -9,7 +9,7 @@ import {
   readFile,
 } from '@tauri-apps/plugin-fs';
 import { loadDiagram, saveDiagram, saveProject, loadProjects } from './database';
-import { encryptData, decryptData } from './crypto';
+import { encryptData, decryptData, hashPassphrase } from './crypto';
 import { decodeAndMigrateDiagram, encodeDiagramEnvelope, DIAGRAM_SCHEMA_VERSION, MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION } from './diagramSchema';
 import type { Project } from '../types';
 
@@ -59,6 +59,31 @@ function normalizePackageFormatVersion(metadata: PackageMetadata): number {
 const PACKAGE_FORMAT_VERSION = 1;
 const MIN_SUPPORTED_PACKAGE_FORMAT_VERSION = Math.max(0, PACKAGE_FORMAT_VERSION - 2);
 
+export interface ImportPackageResult {
+  success: boolean;
+  error?: string;
+  project?: Project;
+  /**
+   * 暗号化パッケージのためパスフレーズが必要。
+   * filePath が返る場合、同一ファイルで再試行可能。
+   */
+  requiresPassphrase?: boolean;
+  filePath?: string;
+}
+
+function pickFirstPath(file: string | string[] | null): string | null {
+  if (!file) return null;
+  if (Array.isArray(file)) return file[0] ?? null;
+  return file;
+}
+
+function generateSaltBase64(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
 /**
  * プロジェクトを .waiwai パッケージとしてエクスポート
  */
@@ -67,6 +92,10 @@ export async function exportPackage(
   passphrase?: string
 ): Promise<{ success: boolean; error?: string; path?: string }> {
   try {
+    if (project.isEncrypted && !passphrase) {
+      return { success: false, error: '暗号化プロジェクトのエクスポートにはパスフレーズが必要です' };
+    }
+
     // ダイアグラムデータを取得
     const diagram = await loadDiagram(project.id, { passphrase });
     if (!diagram) {
@@ -85,7 +114,8 @@ export async function exportPackage(
       exportedAt: new Date().toISOString(),
       projectId: project.id,
       projectName: project.name,
-      isEncrypted: !!passphrase || project.isEncrypted,
+      // パッケージ内データが暗号化されているか（プロジェクト状態とは独立）
+      isEncrypted: !!passphrase,
       description: project.description,
       tables: diagram.tables?.length || 0,
       relations: diagram.relations?.length || 0,
@@ -137,10 +167,10 @@ export async function exportPackage(
  */
 export async function importPackage(
   passphrase?: string
-): Promise<{ success: boolean; error?: string; project?: Project }> {
+): Promise<ImportPackageResult> {
   try {
     // ファイルを選択
-    const file = await open({
+    const picked = await open({
       filters: [
         {
           name: 'WaiwaiER Package',
@@ -149,12 +179,28 @@ export async function importPackage(
       ],
     });
 
-    if (!file) {
+    const filePath = pickFirstPath(picked);
+    if (!filePath) {
       return { success: false, error: 'キャンセルされました' };
     }
 
+    return await importPackageFromFile(filePath, passphrase);
+  } catch (error) {
+    console.error('Package import failed:', error);
+    return {
+      success: false,
+      error: `インポートに失敗しました: ${error}`,
+    };
+  }
+}
+
+export async function importPackageFromFile(
+  filePath: string,
+  passphrase?: string
+): Promise<ImportPackageResult> {
+  try {
     // ファイルを読み込み
-    const content = await readFile(file);
+    const content = await readFile(filePath);
     const jsonString = new TextDecoder().decode(content);
     const packageContent: PackageContent = JSON.parse(jsonString);
 
@@ -189,6 +235,8 @@ export async function importPackage(
       if (!passphrase) {
         return {
           success: false,
+          requiresPassphrase: true,
+          filePath,
           error: 'このパッケージは暗号化されています。パスフレーズを入力してください。',
         };
       }
@@ -235,18 +283,27 @@ export async function importPackage(
     }
 
     // プロジェクトを作成
+    let passphraseSalt: string | undefined;
+    let passphraseHash: string | undefined;
+    if (metadata.isEncrypted) {
+      passphraseSalt = generateSaltBase64();
+      passphraseHash = await hashPassphrase(passphrase ?? '', passphraseSalt);
+    }
+
     const newProject: Project = {
       id: newProjectId,
       name: newProjectName,
       description: metadata.description,
       isEncrypted: metadata.isEncrypted,
+      passphraseSalt,
+      passphraseHash,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     // プロジェクトとダイアグラムを保存
     await saveProject(newProject);
-    await saveDiagram(newProjectId, diagram);
+    await saveDiagram(newProjectId, diagram, { passphrase: metadata.isEncrypted ? passphrase : undefined });
 
     return { success: true, project: newProject };
   } catch (error) {

@@ -7,7 +7,7 @@
 - `src/components/Simulator/Simulator.tsx`
 - `src/components/Simulator/TableView.tsx`
 - `src/stores/erStore.ts`（sampleData / Ref正規化）
-- `src/lib/sampleData.ts`（ダミーデータ生成）
+- `src/lib/sampleData.ts`（サンプルデータ生成）
 
 ---
 
@@ -40,7 +40,7 @@
 
 ---
 
-## 3. ダミーデータ（sampleData）の扱い
+## 3. サンプルデータ（sampleData）の扱い
 
 ### 3.1 保存場所と行数
 
@@ -76,7 +76,7 @@
 
 ### 4.2 全テーブル再生成
 
-- 「ダミー更新（全再生成）」UIは撤去済み。
+- 「サンプルデータ更新（全再生成）」UIは撤去済み。
 
 ---
 

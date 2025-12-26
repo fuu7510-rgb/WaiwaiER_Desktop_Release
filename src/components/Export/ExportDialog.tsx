@@ -1,11 +1,9 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { save } from '@tauri-apps/plugin-dialog';
-import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { Dialog, Button } from '../common';
-import { useERStore, useProjectStore, useLicenseStore } from '../../stores';
-import { generateSampleData, exportPackage } from '../../lib';
+import { useERStore, useProjectStore, useUIStore } from '../../stores';
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -16,40 +14,66 @@ type ExportFormat = 'json' | 'excel' | 'package';
 
 export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
   const { t } = useTranslation();
-  const { exportDiagram, tables } = useERStore();
+  const { exportDiagram, tables, sampleDataByTableId, ensureSampleData } = useERStore();
   const { currentProjectId, projects } = useProjectStore();
-  const { limits } = useLicenseStore();
+  const { openProjectDialog } = useUIStore();
   const [format, setFormat] = useState<ExportFormat>('json');
   const [includeData, setIncludeData] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [passphrase, setPassphrase] = useState('');
-  const [confirmPassphrase, setConfirmPassphrase] = useState('');
-  const [encryptPackage, setEncryptPackage] = useState(false);
+  const [jsonExportText, setJsonExportText] = useState<string | null>(null);
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const primaryButtonLabel = format === 'package' ? 'プロジェクト管理に移動' : t('common.export');
   
   const currentProject = projects.find((p) => p.id === currentProjectId);
+
+  const handleClose = useCallback(() => {
+    setJsonExportText(null);
+    setCopyStatus('idle');
+    onClose();
+  }, [onClose]);
 
   const handleExportJSON = useCallback(async () => {
     try {
       setIsExporting(true);
       const diagram = exportDiagram();
       const jsonString = JSON.stringify(diagram, null, 2);
-      
-      const filePath = await save({
-        defaultPath: `${currentProject?.name || 'diagram'}.json`,
-        filters: [{ name: 'JSON', extensions: ['json'] }],
-      });
-      
-      if (filePath) {
-        await writeTextFile(filePath, jsonString);
-        onClose();
-      }
+
+      // JSON形式は「ファイル保存」ではなく、コピー用テキストとして表示する
+      setJsonExportText(jsonString);
+      setCopyStatus('idle');
     } catch (error) {
       console.error('Export failed:', error);
       alert(t('export.exportError'));
     } finally {
       setIsExporting(false);
     }
-  }, [exportDiagram, currentProject, onClose, t]);
+  }, [exportDiagram, t]);
+
+  const handleCopyJSON = useCallback(async () => {
+    if (!jsonExportText) return;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(jsonExportText);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = jsonExportText;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-9999px';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+
+      setCopyStatus('copied');
+    } catch (error) {
+      console.error('Copy failed:', error);
+      setCopyStatus('failed');
+    }
+  }, [jsonExportText]);
 
   const handleExportExcel = useCallback(async () => {
     try {
@@ -61,12 +85,21 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
       });
       
       if (!filePath) return;
+
+      if (includeData) {
+        // まずはストア上のサンプルデータを確実に用意する
+        ensureSampleData();
+      }
+
+      const latestSampleDataByTableId = includeData
+        ? useERStore.getState().sampleDataByTableId
+        : {};
       
       // サンプルデータを生成
       const sampleData: Record<string, Record<string, unknown>[]> = {};
       if (includeData) {
         tables.forEach((table) => {
-          sampleData[table.id] = generateSampleData(table, 5);
+          sampleData[table.id] = (latestSampleDataByTableId[table.id] ?? []).slice(0, 5);
         });
       }
       
@@ -87,53 +120,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
     } finally {
       setIsExporting(false);
     }
-  }, [tables, currentProject, includeData, onClose, t]);
-
-  const handleExportPackage = useCallback(async () => {
-    if (!currentProject) {
-      alert(t('export.errors.noProjectSelected'));
-      return;
-    }
-
-    // 暗号化オプションでパスフレーズ確認
-    if (encryptPackage) {
-      if (!passphrase) {
-        alert(t('export.errors.enterPassphrase'));
-        return;
-      }
-      if (passphrase !== confirmPassphrase) {
-        alert(t('export.errors.passphraseMismatch'));
-        return;
-      }
-      if (!limits.canEncrypt) {
-        alert(t('export.errors.encryptProOnly'));
-        return;
-      }
-    }
-
-    try {
-      setIsExporting(true);
-      const result = await exportPackage(
-        currentProject,
-        encryptPackage ? passphrase : undefined
-      );
-
-      if (result.success) {
-        onClose();
-        // 状態をリセット
-        setPassphrase('');
-        setConfirmPassphrase('');
-        setEncryptPackage(false);
-      } else {
-        alert(result.error || t('export.errors.failed'));
-      }
-    } catch (error) {
-      console.error('Package export failed:', error);
-      alert(t('export.exportError'));
-    } finally {
-      setIsExporting(false);
-    }
-  }, [currentProject, encryptPackage, passphrase, confirmPassphrase, limits, onClose, t]);
+  }, [tables, currentProject, includeData, onClose, t, sampleDataByTableId, ensureSampleData]);
 
   const handleExport = useCallback(async () => {
     switch (format) {
@@ -144,10 +131,12 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
         await handleExportExcel();
         break;
       case 'package':
-        await handleExportPackage();
+        // .waiwai パッケージのエクスポートは「プロジェクト管理」画面から行う
+        handleClose();
+        openProjectDialog();
         break;
     }
-  }, [format, handleExportJSON, handleExportExcel, handleExportPackage]);
+  }, [format, handleExportJSON, handleExportExcel, handleClose, openProjectDialog]);
 
   const formats: { id: ExportFormat; label: string; description: string }[] = [
     { id: 'json', label: t('export.formats.json'), description: t('export.descriptions.json') },
@@ -156,122 +145,107 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
   ];
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} title={t('export.title')} size="md">
-      <div className="space-y-4">
-        {/* Export Format Selection */}
-        <div>
-          <label className="block text-xs font-medium text-zinc-600 mb-2">
-            {t('export.format')}
-          </label>
-          <div className="space-y-2">
-            {formats.map((f) => (
-              <label
-                key={f.id}
-                className={`flex items-start gap-3 p-2.5 border rounded-lg cursor-pointer transition-colors ${
-                  format === f.id
-                    ? 'border-indigo-400 bg-indigo-50/50'
-                    : 'border-zinc-200 hover:border-zinc-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="format"
-                  value={f.id}
-                  checked={format === f.id}
-                  onChange={(e) => setFormat(e.target.value as ExportFormat)}
-                  className="mt-0.5"
-                />
-                <div>
-                  <p className="text-xs font-medium text-zinc-700">{f.label}</p>
-                  <p className="text-[10px] text-zinc-400">{f.description}</p>
-                </div>
-              </label>
-            ))}
+    <Dialog
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={jsonExportText ? t('menu.exportJson') : t('export.title')}
+      size={jsonExportText ? 'xl' : 'md'}
+    >
+      {jsonExportText ? (
+        <div className="space-y-3">
+          <p className="text-[10px] text-zinc-500">{t('export.jsonText.hint')}</p>
+
+          <textarea
+            value={jsonExportText}
+            readOnly
+            aria-label={t('menu.exportJson')}
+            className="w-full h-72 rounded border border-zinc-200 bg-white p-2 font-mono text-[10px] text-zinc-700"
+            onFocus={(e) => e.currentTarget.select()}
+          />
+
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[10px] text-zinc-500">
+              {copyStatus === 'copied' && t('export.jsonText.copied')}
+              {copyStatus === 'failed' && t('export.jsonText.copyFailed')}
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" size="sm" onClick={handleClose}>
+                {t('common.close')}
+              </Button>
+              <Button size="sm" onClick={handleCopyJSON}>
+                {t('common.copy')}
+              </Button>
+            </div>
           </div>
         </div>
-
-        {/* Options */}
-        {(format === 'excel' || format === 'package') && (
+      ) : (
+        <div className="space-y-4">
+          {/* Export Format Selection */}
           <div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={includeData}
-                onChange={(e) => setIncludeData(e.target.checked)}
-                className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600"
-              />
-              <span className="text-xs text-zinc-600">{t('export.includeData')}</span>
+            <label className="block text-xs font-medium text-zinc-600 mb-2">
+              {t('export.format')}
             </label>
-          </div>
-        )}
-
-        {/* Package Encryption Option */}
-        {format === 'package' && (
-          <div className="space-y-3 border-t pt-3">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={encryptPackage}
-                onChange={(e) => setEncryptPackage(e.target.checked)}
-                disabled={!limits.canEncrypt}
-                className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 disabled:opacity-50"
-              />
-              <span className="text-xs text-zinc-600">
-                {t('export.package.encrypt')}
-                {!limits.canEncrypt && (
-                  <span className="text-[10px] text-amber-600 ml-1">{t('export.package.proOnly')}</span>
-                )}
-              </span>
-            </label>
-
-            {encryptPackage && (
-              <div className="space-y-2 pl-5">
-                <div>
-                  <label className="block text-[10px] text-zinc-500 mb-1">{t('export.package.passphrase')}</label>
+            <div className="space-y-2">
+              {formats.map((f) => (
+                <label
+                  key={f.id}
+                  className={`flex items-start gap-3 p-2.5 border rounded-lg cursor-pointer transition-colors ${
+                    format === f.id
+                      ? 'border-indigo-400 bg-indigo-50/50'
+                      : 'border-zinc-200 hover:border-zinc-300'
+                  }`}
+                >
                   <input
-                    type="password"
-                    value={passphrase}
-                    onChange={(e) => setPassphrase(e.target.value)}
-                    className="w-full px-2 py-1.5 text-xs border rounded border-zinc-200 focus:border-indigo-400 focus:outline-none"
-                    placeholder="••••••••"
+                    type="radio"
+                    name="format"
+                    value={f.id}
+                    checked={format === f.id}
+                    onChange={(e) => setFormat(e.target.value as ExportFormat)}
+                    className="mt-0.5"
                   />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-zinc-500 mb-1">{t('export.package.passphraseConfirm')}</label>
-                  <input
-                    type="password"
-                    value={confirmPassphrase}
-                    onChange={(e) => setConfirmPassphrase(e.target.value)}
-                    className="w-full px-2 py-1.5 text-xs border rounded border-zinc-200 focus:border-indigo-400 focus:outline-none"
-                    placeholder="••••••••"
-                  />
-                </div>
-                {passphrase && confirmPassphrase && passphrase !== confirmPassphrase && (
-                  <p className="text-[10px] text-red-500">{t('export.errors.passphraseMismatch')}</p>
-                )}
-              </div>
-            )}
+                  <div>
+                    <p className="text-xs font-medium text-zinc-700">{f.label}</p>
+                    <p className="text-[10px] text-zinc-400">{f.description}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
           </div>
-        )}
 
-        {/* Info */}
-        <div className="bg-zinc-50 rounded p-2.5 text-[10px] text-zinc-500">
-          <p>
-            {t('export.info.tablesCount')}:{' '}
-            <span className="font-medium text-zinc-700">{tables.length}</span>
-          </p>
-        </div>
+          {/* Options */}
+          {format === 'excel' && (
+            <div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeData}
+                  onChange={(e) => setIncludeData(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600"
+                />
+                <span className="text-xs text-zinc-600">{t('export.includeData')}</span>
+              </label>
+            </div>
+          )}
 
-        {/* Actions */}
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="secondary" size="sm" onClick={onClose}>
-            {t('common.cancel')}
-          </Button>
-          <Button size="sm" onClick={handleExport} disabled={isExporting}>
-            {isExporting ? t('common.loading') : t('common.export')}
-          </Button>
+          {/* Info */}
+          <div className="bg-zinc-50 rounded p-2.5 text-[10px] text-zinc-500">
+            <p>
+              {t('export.info.tablesCount')}:{' '}
+              <span className="font-medium text-zinc-700">{tables.length}</span>
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary" size="sm" onClick={handleClose}>
+              {t('common.cancel')}
+            </Button>
+            <Button size="sm" onClick={handleExport} disabled={isExporting}>
+              {isExporting ? t('common.loading') : primaryButtonLabel}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </Dialog>
   );
 }

@@ -13,6 +13,7 @@ interface UIState {
   // ダイアログ状態
   isSettingsOpen: boolean;
   isProjectDialogOpen: boolean;
+  isImportDialogOpen: boolean;
   isExportDialogOpen: boolean;
   isAboutDialogOpen: boolean;
   
@@ -38,6 +39,8 @@ interface UIState {
   closeSettings: () => void;
   openProjectDialog: () => void;
   closeProjectDialog: () => void;
+  openImportDialog: () => void;
+  closeImportDialog: () => void;
   openExportDialog: () => void;
   closeExportDialog: () => void;
   openAboutDialog: () => void;
@@ -83,6 +86,7 @@ export const useUIStore = create<UIState>()(
       panPosition: { x: 0, y: 0 },
       isSettingsOpen: false,
       isProjectDialogOpen: false,
+      isImportDialogOpen: false,
       isExportDialogOpen: false,
       isAboutDialogOpen: false,
       isSidebarOpen: true,
@@ -102,6 +106,8 @@ export const useUIStore = create<UIState>()(
       closeSettings: () => set({ isSettingsOpen: false }),
       openProjectDialog: () => set({ isProjectDialogOpen: true }),
       closeProjectDialog: () => set({ isProjectDialogOpen: false }),
+      openImportDialog: () => set({ isImportDialogOpen: true }),
+      closeImportDialog: () => set({ isImportDialogOpen: false }),
       openExportDialog: () => set({ isExportDialogOpen: true }),
       closeExportDialog: () => set({ isExportDialogOpen: false }),
       openAboutDialog: () => set({ isAboutDialogOpen: true }),

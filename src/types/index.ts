@@ -48,7 +48,7 @@ export interface Column {
   isLabel: boolean;
   description?: string;
   /**
-   * サンプル/ダミーデータ生成で優先的に使う値。1行=候補値（複数指定可）。
+    * サンプルデータ生成で優先的に使う値。1行=候補値（複数指定可）。
    * 未指定の場合はデータ型やカラム名から自動生成する。
    */
   dummyValues?: string[];

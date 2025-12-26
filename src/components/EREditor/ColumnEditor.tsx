@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useERStore } from '../../stores';
-import { Button, Input, Select } from '../common';
+import { Button, Dialog, Input, Select } from '../common';
 import type { Column, ColumnType, ColumnConstraints } from '../../types';
 
 const columnTypes: ColumnType[] = [
@@ -19,28 +19,67 @@ export function ColumnEditor() {
     selectedColumnId,
     updateColumn,
     deleteColumn,
-    sampleDataByTableId,
     ensureSampleData,
+    sampleDataByTableId,
+    setSampleRowsForTable,
   } = useERStore();
   
   const selectedTable = tables.find((t) => t.id === selectedTableId);
   const selectedColumn = selectedTable?.columns.find((c) => c.id === selectedColumnId);
 
+  const [isDummyValuesDialogOpen, setIsDummyValuesDialogOpen] = useState(false);
+  const [dummyValuesDialogText, setDummyValuesDialogText] = useState('');
+
   useEffect(() => {
     ensureSampleData();
   }, [ensureSampleData]);
-
-  const previewValues = useMemo(() => {
-    if (!selectedTableId || !selectedColumnId) return [] as string[];
-    const rows = sampleDataByTableId[selectedTableId] ?? [];
-    return rows.map((row) => String(row[selectedColumnId] ?? '-'));
-  }, [sampleDataByTableId, selectedColumnId, selectedTableId]);
 
   const handleUpdate = useCallback((updates: Partial<Column>) => {
     if (selectedTableId && selectedColumnId) {
       updateColumn(selectedTableId, selectedColumnId, updates);
     }
   }, [selectedTableId, selectedColumnId, updateColumn]);
+
+  const columnSampleValuesPreview = useMemo(() => {
+    if (!selectedTableId || !selectedColumnId) return [];
+    const rows = sampleDataByTableId[selectedTableId] ?? [];
+    return rows.map((r) => String(r?.[selectedColumnId] ?? ''));
+  }, [sampleDataByTableId, selectedColumnId, selectedTableId]);
+
+  const openDummyValuesDialog = useCallback(() => {
+    if (!selectedColumn) return;
+    const rows = selectedTableId ? sampleDataByTableId[selectedTableId] ?? [] : [];
+    const text = selectedColumnId
+      ? rows.map((r) => String(r?.[selectedColumnId] ?? '')).join('\n')
+      : '';
+    setDummyValuesDialogText(text);
+    setIsDummyValuesDialogOpen(true);
+  }, [sampleDataByTableId, selectedColumn, selectedColumnId, selectedTableId]);
+
+  const closeDummyValuesDialog = useCallback(() => {
+    setIsDummyValuesDialogOpen(false);
+  }, []);
+
+  const saveDummyValuesFromDialog = useCallback(() => {
+    if (!selectedTableId || !selectedColumnId || !selectedColumn) return;
+
+    const lines = dummyValuesDialogText.split('\n');
+    // Avoid creating an extra row from trailing newlines.
+    while (lines.length > 0 && String(lines[lines.length - 1] ?? '').trim().length === 0) {
+      lines.pop();
+    }
+
+    const currentRows = sampleDataByTableId[selectedTableId] ?? [];
+    const desiredCount = lines.length;
+    const nextRows: Record<string, unknown>[] = [];
+    for (let i = 0; i < desiredCount; i++) {
+      const base = currentRows[i] ?? {};
+      nextRows.push({ ...base, [selectedColumnId]: lines[i] ?? '' });
+    }
+
+    setSampleRowsForTable(selectedTableId, nextRows);
+    setIsDummyValuesDialogOpen(false);
+  }, [dummyValuesDialogText, sampleDataByTableId, selectedColumn, selectedColumnId, selectedTableId, setSampleRowsForTable]);
 
   const handleConstraintUpdate = useCallback((updates: Partial<ColumnConstraints>) => {
     if (selectedColumn) {
@@ -158,18 +197,23 @@ export function ColumnEditor() {
         </div>
       </div>
 
-      {/* ダミーデータ */}
+      {/* サンプルデータ */}
       <div className="border-t border-zinc-100 pt-3">
-        <h4 className="font-medium text-xs text-zinc-500 mb-2">{t('column.dummyData')}</h4>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <h4 className="font-medium text-xs text-zinc-500">{t('column.dummyData')}</h4>
+          <Button variant="secondary" size="sm" onClick={openDummyValuesDialog}>
+            サンプルデータ編集
+          </Button>
+        </div>
 
         <div className="mb-2">
           <div className="text-[10px] text-zinc-400 mb-1">{t('column.dummyDataPreview')}</div>
           <div className="text-xs text-zinc-700 bg-white border border-zinc-200 rounded px-2 py-1.5">
-            {previewValues.length === 0 ? (
+            {columnSampleValuesPreview.length === 0 ? (
               <div className="text-zinc-400">-</div>
             ) : (
               <div className="space-y-0.5">
-                {previewValues.map((v, i) => (
+                {columnSampleValuesPreview.map((v, i) => (
                   <div key={i} className="truncate">{v}</div>
                 ))}
               </div>
@@ -177,25 +221,53 @@ export function ColumnEditor() {
           </div>
         </div>
 
-        <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1">
-            {t('column.dummyData')}
-          </label>
-          <textarea
-            value={selectedColumn.dummyValues?.join('\n') || ''}
-            onChange={(e) => {
-              const next = e.target.value
-                .split('\n')
-                .map((v) => v.trim())
-                .filter((v) => v.length > 0);
-              handleUpdate({ dummyValues: next.length ? next : undefined });
-            }}
-            className="w-full px-2.5 py-1.5 text-xs border border-zinc-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
-            rows={3}
-            placeholder={t('column.dummyDataPlaceholder')}
-          />
-        </div>
+        <div className="text-[10px] text-zinc-400">{t('column.dummyDataPlaceholder')}</div>
       </div>
+
+      <Dialog
+        isOpen={isDummyValuesDialogOpen}
+        onClose={closeDummyValuesDialog}
+        title="サンプルデータ編集"
+        size="xl"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" size="sm" onClick={closeDummyValuesDialog}>
+              {t('common.cancel')}
+            </Button>
+            <Button variant="primary" size="sm" onClick={saveDummyValuesFromDialog}>
+              {t('common.save')}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-2">
+          <div className="text-[10px] text-zinc-400">{t('column.dummyDataPreview')}</div>
+          <div className="text-xs text-zinc-700 bg-white border border-zinc-200 rounded px-2 py-1.5 max-h-32 overflow-y-auto">
+            {columnSampleValuesPreview.length === 0 ? (
+              <div className="text-zinc-400">-</div>
+            ) : (
+              <div className="space-y-0.5">
+                {columnSampleValuesPreview.map((v, i) => (
+                  <div key={i} className="truncate">{v}</div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">
+              {t('column.dummyData')}
+            </label>
+            <textarea
+              value={dummyValuesDialogText}
+              onChange={(e) => setDummyValuesDialogText(e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs border border-zinc-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 min-h-[320px]"
+              placeholder={t('column.dummyDataPlaceholder')}
+            />
+            <div className="text-[10px] text-zinc-400 mt-1">1行に1つ入力</div>
+          </div>
+        </div>
+      </Dialog>
       
       {/* 削除ボタン */}
       <div className="border-t border-zinc-100 pt-3">
