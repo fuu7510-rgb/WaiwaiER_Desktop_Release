@@ -39,6 +39,18 @@ AppSheetのNote Parametersは「セルのメモ（Note）」に書きます。�
 4. 1行目ヘッダーセルにマウスホバーし、**メモ（Note）が `AppSheet:` から始まる**ことを確認
 5. AppSheet で「Add a table」から 해당シートを取り込み、列の型やRef設定が反映されることを確認
 
+## 既知の制約・注意点
+
+### `IsLabel` が反映されないケース
+
+`IsLabel` は Note Parameters としては仕様上存在しますが、AppSheet 側の挙動（既存アプリ状態/内部キャッシュ/取り込みのタイミング等）により、
+**新規 Add a table / 既存テーブル更新のいずれでも反映されない**ケースがあります。
+
+- WaiwaiER Desktop の出力はトリガー文字列 `AppSheet:` を先頭に置き、トグル値も `TRUE/FALSE` で出力します。
+- それでも `IsLabel` が反映されない場合は、現状は **AppSheet エディタ側で Label 列を手動設定**するのが確実です。
+
+（同様に `IsKey` 等も AppSheet 側で必ずしも自動反映されるとは限りません。重要な設定は最終的に AppSheet エディタで確認してください。）
+
 ## Note Parametersとは
 
 Note Parametersは、AppSheetでカラム設定を事前に定義するための強力なツールです。スプレッドシートのセルにメモとしてJSON形式で設定を記述することで、AppSheetが自動的にカラム設定を適用します。
