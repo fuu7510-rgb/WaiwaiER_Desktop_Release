@@ -75,7 +75,8 @@ AppSheet:{"Type":"データ型","IsRequired":true,"TypeAuxData":"..."}
 - 後続は **JSONオブジェクト**（`{...}`）
 - キー名は **大文字小文字を区別**（例: `DisplayName` と `Displayname` は別）
 - 文字列は **ダブルクォート**のみ（JSON準拠）
-- 真偽値は `true/false`（小文字）
+- 真偽値（トグル系）は `TRUE/FALSE`（大文字）を推奨（資料表記に合わせる）
+- `true/false`（小文字）が効かないケースがあるため、WaiwaiER Desktop の自動出力は `TRUE/FALSE` を使用
 - 末尾カンマは不可（`{"a":1,}` はNG）
 
 > 補足: 見た目のために `AppSheet: {\n  "Type": "Text"\n}` のように空白や改行を入れても、多くのケースで動きますが、トラブルを減らすため本ガイドでは**1行のJSON**を推奨します。

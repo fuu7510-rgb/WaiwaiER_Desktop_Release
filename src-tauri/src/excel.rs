@@ -234,11 +234,48 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
         }
     }
 
-    let json_string = serde_json::to_string(&Value::Object(data)).unwrap_or_else(|_| "{}".to_string());
-    if json_string == "{}" {
+    let body = serialize_note_parameters_object(&data);
+    if body == "{}" {
         return "AppSheet:{}".to_string();
     }
-    format!("AppSheet:{}", json_string)
+    format!("AppSheet:{}", body)
+}
+
+// Note Parameters は「JSONに似ているが TRUE/FALSE を使う」資料表記があり、
+// `IsLabel` 等のトグルが `true/false` だと反映されないケースがある。
+// そのため、Bool は `TRUE/FALSE` で出力する（他はJSON互換表記）。
+fn serialize_note_parameters_object(map: &serde_json::Map<String, Value>) -> String {
+    if map.is_empty() {
+        return "{}".to_string();
+    }
+
+    let mut parts: Vec<String> = Vec::with_capacity(map.len());
+    for (k, v) in map {
+        let key = serde_json::to_string(k).unwrap_or_else(|_| format!("\"{}\"", k));
+        let value = serialize_note_parameters_value(v);
+        parts.push(format!("{}:{}", key, value));
+    }
+    format!("{{{}}}", parts.join(","))
+}
+
+fn serialize_note_parameters_value(value: &Value) -> String {
+    match value {
+        Value::Null => "null".to_string(),
+        Value::Bool(b) => {
+            if *b {
+                "TRUE".to_string()
+            } else {
+                "FALSE".to_string()
+            }
+        }
+        Value::Number(n) => n.to_string(),
+        Value::String(s) => serde_json::to_string(s).unwrap_or_else(|_| format!("\"{}\"", s)),
+        Value::Array(arr) => {
+            let items: Vec<String> = arr.iter().map(serialize_note_parameters_value).collect();
+            format!("[{}]", items.join(","))
+        }
+        Value::Object(obj) => serialize_note_parameters_object(obj),
+    }
 }
 
 // サンプル値を文字列に変換
@@ -361,9 +398,9 @@ mod tests {
         
         let note = generate_column_note(&column, &[]);
         assert!(note.starts_with("AppSheet:"));
-        assert!(note.contains("\"IsKey\":true"));
-        assert!(note.contains("\"IsLabel\":true"));
-        assert!(note.contains("\"IsRequired\":true"));
+        assert!(note.contains("\"IsKey\":TRUE"));
+        assert!(note.contains("\"IsLabel\":TRUE"));
+        assert!(note.contains("\"IsRequired\":TRUE"));
         assert!(note.contains("\"Description\":\"Test description\""));
     }
 }
