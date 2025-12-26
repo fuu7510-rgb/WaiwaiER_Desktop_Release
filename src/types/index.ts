@@ -109,6 +109,11 @@ export interface Project {
   id: string;
   name: string;
   description?: string;
+  /**
+   * プロジェクト一覧表示の並び順（小さいほど上）。
+   * 旧データ互換のため optional。
+   */
+  sortOrder?: number;
   isEncrypted: boolean;
   /**
    * パスフレーズ自体は保存しない。

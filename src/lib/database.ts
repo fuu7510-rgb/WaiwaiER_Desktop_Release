@@ -225,6 +225,7 @@ async function initTauriDatabase(): Promise<TauriDatabase> {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       description TEXT,
+      sort_order INTEGER,
       is_encrypted INTEGER DEFAULT 0,
       passphrase_salt TEXT,
       passphrase_hash TEXT,
@@ -238,6 +239,9 @@ async function initTauriDatabase(): Promise<TauriDatabase> {
   try {
     const cols = await database.select<{ name: string }[]>('PRAGMA table_info(projects)');
     const existing = new Set(cols.map((c) => c.name));
+    if (!existing.has('sort_order')) {
+      await database.execute('ALTER TABLE projects ADD COLUMN sort_order INTEGER');
+    }
     if (!existing.has('passphrase_salt')) {
       await database.execute('ALTER TABLE projects ADD COLUMN passphrase_salt TEXT');
     }
@@ -284,12 +288,13 @@ const tauriDb: DbImpl = {
   async saveProject(project: Project): Promise<void> {
     const database = await initTauriDatabase();
     await database.execute(
-      `INSERT OR REPLACE INTO projects (id, name, description, is_encrypted, passphrase_salt, passphrase_hash, created_at, updated_at, last_opened_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      `INSERT OR REPLACE INTO projects (id, name, description, sort_order, is_encrypted, passphrase_salt, passphrase_hash, created_at, updated_at, last_opened_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
       [
         project.id,
         project.name,
         project.description || null,
+        project.sortOrder ?? null,
         project.isEncrypted ? 1 : 0,
         project.passphraseSalt || null,
         project.passphraseHash || null,
@@ -307,6 +312,7 @@ const tauriDb: DbImpl = {
         id: string;
         name: string;
         description: string | null;
+        sort_order: number | null;
         is_encrypted: number;
         passphrase_salt?: string | null;
         passphrase_hash?: string | null;
@@ -314,12 +320,15 @@ const tauriDb: DbImpl = {
         updated_at: string;
         last_opened_at: string | null;
       }[]
-    >('SELECT * FROM projects ORDER BY updated_at DESC');
+    >(
+      'SELECT * FROM projects ORDER BY (sort_order IS NULL) ASC, sort_order ASC, updated_at DESC'
+    );
 
     return rows.map((row) => ({
       id: row.id,
       name: row.name,
       description: row.description || undefined,
+      sortOrder: row.sort_order ?? undefined,
       isEncrypted: row.is_encrypted === 1,
       passphraseSalt: row.passphrase_salt || undefined,
       passphraseHash: row.passphrase_hash || undefined,

@@ -4,6 +4,32 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Project, SubscriptionPlan } from '../types';
 import { saveProject as dbSaveProject, loadProjects as dbLoadProjects, deleteProject as dbDeleteProject } from '../lib/database';
 
+function normalizeProjectSortOrders(projects: Project[]): { projects: Project[]; changed: boolean } {
+  let changed = false;
+
+  const withIndex = projects.map((p, index) => {
+    if (typeof p.sortOrder === 'number') return p;
+    changed = true;
+    return { ...p, sortOrder: index };
+  });
+
+  // sortOrder が重複/欠番していても連番に揃える
+  const sorted = [...withIndex].sort((a, b) => {
+    const ao = a.sortOrder ?? Number.MAX_SAFE_INTEGER;
+    const bo = b.sortOrder ?? Number.MAX_SAFE_INTEGER;
+    if (ao !== bo) return ao - bo;
+    return a.updatedAt.localeCompare(b.updatedAt);
+  });
+
+  const normalized = sorted.map((p, index) => {
+    if (p.sortOrder === index) return p;
+    changed = true;
+    return { ...p, sortOrder: index };
+  });
+
+  return { projects: normalized, changed };
+}
+
 // Free版の制限
 const FREE_LIMITS = {
   maxProjects: 3,
@@ -33,6 +59,7 @@ interface ProjectState {
   deleteProject: (id: string) => void;
   openProject: (id: string) => void;
   closeProject: () => void;
+  reorderProjects: (activeProjectId: string, overProjectId: string) => void;
   
   // 制限チェック
   canCreateProject: () => boolean;
@@ -55,8 +82,16 @@ export const useProjectStore = create<ProjectState>()(
       loadProjectsFromDB: async () => {
         set({ isLoading: true });
         try {
-          const projects = await dbLoadProjects();
-          set({ projects });
+          const loaded = await dbLoadProjects();
+          const normalized = normalizeProjectSortOrders(loaded);
+          set({ projects: normalized.projects });
+
+          if (normalized.changed) {
+            // 旧DB/旧LocalStorage互換: sortOrder を埋めて永続化
+            Promise.all(normalized.projects.map((p) => dbSaveProject(p))).catch((error) => {
+              console.error('Failed to persist normalized project sort orders:', error);
+            });
+          }
         } catch (error) {
           console.error('Failed to load projects from DB:', error);
         } finally {
@@ -72,12 +107,15 @@ export const useProjectStore = create<ProjectState>()(
         const isEncrypted = options?.isEncrypted ?? false;
         
         const now = new Date().toISOString();
+        const nextSortOrder =
+          get().projects.reduce((max, p) => Math.max(max, typeof p.sortOrder === 'number' ? p.sortOrder : -1), -1) + 1;
         const project: Project = {
           id: uuidv4(),
           name,
           isEncrypted,
           passphraseSalt: options?.passphraseSalt,
           passphraseHash: options?.passphraseHash,
+          sortOrder: nextSortOrder,
           createdAt: now,
           updatedAt: now,
         };
@@ -129,6 +167,29 @@ export const useProjectStore = create<ProjectState>()(
             ),
           }));
         }
+      },
+
+      reorderProjects: (activeProjectId, overProjectId) => {
+        const current = get().projects;
+        const fromIndex = current.findIndex((p) => p.id === activeProjectId);
+        const toIndex = current.findIndex((p) => p.id === overProjectId);
+        if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
+
+        const moved = [...current];
+        const [item] = moved.splice(fromIndex, 1);
+        moved.splice(toIndex, 0, item);
+
+        const updated = moved.map((p, index) => ({
+          ...p,
+          sortOrder: index,
+        }));
+
+        set({ projects: updated });
+
+        // 非同期でDBに保存（数が少ない想定）
+        Promise.all(updated.map((p) => dbSaveProject(p))).catch((error) => {
+          console.error('Failed to persist project order to DB:', error);
+        });
       },
       
       closeProject: () => {

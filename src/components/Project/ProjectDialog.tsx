@@ -1,9 +1,24 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, Button, Input } from '../common';
 import { useProjectStore, useERStore, useLicenseStore } from '../../stores';
 import { hashPassphrase, verifyPassphrase } from '../../lib/crypto';
 import { exportPackage, importPackage, importPackageFromFile } from '../../lib';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface ProjectDialogProps {
   isOpen: boolean;
@@ -12,7 +27,7 @@ interface ProjectDialogProps {
 
 export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
   const { t } = useTranslation();
-  const { projects, currentProjectId, createProject, openProject, deleteProject, canCreateProject, getProjectLimit, subscriptionPlan, loadProjectsFromDB } = useProjectStore();
+  const { projects, currentProjectId, createProject, openProject, deleteProject, canCreateProject, getProjectLimit, subscriptionPlan, loadProjectsFromDB, reorderProjects } = useProjectStore();
   const { clearDiagram, loadFromDB, setCurrentProjectId, setCurrentProjectPassphrase, saveToDB, isDirty } = useERStore();
   const { limits } = useLicenseStore();
   
@@ -30,6 +45,27 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
 
   const [isImporting, setIsImporting] = useState(false);
   const [exportingProjectId, setExportingProjectId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    }),
+    useSensor(KeyboardSensor)
+  );
+
+  const projectIds = useMemo(() => projects.map((p) => p.id), [projects]);
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over) return;
+      const activeId = String(active.id);
+      const overId = String(over.id);
+      if (activeId === overId) return;
+      reorderProjects(activeId, overId);
+    },
+    [reorderProjects]
+  );
 
   const generateSaltBase64 = () => {
     const bytes = crypto.getRandomValues(new Uint8Array(16));
@@ -346,110 +382,150 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
           {projects.length === 0 ? (
             <p className="text-center text-zinc-400 py-6 text-xs">{t('project.noProjects')}</p>
           ) : (
-            projects.map((project) => (
-              <div
-                key={project.id}
-                className={`py-2 flex items-center justify-between ${
-                  currentProjectId === project.id ? 'bg-indigo-50 -mx-4 px-4' : ''
-                }`}
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="font-medium text-xs text-zinc-700">{project.name}</h3>
-                    {project.isEncrypted && (
-                      <svg className="w-3 h-3 text-zinc-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                    {currentProjectId === project.id && (
-                      <span className="text-[9px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium">
-                        現在
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[10px] text-zinc-400">
-                    更新日: {new Date(project.updatedAt).toLocaleString()}
-                  </p>
-                </div>
-                
-                <div className="flex gap-1.5">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => handleExportProject(project.id)}
-                    disabled={exportingProjectId !== null}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={projectIds} strategy={verticalListSortingStrategy}>
+                {projects.map((project) => (
+                  <SortableProjectRow
+                    key={project.id}
+                    projectId={project.id}
+                    isActive={currentProjectId === project.id}
                   >
-                    {exportingProjectId === project.id ? t('common.loading') : t('common.export')}
-                  </Button>
-
-                  {currentProjectId !== project.id && (
-                    <Button size="sm" onClick={() => handleOpen(project.id)}>
-                      開く
-                    </Button>
-                  )}
-
-                  {unlockProjectId === project.id && (
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-44">
-                        <Input
-                          type="password"
-                          value={unlockPassphrase}
-                          onChange={(e) => setUnlockPassphrase(e.target.value)}
-                          placeholder={t('project.encryption.passphrase')}
-                          error={unlockError || undefined}
-                        />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="font-medium text-xs text-zinc-700">{project.name}</h3>
+                        {project.isEncrypted && (
+                          <svg className="w-3 h-3 text-zinc-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                        {currentProjectId === project.id && (
+                          <span className="text-[9px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium">
+                            現在
+                          </span>
+                        )}
                       </div>
-                      <Button size="sm" onClick={handleUnlockAndOpen}>
-                        解除
-                      </Button>
+                      <p className="text-[10px] text-zinc-400">
+                        更新日: {new Date(project.updatedAt).toLocaleString()}
+                      </p>
+                    </div>
+
+                    <div className="flex gap-1.5">
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() => {
-                          setUnlockProjectId(null);
-                          setUnlockPassphrase('');
-                          setUnlockError(null);
-                        }}
+                        onClick={() => handleExportProject(project.id)}
+                        disabled={exportingProjectId !== null}
                       >
-                        ×
+                        {exportingProjectId === project.id ? t('common.loading') : t('common.export')}
                       </Button>
+
+                      {currentProjectId !== project.id && (
+                        <Button size="sm" onClick={() => handleOpen(project.id)}>
+                          開く
+                        </Button>
+                      )}
+
+                      {unlockProjectId === project.id && (
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-44">
+                            <Input
+                              type="password"
+                              value={unlockPassphrase}
+                              onChange={(e) => setUnlockPassphrase(e.target.value)}
+                              placeholder={t('project.encryption.passphrase')}
+                              error={unlockError || undefined}
+                            />
+                          </div>
+                          <Button size="sm" onClick={handleUnlockAndOpen}>
+                            解除
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              setUnlockProjectId(null);
+                              setUnlockPassphrase('');
+                              setUnlockError(null);
+                            }}
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      )}
+
+                      {deleteConfirmId === project.id ? (
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="danger" onClick={() => handleDelete(project.id)}>
+                            確認
+                          </Button>
+                          <Button size="sm" variant="secondary" onClick={() => setDeleteConfirmId(null)}>
+                            ×
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button size="sm" variant="ghost" onClick={() => setDeleteConfirmId(project.id)}>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </Button>
+                      )}
                     </div>
-                  )}
-                  
-                  {deleteConfirmId === project.id ? (
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={() => handleDelete(project.id)}
-                      >
-                        確認
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => setDeleteConfirmId(null)}
-                      >
-                        ×
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setDeleteConfirmId(project.id)}
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))
+                  </SortableProjectRow>
+                ))}
+              </SortableContext>
+            </DndContext>
           )}
         </div>
       </div>
     </Dialog>
+  );
+}
+
+function SortableProjectRow({
+  projectId,
+  isActive,
+  children,
+}: {
+  projectId: string;
+  isActive: boolean;
+  children: ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: projectId });
+  const rowRef = useRef<HTMLDivElement | null>(null);
+
+  const setRefs = useCallback(
+    (node: HTMLDivElement | null) => {
+      rowRef.current = node;
+      setNodeRef(node);
+    },
+    [setNodeRef]
+  );
+
+  useEffect(() => {
+    if (!rowRef.current) return;
+    rowRef.current.style.transform = CSS.Transform.toString(transform) ?? '';
+    rowRef.current.style.transition = transition ?? '';
+  }, [transform, transition]);
+
+  return (
+    <div
+      ref={setRefs}
+      className={`py-2 flex items-center justify-between gap-2 ${
+        isActive ? 'bg-indigo-50 -mx-4 px-4' : ''
+      } ${isDragging ? 'opacity-60' : ''}`}
+    >
+      <button
+        type="button"
+        aria-label="並び替え"
+        className="flex-shrink-0 p-1 rounded hover:bg-zinc-100 text-zinc-400"
+        {...attributes}
+        {...listeners}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 6h.01M8 12h.01M8 18h.01M12 6h.01M12 12h.01M12 18h.01M16 6h.01M16 12h.01M16 18h.01" />
+        </svg>
+      </button>
+      {children}
+    </div>
   );
 }
