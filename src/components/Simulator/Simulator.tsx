@@ -78,6 +78,11 @@ export function Simulator() {
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [draftRow, setDraftRow] = useState<Record<string, unknown> | null>(null);
+  const [pendingSelection, setPendingSelection] = useState<{
+    tableId: string;
+    rowIndex: number;
+    startEditing?: boolean;
+  } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -86,6 +91,24 @@ export function Simulator() {
   );
   
   const selectedTable = tables.find((t) => t.id === selectedTableId) || tables[0];
+
+  const getTableKeyColumnId = (table: (typeof tables)[number] | undefined): string | undefined => {
+    if (!table) return undefined;
+    return table.columns.find((c) => c.isKey)?.id ?? table.columns[0]?.id;
+  };
+
+  const makeRowKeyForTable = (
+    table: (typeof tables)[number] | undefined,
+    row: Record<string, unknown>,
+    rowIndex: number
+  ): string => {
+    const keyColumnId = getTableKeyColumnId(table);
+    const keyValue = keyColumnId ? row[keyColumnId] : undefined;
+    const keyString = String(keyValue ?? '').trim();
+    return keyString && keyColumnId ? `${keyColumnId}:${keyString}` : `row:${rowIndex}`;
+  };
+
+  const toComparableString = (value: unknown): string => String(value ?? '').trim();
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
@@ -97,6 +120,35 @@ export function Simulator() {
     });
     return () => cancelAnimationFrame(raf);
   }, [selectedTableId]);
+
+  useEffect(() => {
+    if (!pendingSelection) return;
+    if (!selectedTable?.id) return;
+    if (pendingSelection.tableId !== selectedTable.id) return;
+
+    const rows = sampleDataByTableId[selectedTable.id] ?? [];
+    const row = rows[pendingSelection.rowIndex];
+    if (!row) {
+      setPendingSelection(null);
+      return;
+    }
+
+    const raf = requestAnimationFrame(() => {
+      setSelectedRow(row);
+      setSelectedRowIndex(pendingSelection.rowIndex);
+      setSelectedRowKey(makeRowKeyForTable(selectedTable, row, pendingSelection.rowIndex));
+      if (pendingSelection.startEditing) {
+        setIsEditing(true);
+        setDraftRow({ ...row });
+      } else {
+        setIsEditing(false);
+        setDraftRow(null);
+      }
+      setPendingSelection(null);
+    });
+
+    return () => cancelAnimationFrame(raf);
+  }, [pendingSelection, selectedTable, sampleDataByTableId]);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
@@ -115,6 +167,87 @@ export function Simulator() {
     const keyValue = selectedTableKeyColumnId ? row[selectedTableKeyColumnId] : undefined;
     const keyString = String(keyValue ?? '').trim();
     return keyString ? `${selectedTableKeyColumnId}:${keyString}` : `row:${rowIndex}`;
+  };
+
+  const relatedSections = useMemo(() => {
+    if (!selectedTable?.id) return [];
+
+    const sections: Array<{
+      childTable: (typeof tables)[number];
+      refColumn: (typeof selectedTable.columns)[number];
+      rows: Array<{ row: Record<string, unknown>; rowIndex: number }>;
+    }> = [];
+
+    const parent = selectedTable;
+    const parentRow = selectedRow;
+    if (!parentRow) return sections;
+
+    for (const childTable of tables) {
+      if (childTable.id === parent.id) continue;
+
+      const refColumns = childTable.columns.filter(
+        (c) => c.type === 'Ref' && c.constraints.refTableId === parent.id
+      );
+
+      for (const refColumn of refColumns) {
+        const parentRefColumnId =
+          refColumn.constraints.refColumnId ?? getTableKeyColumnId(parent) ?? parent.columns[0]?.id;
+        const parentValue = parentRefColumnId ? parentRow[parentRefColumnId] : undefined;
+        const parentKey = toComparableString(parentValue);
+
+        const childRows = sampleDataByTableId[childTable.id] ?? [];
+        const rows = childRows
+          .map((row, rowIndex) => ({ row, rowIndex }))
+          .filter(({ row }) => {
+            const childValue = row[refColumn.id];
+            const childKey = toComparableString(childValue);
+            if (!parentKey || !childKey) return false;
+            return childKey === parentKey;
+          });
+
+        sections.push({ childTable, refColumn, rows });
+      }
+    }
+
+    return sections;
+  }, [sampleDataByTableId, selectedRow, selectedTable, tables]);
+
+  const handleAddRelatedRow = (section: (typeof relatedSections)[number]) => {
+    if (!selectedRow) return;
+    const parent = selectedTable;
+    if (!parent?.id) return;
+
+    const childTableId = section.childTable.id;
+    const existingRows = sampleDataByTableId[childTableId] ?? [];
+    const newRowIndex = existingRows.length;
+
+    const parentRefColumnId =
+      section.refColumn.constraints.refColumnId ?? getTableKeyColumnId(parent) ?? parent.columns[0]?.id;
+    const parentValue = parentRefColumnId ? selectedRow[parentRefColumnId] : undefined;
+    const parentKey = toComparableString(parentValue);
+
+    appendSampleRow(childTableId);
+    if (parentKey) {
+      updateSampleRow(childTableId, newRowIndex, {
+        ...(existingRows[newRowIndex] ?? {}),
+        [section.refColumn.id]: parentKey,
+      });
+    }
+
+    if (childTableId === selectedTable.id) {
+      const rowsAfter = sampleDataByTableId[childTableId] ?? [];
+      const row = rowsAfter[newRowIndex] ?? {};
+      const patchedRow = parentKey ? { ...row, [section.refColumn.id]: parentKey } : row;
+      setSelectedRow(patchedRow);
+      setSelectedRowIndex(newRowIndex);
+      setSelectedRowKey(makeRowKeyForTable(section.childTable, patchedRow, newRowIndex));
+      setIsEditing(true);
+      setDraftRow({ ...patchedRow });
+      return;
+    }
+
+    setPendingSelection({ tableId: childTableId, rowIndex: newRowIndex, startEditing: true });
+    selectTable(childTableId);
   };
 
   if (!selectedTable) {
@@ -549,6 +682,109 @@ export function Simulator() {
                     </div>
                   </div>
                 ))}
+
+                {!isEditing && relatedSections.length > 0 && (
+                  <div className="px-4 py-3">
+                    <div className="space-y-3">
+                      {relatedSections.map((section) => {
+                        const sameRefCount = relatedSections.filter(
+                          (s) => s.childTable.id === section.childTable.id
+                        ).length;
+
+                        const titleBase = `Related ${section.childTable.name}s`;
+                        const title =
+                          sameRefCount > 1 ? `${titleBase} (${section.refColumn.name})` : titleBase;
+
+                        return (
+                          <div key={`${section.childTable.id}:${section.refColumn.id}`}>
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="text-xs font-medium text-zinc-700 truncate">{title}</div>
+                                <span className="text-[10px] text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded">
+                                  {section.rows.length}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="border border-zinc-200 rounded bg-white overflow-hidden">
+                              {section.rows.length === 0 ? (
+                                <div className="px-3 py-6 text-center text-xs text-zinc-400">
+                                  {t('common.noResults', '該当なし')}
+                                </div>
+                              ) : (
+                                <div className="max-h-[260px] overflow-auto">
+                                  <table className="min-w-full border-collapse">
+                                    <thead className="sticky top-0 z-10 bg-zinc-50 border-b border-zinc-200">
+                                      <tr>
+                                        {section.childTable.columns.map((c) => (
+                                          <th
+                                            key={c.id}
+                                            className="px-3 py-2 text-left text-[10px] font-medium text-zinc-500 uppercase tracking-wider whitespace-nowrap"
+                                          >
+                                            {c.name}
+                                          </th>
+                                        ))}
+                                        <th className="px-2 py-2 w-8" />
+                                      </tr>
+                                    </thead>
+                                    <tbody className="bg-white">
+                                      {section.rows.map(({ row, rowIndex }) => (
+                                        <tr
+                                          key={rowIndex}
+                                          className="border-b border-zinc-100 hover:bg-zinc-50 cursor-pointer"
+                                          onClick={() => {
+                                            const targetTableId = section.childTable.id;
+                                            if (targetTableId === selectedTable.id) {
+                                              setSelectedRow(row);
+                                              setSelectedRowIndex(rowIndex);
+                                              setSelectedRowKey(makeRowKeyForTable(section.childTable, row, rowIndex));
+                                              setIsEditing(false);
+                                              setDraftRow(null);
+                                              return;
+                                            }
+                                            setPendingSelection({ tableId: targetTableId, rowIndex });
+                                            selectTable(targetTableId);
+                                          }}
+                                        >
+                                          {section.childTable.columns.map((c) => (
+                                            <td key={c.id} className="px-3 py-2 text-xs text-zinc-700 whitespace-nowrap">
+                                              {c.type === 'Ref'
+                                                ? getRefDisplayLabel({
+                                                    tables,
+                                                    sampleDataByTableId,
+                                                    column: c,
+                                                    value: row[c.id],
+                                                  })
+                                                : formatValue(row[c.id], c.type)}
+                                            </td>
+                                          ))}
+                                          <td className="px-2 py-2 text-right text-zinc-400">
+                                            <span aria-hidden="true">›</span>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+
+                              <div className="border-t border-zinc-200 bg-zinc-50 px-2 py-1.5 flex items-center justify-end">
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => handleAddRelatedRow(section)}
+                                >
+                                  {t('simulator.addRow', '＋追加')}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

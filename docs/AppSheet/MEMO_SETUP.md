@@ -1,15 +1,30 @@
 # AppSheetメモ設定ガイド（Note Parameters）
 
-ER図から生成したGASスクリプトを使用して、スプレッドシートにテーブルデータとAppSheetのメモ（Note Parameters）を自動生成する方法を説明します。
+WaiwaiER Desktop で作成したER図から、AppSheetが解釈できる **Note Parameters（セルのノート）付きのExcel** を生成し、AppSheetへ取り込む手順を説明します。
 
 ## 概要
 
-この機能では、ER図から生成したGASスクリプトを実行することで、Googleスプレッドシートに以下を自動生成します：
+この機能では、ER図からExcel（.xlsx）をエクスポートすることで、以下を自動生成します：
 
-1. **テーブルデータ**: テーブル名（Tなし、T付き）とカラム名
-2. **AppSheetメモ（Note Parameters）**: 各カラムのヘッダーセルにAppSheetの設定メモ
+1. **テーブル（シート）**: テーブル名=シート名、カラム名=1行目のヘッダー
+2. **AppSheetメモ（Note Parameters）**: 各カラムのヘッダーセルにAppSheet設定ノート（Legacy Note）
 
-AppSheetでは、Googleスプレッドシートのセルにメモ（コメント）を追加することで、アプリの設定や動作を制御できます。この機能を使用すると、スプレッドシート上で直接AppSheetの挙動を制御できます。
+AppSheetでは、Googleスプレッドシート/Excelの**セルのメモ（Note）**にNote Parameters（JSON）を書くことで、アプリのカラム設定を事前定義できます。
+
+> 注意: ここで言う「メモ」は、Google Sheets の「メモ（Note）」、Excel の「ノート（旧コメント / Legacy Note）」を指します。スレッド型の「コメント（Comment）」とは別物です。
+
+## 用語の注意（最重要）
+
+AppSheetのNote Parametersは「セルのメモ（Note）」に書きます。似た用語が多いので混同しないでください。
+
+- Google Sheets
+   - ✅ メモ（Note）: AppSheetが読む対象
+   - ❌ コメント（Comment）: 返信スレッドが付く方。基本的に対象外
+- Excel
+   - ✅ ノート（Note / 旧コメント）: AppSheetが読む対象（Google Driveにアップロード→シート化しても保持されやすい）
+   - ❌ コメント（Comment / スレッド）: いわゆる新しいコメント。AppSheet側の期待とズレやすい
+
+本リポジトリのExcelエクスポートは、AppSheet互換のため **`write_note`（レガシーメモ）を使用**し、`write_comment`（スレッド）を使用しません。
 
 ## Note Parametersとは
 
@@ -25,21 +40,32 @@ Note Parametersは以下のタイミングで最も効果的に機能します�
 
 > **重要**: テーブルの再生成に依存せず、新規カラム追加時や移動時にNote Parametersを設定することが推奨されます。
 
-## Excelエクスポート時のメモ機能
+## Excelエクスポート時のメモ機能（推奨フロー）
 
-Excelエクスポート機能でも、各カラムのヘッダーセルにAppSheetメモが自動的にコメントとして追加されます。これにより：
+Excelエクスポート機能でも、各カラムのヘッダーセルにAppSheetメモが自動的に**ノート（Note / レガシーメモ）**として追加されます。これにより：
 
 - ExcelファイルをGoogleスプレッドシートにインポートした際も、メモが保持されます
 - Excelでセルにマウスをホバーするとメモが表示されます
-- メモの内容はGASスクリプトで生成するものと同じ形式です
+- メモの内容はAppSheetのNote Parameters形式です
 
 ## メモ形式
 
-AppSheetのメモは以下の形式で記述します：
+Note Parameters（AppSheetメモ）は以下の形式で記述します：
 
 ```
 AppSheet:{"Type":"データ型","IsRequired":true,"TypeAuxData":"..."}
 ```
+
+### 書式のポイント
+
+- 先頭は必ず `AppSheet:` で始める
+- 後続は **JSONオブジェクト**（`{...}`）
+- キー名は **大文字小文字を区別**（例: `DisplayName` と `Displayname` は別）
+- 文字列は **ダブルクォート**のみ（JSON準拠）
+- 真偽値は `true/false`（小文字）
+- 末尾カンマは不可（`{"a":1,}` はNG）
+
+> 補足: 見た目のために `AppSheet: {\n  "Type": "Text"\n}` のように空白や改行を入れても、多くのケースで動きますが、トラブルを減らすため本ガイドでは**1行のJSON**を推奨します。
 
 ### 基本構造
 
@@ -162,7 +188,7 @@ Note Parametersの機能は、JSON構文の正確性に大きく依存します�
 
 Note ParametersやJSON全般で作業する際、ネストされたダブルクォートをエスケープすることは非常に重要です。エスケープしないとエラーが発生します。
 
-### エスケープのルール
+### エスケープのルール（概念）
 
 エスケープに必要なバックスラッシュ（`\`）の数は、レイヤーの深さによって異なります：
 
@@ -185,6 +211,16 @@ Note ParametersやJSON全般で作業する際、ネストされたダブルク�
 
 - 各追加レイヤーごとに2つのバックスラッシュを追加
 
+### このプロジェクトで特にハマりやすい「層」
+
+Note Parameters自体は単なるテキストですが、生成経路によっては「文字列リテラルの中に、さらにJSON文字列を入れる」構造になり、層が増えてエスケープが必要になります。
+
+- 層A: セルのメモに入る最終テキスト（人間がシートで見る内容）
+- 層B: GAS（JavaScript）の文字列リテラルに埋め込む（`"` が必要になる）
+- 層C: Rustの文字列リテラルに埋め込む（同様にエスケープが必要。`r#"..."#` のようなraw文字列で回避可能）
+
+本ガイドの例は基本的に「層A（セルのメモの最終形）」を示します。GASやRustに埋め込む場合は、言語側のエスケープを追加してください。
+
 ### エスケープが必要な理由
 
 ダブルクォート（`"`）を入力すると、システムは次のダブルクォートを「閉じ」として使用します。最初のクォートが「開き」、2番目のクォートが「閉じ」として機能します。
@@ -204,6 +240,20 @@ AppSheet:{"Type":"Enum","TypeAuxData":"{\"EnumValues\":[\"選択肢1\",\"選択�
 ## TypeAuxDataの詳細
 
 `TypeAuxData` は、データ型固有のオプションをJSON文字列として記述するために使用されます。この中にネストされたJSONオブジェクトを含める場合、すべてのダブルクォートをエスケープする必要があります。
+
+### 重要: `TypeAuxData` を使うべきか？（資料間の差分）
+
+Note Parameter Workshop の資料では、`TypeAuxData` / `BaseTypeQualifier` は「AppSheetエディタに対応しないメタキー」とされています。
+一方で、同資料の「Key Names For Column Settings」では、Ref/Enum等で **トップレベルに `ReferencedTableName` や `EnumValues` 等のキーを置く**形が示されています。
+
+このため、本ガイドでは以下の優先度で整理します。
+
+- 推奨（まず試す）: **Key Names表にあるトップレベルキー**を使う
+- 代替（必要な場合）: `TypeAuxData` にJSON文字列として入れる（内部形式の可能性があり、互換性が変わるリスクがある）
+
+> 確認事項（矛盾点として要注意）:
+> - 既存のAppSheet環境/バージョンや、列型によってはトップレベルキーが効かず、`TypeAuxData` 形式でしか反映されないケースがあり得ます。
+> - WaiwaiER側でどちらを「生成仕様」とするかは、実際のAppSheet取り込み結果に合わせて確定させるのが安全です。
 
 ### TypeAuxDataの例
 
@@ -225,57 +275,19 @@ AppSheet:{"Type":"Enum","TypeAuxData":"{\"EnumValues\":[\"電子機器\",\"衣�
 AppSheet:{"Type":"Enum","TypeAuxData":"{\"ReferencedRootTableName\":\"カテゴリマスタ\",\"BaseType\":\"Text\"}"}
 ```
 
-## 設定手順
+## 手順（Excel→AppSheet）
 
-### 1. ER図からGASスクリプトを生成
+### 1. WaiwaiER Desktop からExcelをエクスポート
 
 1. ERエディタでテーブルとカラムを設計
-2. ツールバーの「メモコピー」ボタンをクリック
-3. クリップボードにGASスクリプトがコピーされます
-   - スクリプトにはテーブルデータとメモ情報が含まれています
-   - 実行すると、スプレッドシートに自動的に書き込まれます
+2. エクスポート機能で `.xlsx` を生成
+3. 生成された各シートの1行目ヘッダーセルに、`AppSheet:{...}` のノートが付与されている（空は除外）
 
-### 2. Google Apps Scriptでテーブルとメモを自動生成
+### 2. AppSheetに取り込む
 
-#### 2-1. Google Apps Scriptエディタを開く
-
-1. [Google Apps Script](https://script.google.com) にアクセス
-2. 「新しいプロジェクト」をクリック
-
-#### 2-2. スクリプトを貼り付け
-
-1. コピーしたGASスクリプトをエディタに貼り付け
-2. `SPREADSHEET_ID` を実際のスプレッドシートIDに置き換え
-   - スプレッドシートのURLから取得: `https://docs.google.com/spreadsheets/d/[SPREADSHEET_ID]/edit`
-   - 例: `https://docs.google.com/spreadsheets/d/1a2b3c4d5e6f7g8h9i0j/edit`
-   - → `SPREADSHEET_ID = '1a2b3c4d5e6f7g8h9i0j'`
-3. `START_ROW` をデータの開始行に設定（通常は1）
-
-#### 2-3. スクリプトを実行
-
-1. 関数名のドロップダウンから `setAppSheetMemos` を選択
-2. 「実行」ボタンをクリック
-3. 初回実行時は承認が必要です：
-   - 「権限を確認」をクリック
-   - Googleアカウントを選択
-   - 「詳細」→「（プロジェクト名）に移動」をクリック
-   - 「許可」をクリック
-4. 実行が完了すると、以下の情報が表示されます：
-   - テーブルデータの書き込み行数
-   - メモ設定の成功/失敗件数
-
-### 3. 結果の確認
-
-1. スプレッドシートに戻る
-2. テーブルデータ（テーブル名、カラム名）が書き込まれていることを確認
-3. 各カラムのヘッダーセルにマウスをホバー
-4. メモアイコンが表示され、メモ内容が確認できます
-
-### 4. AppSheetで読み込み
-
-1. AppSheetで新しいアプリを作成
-2. データソースとして、メモを設定したスプレッドシートを選択
-3. AppSheetがメモを読み取り、自動的に設定が適用されます
+1. AppSheetで新しいアプリを作成（または既存アプリにテーブル追加）
+2. データソースとして、エクスポートしたExcel（またはGoogle Driveに置いたExcel）を選択
+3. AppSheetがヘッダーセルのノート（Note Parameters）を読み取り、カラム設定に反映
 
 ## SQLデータソースとの連携
 
@@ -334,10 +346,22 @@ AppSheet:{"Type":"Email","IsRequired":true}
 ### Ref型（参照）
 
 ```json
+AppSheet:{"Type":"Ref","ReferencedTableName":"顧客"}
+```
+
+#### Ref型（参照）: 代替（TypeAuxData形式）
+
+```json
 AppSheet:{"Type":"Ref","TypeAuxData":"{\"RefTable\":\"顧客\"}"}
 ```
 
 ### Ref型（参照、キーカラム指定）
+
+```json
+AppSheet:{"Type":"Ref","ReferencedTableName":"顧客","ReferencedKeyColumn":"顧客ID","ReferencedType":"Text"}
+```
+
+#### Ref型（参照、キーカラム指定）: 代替（TypeAuxData形式）
 
 ```json
 AppSheet:{"Type":"Ref","TypeAuxData":"{\"RefTable\":\"顧客\",\"RefKeyColumn\":\"顧客ID\",\"RefType\":\"Text\"}"}
@@ -346,10 +370,22 @@ AppSheet:{"Type":"Ref","TypeAuxData":"{\"RefTable\":\"顧客\",\"RefKeyColumn\":
 ### Enum型（選択肢）
 
 ```json
+AppSheet:{"Type":"Enum","EnumValues":["電子機器","衣料品","食品"],"BaseType":"LongText"}
+```
+
+#### Enum型（選択肢）: 代替（TypeAuxData形式）
+
+```json
 AppSheet:{"Type":"Enum","TypeAuxData":"{\"EnumValues\":[\"電子機器\",\"衣料品\",\"食品\"],\"BaseType\":\"LongText\"}"}
 ```
 
 ### Enum型（ボタン入力モード）
+
+```json
+AppSheet:{"Type":"Enum","EnumValues":["未処理","処理中","完了"],"BaseType":"Text","EnumInputMode":"Buttons"}
+```
+
+#### Enum型（ボタン入力モード）: 代替（TypeAuxData形式）
 
 ```json
 AppSheet:{"Type":"Enum","TypeAuxData":"{\"EnumValues\":[\"未処理\",\"処理中\",\"完了\"],\"BaseType\":\"Text\",\"EnumInputMode\":\"Buttons\"}"}
@@ -364,6 +400,12 @@ AppSheet:{"Type":"Price","IsRequired":true}
 ### Number型（範囲指定）
 
 ```json
+AppSheet:{"Type":"Number","MinValue":0,"MaxValue":100,"DecimalDigits":2}
+```
+
+#### Number型（範囲指定）: 代替（TypeAuxData形式）
+
+```json
 AppSheet:{"Type":"Number","TypeAuxData":"{\"MinValue\":0,\"MaxValue\":100,\"DecimalDigits\":2}"}
 ```
 
@@ -374,6 +416,12 @@ AppSheet:{"Type":"Date","IsRequired":true,"DEFAULT":"TODAY()"}
 ```
 
 ### LongText型（Markdown形式）
+
+```json
+AppSheet:{"Type":"LongText","LongTextFormatting":"Markdown"}
+```
+
+#### LongText型（Markdown形式）: 代替（TypeAuxData形式）
 
 ```json
 AppSheet:{"Type":"LongText","TypeAuxData":"{\"LongTextFormatting\":\"Markdown\"}"}
@@ -405,38 +453,10 @@ AppSheet:{"Required_If":"[カテゴリ]=\"重要\""}
 
 ## トラブルシューティング
 
-### エラー: Exception: Unexpected error while getting the method or property openById
+### （削除）GAS関連エラーについて
 
-このエラーが発生する場合、以下の原因が考えられます：
-
-1. **SPREADSHEET_IDが設定されていない**
-   - `SPREADSHEET_ID` が `'YOUR_SPREADSHEET_ID_HERE'` のままになっていないか確認
-   - スプレッドシートのURLから正しいIDを取得して設定
-
-2. **スプレッドシートIDの形式が間違っている**
-   - スプレッドシートのURL: `https://docs.google.com/spreadsheets/d/[SPREADSHEET_ID]/edit`
-   - `[SPREADSHEET_ID]` の部分のみをコピー（前後のスラッシュやパラメータは含めない）
-
-3. **スプレッドシートへのアクセス権限がない**
-   - スプレッドシートを開けるか確認
-   - 編集権限があるか確認
-   - 共有設定でアクセス権限を確認
-
-4. **スプレッドシートが存在しない**
-   - スプレッドシートが削除されていないか確認
-   - URLが正しいか確認
-
-**解決方法:**
-- 実行ログ（「表示」→「ログ」）を確認して、詳細なエラーメッセージを確認
-- スプレッドシートIDを再確認して正しく設定
-- スプレッドシートを開いて、アクセス権限があることを確認
-
-### メモが設定されない
-
-- スプレッドシートIDが正しいか確認
-- `START_ROW` がデータの開始行と一致しているか確認
-- 実行ログを確認してエラー内容を確認
-- セルの範囲が正しいか確認（行番号と列番号）
+本プロジェクトでは、GASでスプレッドシートへ書き込むフローは採用しません（Excelのレガシーノート出力を優先）。
+そのため `openById` 等のGAS実行エラーは本ガイドの対象外です。
 
 ### AppSheetでメモが認識されない
 
@@ -446,6 +466,13 @@ AppSheet:{"Required_If":"[カテゴリ]=\"重要\""}
 - スプレッドシートをAppSheetで再読み込み
 - メモが正しく設定されているか、スプレッドシートで確認
 - 新規カラム追加時や移動時に設定したか確認（テーブル再生成時は認識されない場合がある）
+
+### メモはあるのに反映されない（よくある原因）
+
+- そもそも「コメント」に入れている（Google Sheets）
+- Excelで「コメント（スレッド）」になっている（ノートではない）
+- `IsHidden` と `Show_If`、`IsRequired` と `Required_If` を同時に入れている（資料では“数式を使うならトグル側は除外”が推奨）
+- `TypeAuxData` 形式とトップレベルキー形式が環境に合っていない（上記の「重要: TypeAuxData を使うべきか？」参照）
 
 ### JSON構文エラー
 

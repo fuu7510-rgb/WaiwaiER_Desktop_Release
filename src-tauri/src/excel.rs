@@ -62,7 +62,7 @@ pub struct ExportRequest {
 // カラム設定のメモ内容を生成
 fn generate_column_note(column: &Column, tables: &[Table]) -> String {
     // docs/AppSheet/MEMO_SETUP.md に従い、AppSheet Note Parameters の形式で出力する
-    // 例: AppSheet:{"Type":"Ref","IsRequired":true,"TypeAuxData":"{\"RefTable\":\"顧客\"}"}
+    // 例: AppSheet:{"Type":"Ref","IsRequired":true,"ReferencedTableName":"顧客"}
     let mut data = serde_json::Map::<String, Value>::new();
 
     // Type（Textは省略して空メモにしやすくする）
@@ -113,28 +113,37 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
         }
     }
 
-    // TypeAuxData（型固有のオプション）
-    let mut type_aux = serde_json::Map::<String, Value>::new();
-
     // 数値型: Min/Max
     if let Some(min) = column.constraints.min_value {
-        type_aux.insert("MinValue".to_string(), Value::Number(serde_json::Number::from_f64(min).unwrap_or_else(|| serde_json::Number::from(0))));
+        data.insert(
+            "MinValue".to_string(),
+            Value::Number(
+                serde_json::Number::from_f64(min)
+                    .unwrap_or_else(|| serde_json::Number::from(0)),
+            ),
+        );
     }
     if let Some(max) = column.constraints.max_value {
-        type_aux.insert("MaxValue".to_string(), Value::Number(serde_json::Number::from_f64(max).unwrap_or_else(|| serde_json::Number::from(0))));
+        data.insert(
+            "MaxValue".to_string(),
+            Value::Number(
+                serde_json::Number::from_f64(max)
+                    .unwrap_or_else(|| serde_json::Number::from(0)),
+            ),
+        );
     }
 
     // Enum/EnumList: EnumValues + BaseType（選択肢がある場合のみ）
     if column.column_type == "Enum" || column.column_type == "EnumList" {
         if let Some(ref enum_values) = column.constraints.enum_values {
             if !enum_values.is_empty() {
-                type_aux.insert(
+                data.insert(
                     "EnumValues".to_string(),
                     Value::Array(enum_values.iter().cloned().map(Value::String).collect()),
                 );
                 let max_len = enum_values.iter().map(|v| v.chars().count()).max().unwrap_or(0);
                 let base_type = if max_len > 20 { "LongText" } else { "Text" };
-                type_aux.insert("BaseType".to_string(), Value::String(base_type.to_string()));
+                data.insert("BaseType".to_string(), Value::String(base_type.to_string()));
             }
         }
     }
@@ -143,8 +152,11 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
     if column.column_type == "Ref" {
         if let Some(ref ref_table_id) = column.constraints.ref_table_id {
             if let Some(ref_table) = tables.iter().find(|t| t.id == *ref_table_id) {
-                // MEMO_SETUP.md の例に合わせて RefTable / RefKeyColumn / RefType を使う
-                type_aux.insert("RefTable".to_string(), Value::String(ref_table.name.clone()));
+                // Note Parameter Workshop のキー名に合わせて ReferencedTableName / ReferencedKeyColumn / ReferencedType を使う
+                data.insert(
+                    "ReferencedTableName".to_string(),
+                    Value::String(ref_table.name.clone()),
+                );
 
                 // 参照キー列（指定があれば優先、なければ Key、それもなければ先頭）
                 let ref_col = column
@@ -156,17 +168,17 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
                     .or_else(|| ref_table.columns.first());
 
                 if let Some(rc) = ref_col {
-                    type_aux.insert("RefKeyColumn".to_string(), Value::String(rc.name.clone()));
-                    type_aux.insert("RefType".to_string(), Value::String(rc.column_type.clone()));
+                    data.insert(
+                        "ReferencedKeyColumn".to_string(),
+                        Value::String(rc.name.clone()),
+                    );
+                    data.insert(
+                        "ReferencedType".to_string(),
+                        Value::String(rc.column_type.clone()),
+                    );
                 }
             }
         }
-    }
-
-    if !type_aux.is_empty() {
-        // TypeAuxDataは「JSON文字列」として格納する（ネストしたダブルクォートを含む）
-        let aux_string = serde_json::to_string(&Value::Object(type_aux)).unwrap_or_else(|_| "{}".to_string());
-        data.insert("TypeAuxData".to_string(), Value::String(aux_string));
     }
 
     let json_string = serde_json::to_string(&Value::Object(data)).unwrap_or_else(|_| "{}".to_string());
