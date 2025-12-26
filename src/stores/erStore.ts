@@ -549,11 +549,66 @@ export const useERStore = create<ERState>()(
         if (table) {
           const column = table.columns.find((c) => c.id === columnId);
           if (column) {
+            const prevType = column.type;
+            const prevRefTableId = column.constraints.refTableId;
+            const prevRefColumnId = column.constraints.refColumnId;
             const shouldApplyDummyValues = Object.prototype.hasOwnProperty.call(updates, 'dummyValues');
             const previousDummyValues = shouldApplyDummyValues
               ? (column.dummyValues ?? []).map((v) => String(v))
               : undefined;
             Object.assign(column, updates);
+
+            // Ref から別型に変更された場合は、参照制約とリレーション線を自動で掃除する。
+            //（線が残り続ける問題の根本対応）
+            const isRefNow = column.type === 'Ref';
+            const refTableIdNow = column.constraints.refTableId;
+            const refColumnIdNow = column.constraints.refColumnId;
+            const shouldRemoveRelationsForThisColumn =
+              (prevType === 'Ref' && !isRefNow) || (isRefNow && !refTableIdNow && !!prevRefTableId);
+
+            // Ref の参照先（親テーブル/親カラム）が変更された場合は、既存の線を付け替える。
+            // ColumnEditor 経由の変更でも図の線が追従するようにする。
+            const shouldRetargetRelationsForThisColumn =
+              isRefNow &&
+              !!refTableIdNow &&
+              prevType === 'Ref' &&
+              (!!prevRefTableId || !!prevRefColumnId) &&
+              (prevRefTableId !== refTableIdNow || prevRefColumnId !== refColumnIdNow);
+
+            if (shouldRetargetRelationsForThisColumn) {
+              const sourceTable = state.tables.find((t) => t.id === refTableIdNow);
+              const resolvedSourceColumnId =
+                (refColumnIdNow && sourceTable?.columns.some((c) => c.id === refColumnIdNow)
+                  ? refColumnIdNow
+                  : sourceTable?.columns.find((c) => c.isKey)?.id ?? sourceTable?.columns[0]?.id) ??
+                '';
+
+              if (resolvedSourceColumnId) {
+                for (let i = 0; i < state.relations.length; i++) {
+                  const r = state.relations[i];
+                  if (r.targetColumnId !== columnId) continue;
+                  r.sourceTableId = refTableIdNow;
+                  r.sourceColumnId = resolvedSourceColumnId;
+                  r.targetTableId = tableId;
+                  r.targetColumnId = columnId;
+                }
+              }
+            }
+
+            if (!isRefNow) {
+              if (column.constraints.refTableId || column.constraints.refColumnId) {
+                column.constraints = {
+                  ...column.constraints,
+                  refTableId: undefined,
+                  refColumnId: undefined,
+                };
+              }
+            }
+
+            if (shouldRemoveRelationsForThisColumn) {
+              state.relations = state.relations.filter((r) => r.targetColumnId !== columnId);
+            }
+
             table.updatedAt = new Date().toISOString();
 
             const currentRows = state.sampleDataByTableId[tableId];
