@@ -48,6 +48,14 @@ export interface Column {
   isLabel: boolean;
   description?: string;
   /**
+   * AppSheet Note Parameters（ヘッダーセルのNoteに入れるJSON）の追加設定。
+   * docs/AppSheet/MEMO_SETUP.md のキーをそのままキー名として保持する。
+   *
+   * - 値は AppSheet が解釈できる JSON に限る（string/number/boolean/array/object）。
+   * - 空/未設定はキーを持たない（undefined）運用を推奨。
+   */
+  appSheet?: Record<string, unknown>;
+  /**
     * サンプルデータ生成で優先的に使う値。1行=候補値（複数指定可）。
    * 未指定の場合はデータ型やカラム名から自動生成する。
    */

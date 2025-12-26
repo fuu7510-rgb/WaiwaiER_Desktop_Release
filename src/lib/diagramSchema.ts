@@ -44,6 +44,8 @@ function nowIso(): string {
 function normalizeColumn(raw: unknown, index: number): Column {
   const obj = (isObject(raw) ? raw : {}) as Record<string, unknown>;
 
+  const appSheet = isObject(obj.appSheet) ? (obj.appSheet as Record<string, unknown>) : undefined;
+
   return {
     id: (typeof obj.id === 'string' && obj.id) || crypto.randomUUID(),
     name: (typeof obj.name === 'string' && obj.name) || `Column${index + 1}`,
@@ -51,6 +53,7 @@ function normalizeColumn(raw: unknown, index: number): Column {
     isKey: typeof obj.isKey === 'boolean' ? obj.isKey : false,
     isLabel: typeof obj.isLabel === 'boolean' ? obj.isLabel : false,
     description: typeof obj.description === 'string' ? obj.description : undefined,
+    appSheet,
     dummyValues: Array.isArray(obj.dummyValues) ? (obj.dummyValues as string[]) : undefined,
     constraints: isObject(obj.constraints) ? (obj.constraints as Column['constraints']) : {},
     order: typeof obj.order === 'number' ? obj.order : index,
