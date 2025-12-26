@@ -23,15 +23,39 @@ export function Header() {
     settings,
     setLanguage,
   } = useUIStore();
-  const { undo, redo, history, historyIndex, importDiagram, isDirty, isSaving, saveError } = useERStore();
+  const {
+    undo,
+    redo,
+    history,
+    historyIndex,
+    deletedSampleRowStack,
+    undoDeleteSampleRow,
+    importDiagram,
+    isDirty,
+    isSaving,
+    saveError,
+  } = useERStore();
   const { currentProjectId, projects } = useProjectStore();
   const { license, setShowLicenseDialog } = useLicenseStore();
   
   const currentProject = projects.find((p) => p.id === currentProjectId);
   const showNoProjectWarning = !currentProjectId;
-  const canUndo = historyIndex > 0;
-  const canRedo = historyIndex < history.length - 1;
+  const canUndo = viewMode === 'simulator' ? deletedSampleRowStack.length > 0 : historyIndex > 0;
+  const canRedo = viewMode === 'simulator' ? false : historyIndex < history.length - 1;
   const isPro = license.plan === 'pro';
+
+  const handleUndo = () => {
+    if (viewMode === 'simulator') {
+      undoDeleteSampleRow();
+      return;
+    }
+    undo();
+  };
+
+  const handleRedo = () => {
+    if (viewMode === 'simulator') return;
+    redo();
+  };
 
   const handleViewModeChange = (mode: ViewMode) => {
     setViewMode(mode);
@@ -204,7 +228,7 @@ export function Header() {
         {/* Undo/Redo */}
         <div className="flex border border-zinc-200 rounded">
           <button
-            onClick={undo}
+            onClick={handleUndo}
             disabled={!canUndo}
             className="p-1 text-zinc-500 hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             title={`${t('common.undo')} (Ctrl+Z)`}
@@ -214,7 +238,7 @@ export function Header() {
             </svg>
           </button>
           <button
-            onClick={redo}
+            onClick={handleRedo}
             disabled={!canRedo}
             className="p-1 text-zinc-500 hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed border-l border-zinc-200 transition-colors"
             title={`${t('common.redo')} (Ctrl+Y)`}

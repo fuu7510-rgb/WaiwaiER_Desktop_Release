@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { useERStore } from '../../stores';
-import { Button, ConfirmDialog, Input } from '../common';
+import { Button } from '../common';
 import { TableView } from './TableView';
 import { TABLE_BG_COLOR_CLASSES } from '../../lib/constants';
 import { formatValue } from '../../lib';
@@ -60,17 +60,20 @@ export function Simulator() {
     selectTable,
     sampleDataByTableId,
     ensureSampleData,
-    regenerateSampleData,
     updateSampleRow,
+    appendSampleRow,
+    deleteSampleRow,
+    deletedSampleRowStack,
+    undoDeleteSampleRow,
+    reorderTables,
   } = useERStore();
-  const [tableQuery, setTableQuery] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+    const lastDeletedSampleRow =
+      deletedSampleRowStack.length > 0 ? deletedSampleRowStack[deletedSampleRowStack.length - 1] : null;
   const [selectedRow, setSelectedRow] = useState<Record<string, unknown> | null>(null);
   const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [draftRow, setDraftRow] = useState<Record<string, unknown> | null>(null);
-  const [isRegenerateConfirmOpen, setIsRegenerateConfirmOpen] = useState(false);
   
   const selectedTable = tables.find((t) => t.id === selectedTableId) || tables[0];
 
@@ -92,16 +95,6 @@ export function Simulator() {
     return () => cancelAnimationFrame(raf);
   }, [ensureSampleData, tables]);
 
-  const doRegenerateDummyData = () => {
-    setSelectedRow(null);
-    setSelectedRowKey(null);
-    setSelectedRowIndex(null);
-    setIsEditing(false);
-    setDraftRow(null);
-
-    regenerateSampleData();
-  };
-
   const tableRows = selectedTable?.id ? sampleDataByTableId[selectedTable.id] ?? [] : [];
 
   const selectedTableKeyColumnId = useMemo(() => {
@@ -113,12 +106,6 @@ export function Simulator() {
     const keyString = String(keyValue ?? '').trim();
     return keyString ? `${selectedTableKeyColumnId}:${keyString}` : `row:${rowIndex}`;
   };
-
-  const filteredTables = useMemo(() => {
-    const q = tableQuery.trim().toLowerCase();
-    if (!q) return tables;
-    return tables.filter((table) => table.name.toLowerCase().includes(q));
-  }, [tables, tableQuery]);
 
   if (!selectedTable) {
     return (
@@ -143,23 +130,20 @@ export function Simulator() {
           <div className="px-2 pb-1 text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
             VIEWS
           </div>
-          <Input
-            value={tableQuery}
-            onChange={(e) => setTableQuery(e.target.value)}
-            placeholder={t('common.search', '検索')}
-            className="text-xs"
-          />
         </div>
 
         <div className="flex-1 overflow-auto">
-          {filteredTables.length === 0 ? (
+          {tables.length === 0 ? (
             <div className="px-4 py-6 text-center text-xs text-zinc-400">
               {t('common.noResults', '該当なし')}
             </div>
           ) : (
             <ul className="divide-y divide-zinc-100">
-              {filteredTables.map((table) => {
+              {tables.map((table) => {
                 const isSelected = table.id === selectedTable.id;
+                const index = tables.findIndex((t) => t.id === table.id);
+                const canMoveUp = index > 0;
+                const canMoveDown = index >= 0 && index < tables.length - 1;
                 return (
                   <li key={table.id}>
                     <button
@@ -173,6 +157,62 @@ export function Simulator() {
                         aria-hidden="true"
                       />
                       <span className="truncate">{table.name}</span>
+
+                      <span className="ml-auto flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          className={`
+                            inline-flex items-center justify-center w-7 h-7 rounded-md border
+                            bg-white text-zinc-500 transition-colors
+                            hover:bg-zinc-50 hover:text-zinc-700
+                            ${canMoveUp ? 'border-zinc-200' : 'border-zinc-100 opacity-30 cursor-not-allowed hover:bg-white hover:text-zinc-500'}
+                          `}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!canMoveUp) return;
+                            const overId = tables[index - 1]?.id;
+                            if (!overId) return;
+                            reorderTables(table.id, overId);
+                          }}
+                          aria-label={t('common.moveUp', '上に移動')}
+                          title={t('common.moveUp', '上に移動')}
+                        >
+                          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path
+                              fillRule="evenodd"
+                              d="M10 4a1 1 0 01.707.293l5 5a1 1 0 11-1.414 1.414L10 6.414 5.707 10.707A1 1 0 114.293 9.293l5-5A1 1 0 0110 4z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </button>
+
+                        <button
+                          type="button"
+                          className={`
+                            inline-flex items-center justify-center w-7 h-7 rounded-md border
+                            bg-white text-zinc-500 transition-colors
+                            hover:bg-zinc-50 hover:text-zinc-700
+                            ${canMoveDown ? 'border-zinc-200' : 'border-zinc-100 opacity-30 cursor-not-allowed hover:bg-white hover:text-zinc-500'}
+                          `}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!canMoveDown) return;
+                            const overId = tables[index + 1]?.id;
+                            if (!overId) return;
+                            reorderTables(table.id, overId);
+                          }}
+                          aria-label={t('common.moveDown', '下に移動')}
+                          title={t('common.moveDown', '下に移動')}
+                        >
+                          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path
+                              fillRule="evenodd"
+                              d="M10 16a1 1 0 01-.707-.293l-5-5a1 1 0 011.414-1.414L10 13.586l4.293-4.293a1 1 0 111.414 1.414l-5 5A1 1 0 0110 16z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </button>
+                      </span>
                     </button>
                   </li>
                 );
@@ -184,18 +224,18 @@ export function Simulator() {
 
       {/* AppSheet風: メイン */}
       <section className="flex-1 flex flex-col overflow-hidden">
-        {/* 上部検索バー */}
         <div className="bg-white border-b border-zinc-200 px-3 py-2 flex items-center gap-2">
-          <div className="flex-1">
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('common.search', '検索')}
-            />
-          </div>
-
-          <Button variant="secondary" size="md" onClick={() => setIsRegenerateConfirmOpen(true)}>
-            ダミー更新
+          <Button
+            variant="secondary"
+            size="md"
+            onClick={() => {
+              if (!selectedTable?.id) return;
+              appendSampleRow(selectedTable.id);
+            }}
+            disabled={!selectedTable?.id || tableRows.length >= 100}
+            title={tableRows.length >= 100 ? '最大100行です' : undefined}
+          >
+            {t('simulator.addRow', '＋追加')}
           </Button>
         </div>
 
@@ -207,6 +247,21 @@ export function Simulator() {
               {t('simulator.views.table')}
             </p>
           </div>
+
+          {lastDeletedSampleRow && (
+            <div className="shrink-0 flex items-center gap-2">
+              <span className="hidden sm:inline text-[10px] text-zinc-400">
+                削除しました
+                {(() => {
+                  const tbl = tables.find((tb) => tb.id === lastDeletedSampleRow.tableId);
+                  return tbl ? `（${tbl.name}）` : '';
+                })()}
+              </span>
+              <Button variant="ghost" size="sm" type="button" onClick={() => undoDeleteSampleRow()}>
+                取り消し
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* コンテンツ */}
@@ -216,7 +271,6 @@ export function Simulator() {
               table={selectedTable}
               tables={tables}
               sampleDataByTableId={sampleDataByTableId}
-              searchQuery={searchQuery}
               data={tableRows}
               selectedRowKey={selectedRowKey}
               onRowClick={(row, rowKey, rowIndex) => {
@@ -250,17 +304,37 @@ export function Simulator() {
                   </div>
                   <div className="shrink-0 flex items-center gap-2">
                     {!isEditing ? (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          setIsEditing(true);
-                          setDraftRow({ ...selectedRow });
-                        }}
-                      >
-                        {t('common.edit', '編集')}
-                      </Button>
+                      <>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            setIsEditing(true);
+                            setDraftRow({ ...selectedRow });
+                          }}
+                        >
+                          {t('common.edit', '編集')}
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="danger"
+                          size="sm"
+                          onClick={() => {
+                            if (!selectedTable.id) return;
+                            if (selectedRowIndex === null) return;
+                            deleteSampleRow(selectedTable.id, selectedRowIndex);
+                            setSelectedRow(null);
+                            setSelectedRowKey(null);
+                            setSelectedRowIndex(null);
+                            setIsEditing(false);
+                            setDraftRow(null);
+                          }}
+                        >
+                          {t('common.delete', '削除')}
+                        </Button>
+                      </>
                     ) : (
                       <>
                         <Button
@@ -498,16 +572,6 @@ export function Simulator() {
         </div>
       </section>
 
-      <ConfirmDialog
-        isOpen={isRegenerateConfirmOpen}
-        onClose={() => setIsRegenerateConfirmOpen(false)}
-        onConfirm={doRegenerateDummyData}
-        title="ダミーデータ更新"
-        message="ダミーデータを再生成します。現在の内容は上書きされ、編集内容は失われます。続行しますか？"
-        confirmLabel="更新"
-        cancelLabel="キャンセル"
-        variant="danger"
-      />
     </div>
   );
 }

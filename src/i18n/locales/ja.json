@@ -181,6 +181,7 @@
       "detail": "詳細",
       "form": "フォーム"
     },
+    "addRow": "＋追加",
     "generateSampleData": "サンプルデータを生成",
     "clearSampleData": "サンプルデータをクリア",
     "rowCount": "行数",

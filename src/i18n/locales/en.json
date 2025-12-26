@@ -181,6 +181,7 @@
       "detail": "Detail",
       "form": "Form"
     },
+    "addRow": "+Add",
     "generateSampleData": "Generate Sample Data",
     "clearSampleData": "Clear Sample Data",
     "rowCount": "Row Count",
