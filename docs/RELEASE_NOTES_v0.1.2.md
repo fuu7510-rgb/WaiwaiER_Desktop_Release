@@ -5,11 +5,15 @@
 - チャネル: ALPHA
 - 対象OS: Windows
 - 配布形態: ストア不使用（手動アップデート）
-- 配布物（MSI）: TBD
+- 配布物（MSI）: WaiwaiER Desktop_0.1.2_x64_en-US.msi
+- 配布物（NSIS）: WaiwaiER Desktop_0.1.2_x64-setup.exe
+- 配布ZIP（MSI）: WaiwaiER-Desktop-0.1.2-alpha-win64-msi.zip
+- 配布ZIP（NSIS）: WaiwaiER-Desktop-0.1.2-alpha-win64-nsis.zip
 
 ## ダウンロード
 - GitHub Releases（このリポジトリのReleasesページ）からダウンロード
-	- 配布物（MSI）: TBD
+	- 配布ZIP（MSI）: WaiwaiER-Desktop-0.1.2-alpha-win64-msi.zip
+	- 配布ZIP（NSIS）: WaiwaiER-Desktop-0.1.2-alpha-win64-nsis.zip
 
 ## 重要（必読）
 - 破壊的変更の可能性: 本ビルドはALPHAのため、今後の更新でデータ形式（DB/プロジェクト/エクスポート）が破壊的に変更される可能性があります。
