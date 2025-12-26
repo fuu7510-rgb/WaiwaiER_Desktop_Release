@@ -70,9 +70,10 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
 
     let user_has = |k: &str| -> bool { user.map(|m| m.contains_key(k)).unwrap_or(false) };
 
-    // Type（Textは省略して空メモにしやすくする）
+    // Type
     // user側で Type が指定されている場合は自動付与しない（userを優先）
-    if !user_has("Type") && column.column_type != "Text" {
+    // AppSheet側の型推論の揺れを減らすため、Textも含めて明示する。
+    if !user_has("Type") {
         data.insert("Type".to_string(), Value::String(column.column_type.clone()));
     }
 
@@ -280,7 +281,10 @@ pub fn export_to_excel(request: &ExportRequest, file_path: &str) -> Result<(), X
             // 【重要】write_noteを使用（write_commentではなくGoogleスプレッドシート互換）
             let note_text = generate_column_note(column, &request.tables);
             if note_text != "AppSheet:{}" {
-                let note = Note::new(&note_text);
+                // AppSheet は Note Parameters の先頭 `AppSheet:` をトリガーに解釈する。
+                // rust_xlsxwriter の Note は既定で著者名プレフィックス（例: "Author:\n"）を付与するため、
+                // 先頭一致が崩れて AppSheet に読まれないことがある。必ず無効化して `AppSheet:` を先頭に置く。
+                let note = Note::new(&note_text).add_author_prefix(false);
                 worksheet.insert_note(0, col, &note)?;
             }
         }

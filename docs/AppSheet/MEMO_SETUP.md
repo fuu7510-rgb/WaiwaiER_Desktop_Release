@@ -26,6 +26,19 @@ AppSheetのNote Parametersは「セルのメモ（Note）」に書きます。�
 
 本リポジトリのExcelエクスポートは、AppSheet互換のため **`write_note`（レガシーメモ）を使用**し、`write_comment`（スレッド）を使用しません。
 
+> 重要: ノート本文の先頭は **必ず `AppSheet:`** から始まっている必要があります。
+> Excelの「ノート」は環境によっては著者名（例: `Author:`）が先頭に表示/保存されることがあり、
+> その場合 `AppSheet:` が先頭一致しなくなって AppSheet が Note Parameters を解釈できません。
+> WaiwaiER Desktop のエクスポートではこの著者プレフィックスを無効化し、本文が `AppSheet:` から始まるようにします。
+
+## 動作確認（最小）
+
+1. WaiwaiER Desktop で任意のER図を開く（Ref/Enumなど、型が分かりやすい列を含める）
+2. 「Excelエクスポート」で `.xlsx` を保存
+3. その `.xlsx` を Google Drive にアップロードし、Googleスプレッドシートとして開く
+4. 1行目ヘッダーセルにマウスホバーし、**メモ（Note）が `AppSheet:` から始まる**ことを確認
+5. AppSheet で「Add a table」から 해당シートを取り込み、列の型やRef設定が反映されることを確認
+
 ## Note Parametersとは
 
 Note Parametersは、AppSheetでカラム設定を事前に定義するための強力なツールです。スプレッドシートのセルにメモとしてJSON形式で設定を記述することで、AppSheetが自動的にカラム設定を適用します。
