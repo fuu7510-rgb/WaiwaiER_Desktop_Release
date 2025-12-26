@@ -75,6 +75,65 @@ AppSheet:{"Type":"データ型","IsRequired":true,"TypeAuxData":"..."}
 
 Note Parametersで使用できる主要な設定項目は以下の通りです：
 
+### 全キー一覧（漏れ確認用）
+
+この表は [docs/AppSheet/Key Names For Column Settings - Note Parameter Workshop.md](docs/AppSheet/Key%20Names%20For%20Column%20Settings%20-%20Note%20Parameter%20Workshop.md) の Key 一覧をベースにしています。
+
+| キー名 | AppSheetエディタでの名称 | データ型 | 説明 |
+|--------|---------------------------|----------|------|
+| `Type` | Column Type | String | カラムのデータ型（ドロップダウンから選択した値そのまま） |
+| `IsHidden` | Show? (toggle) | TRUE/FALSE | 非表示フラグ（数式を使用する場合は `Show_If` を使用） |
+| `Show_If` | Show? (formula) | String | 表示条件を数式で指定（数式を使用する場合のみ） |
+| `IsRequired` | Require? (toggle) | TRUE/FALSE | 必須項目フラグ（数式を使用する場合は `Required_If` を使用） |
+| `Required_If` | Required? (formula) | String | 必須条件を数式で指定（数式を使用する場合のみ） |
+| `AppFormula` | App formula | String | アプリ数式 |
+| `DEFAULT` | Initial value | String | 初期値 |
+| `DisplayName` | Display name | String | 表示名 |
+| `Description` | Description | String | 説明文 |
+| `IsLabel` | Label | TRUE/FALSE | ラベルカラムとして設定 |
+| `IsKey` | Key | TRUE/FALSE | キーカラムとして設定 |
+| `IsScannable` | Scannable | TRUE/FALSE | スキャン可能に設定 |
+| `IsNfcScannable` | NFC Scannable | TRUE/FALSE | NFCスキャン可能に設定 |
+| `Searchable` | Searchable | TRUE/FALSE | 検索可能に設定 |
+| `IsSensitive` | Sensitive data | TRUE/FALSE | 機密データとして設定 |
+| `Category` | Show (Category) | String | カテゴリ表示（ドロップダウンから選択した値そのまま） |
+| `Content` | Show (Content) | String | コンテンツ表示 |
+| `Valid_If` | Valid If | String | 有効性チェックの数式 |
+| `Error_Message_If_Invalid` | Invalid value error | String | 無効値エラーメッセージ |
+| `Suggested_Values` | Suggested values | String | 推奨値 |
+| `Editable_If` | Editable? (formula) | String | 編集可能条件を数式で指定（数式を使用する場合のみ） |
+| `Reset_If` | Reset on edit? | String | 編集時にリセットする条件 |
+| `LongTextFormatting` | Formatting | Enum string | フォーマット（Plain Text, Markdown, HTML） |
+| `ItemSeparator` | Item separator | String | 項目区切り文字 |
+| `EnumValues` | Values | Array | 選択肢の配列（各項目はダブルクォートで囲む） |
+| `AllowOtherValues` | Allow other values | TRUE/FALSE | その他の値を許可 |
+| `AutoCompleteOtherValues` | Auto-complete other values | TRUE/FALSE | その他の値の自動補完 |
+| `BaseType` | Base type | String | ベース型（ドロップダウンから選択した値そのまま） |
+| `ReferencedRootTableName` | Referenced table name | String | 参照テーブル名（enum/enumlist base type referenceの場合のみ） |
+| `EnumInputMode` | Input mode | Enum string | 入力モード（Auto, Buttons, Stack, Dropdown） |
+| `ReferencedTableName` | Referenced table name | String | 参照先テーブル名（REF型の場合のみ、テーブル名そのまま） |
+| `ReferencedKeyColumn` | n/a | String | 参照先テーブルのキーカラム名 |
+| `ReferencedType` | n/a | String | 参照先テーブルのキーカラムの型 |
+| `IsAPartOf` | Is a part of? | TRUE/FALSE | パートオブ関係として設定 |
+| `InputMode` | Input mode | Enum string | 入力モード（Auto, Buttons, Dropdown） |
+| `NumericDigits` | Numeric digits | Integer | 数値桁数 |
+| `ShowThousandsSeparator` | Show thousands separator | TRUE/FALSE | 千の位区切りを表示 |
+| `NumberDisplayMode` | Display mode | Enum string | 表示モード（Auto, Standard, Range, Label） |
+| `MaxValue` | Maximum value | Integer/Decimal | 最大値 |
+| `MinValue` | Minimum value | Integer/Decimal | 最小値 |
+| `StepValue` | Increase/decrease step | Integer/Decimal | 増減ステップ値 |
+| `DecimalDigits` | Decimal digits | Integer | 小数点以下の桁数 |
+| `UpdateMode` | Update Mode | Enum string | 更新モード（Accumulate, Reset） |
+| `ChangeColumns` | Columns | Array of strings | 変更カラム |
+| `ChangeValues` | Values | Array of strings | 変更値 |
+
+#### メタキー（AppSheetエディタに直接対応しない）
+
+| キー名 | 用途 |
+|--------|------|
+| `TypeAuxData` | データ型固有のオプション（JSON文字列として記述。ネストされたダブルクォートはエスケープが必要） |
+| `BaseTypeQualifier` | ベース型修飾子 |
+
 ### 基本設定
 
 | キー名 | AppSheetエディタでの名称 | データ型 | 説明 |
