@@ -9,6 +9,7 @@ import ReactFlow, {
   applyNodeChanges,
   applyEdgeChanges,
   ReactFlowProvider,
+  useStore as useReactFlowStore,
 } from 'reactflow';
 import type { Connection, Edge, Node, NodeChange, EdgeChange } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -41,6 +42,7 @@ function EREditorInner() {
     toggleMemosVisible,
     settings,
   } = useUIStore();
+  const zoom = useReactFlowStore((state) => state.transform[2]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   const relatedGraph = useMemo(() => {
@@ -357,6 +359,9 @@ function EREditorInner() {
       </ReactFlow>
 
       <div className="absolute left-16 bottom-3 z-10 flex flex-col gap-2">
+        <div className="select-none rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-700 shadow-sm">
+          拡大倍率: {Math.round(zoom * 100)}%
+        </div>
         <Button
           type="button"
           variant="secondary"

@@ -23,11 +23,28 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       md: 'px-3 py-1.5 text-sm gap-1.5',
       lg: 'px-4 py-2 text-sm gap-2',
     };
+
+    const ariaPressed = props['aria-pressed'];
+    const isPressed = ariaPressed === true || ariaPressed === 'true';
+    const pressedStyles = {
+      primary: 'bg-indigo-700 shadow-sm',
+      secondary:
+        'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-300 hover:bg-indigo-100 focus:ring-indigo-500',
+      danger: 'bg-red-600 shadow-sm',
+      ghost:
+        'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-300 hover:bg-indigo-100 focus:ring-indigo-500',
+    };
     
     return (
       <button
         ref={ref}
-        className={cn(baseStyles, variantStyles[variant], sizeStyles[size], className)}
+        className={cn(
+          baseStyles,
+          variantStyles[variant],
+          isPressed && pressedStyles[variant],
+          sizeStyles[size],
+          className
+        )}
         {...props}
       >
         {children}
