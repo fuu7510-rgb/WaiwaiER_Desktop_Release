@@ -61,6 +61,17 @@ pub struct ExportRequest {
     pub include_data: bool,
 }
 
+// AppSheetのLabel列はテーブルにつき1つが基本。
+// 複数の IsLabel があると反映が不安定になることがあるため、エクスポート時は最小 order の列に正規化する。
+fn pick_effective_label_column_id(table: &Table) -> Option<&str> {
+    table
+        .columns
+        .iter()
+        .filter(|c| c.is_label)
+        .min_by_key(|c| c.order)
+        .map(|c| c.id.as_str())
+}
+
 // カラム設定のメモ内容を生成
 fn generate_column_note(column: &Column, tables: &[Table]) -> String {
     // docs/AppSheet/MEMO_SETUP.md に従い、AppSheet Note Parameters の形式で出力する
@@ -261,6 +272,8 @@ pub fn export_to_excel(request: &ExportRequest, file_path: &str) -> Result<(), X
         .set_border(rust_xlsxwriter::FormatBorder::Thin);
     
     for table in &request.tables {
+        let effective_label_column_id = pick_effective_label_column_id(table);
+
         let worksheet = workbook.add_worksheet();
         worksheet.set_name(&table.name)?;
         
@@ -279,7 +292,11 @@ pub fn export_to_excel(request: &ExportRequest, file_path: &str) -> Result<(), X
             
             // カラム設定をメモとして追加
             // 【重要】write_noteを使用（write_commentではなくGoogleスプレッドシート互換）
-            let note_text = generate_column_note(column, &request.tables);
+            let mut column_for_note = column.clone();
+            column_for_note.is_label = effective_label_column_id
+                .is_some_and(|id| id == column_for_note.id);
+
+            let note_text = generate_column_note(&column_for_note, &request.tables);
             if note_text != "AppSheet:{}" {
                 // AppSheet は Note Parameters の先頭 `AppSheet:` をトリガーに解釈する。
                 // rust_xlsxwriter の Note は既定で著者名プレフィックス（例: "Author:\n"）を付与するため、
