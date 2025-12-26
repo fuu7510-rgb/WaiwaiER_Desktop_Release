@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { Table } from '../../types';
-import { generateSampleData } from '../../lib';
 import { getRowLabel } from './recordLabel';
+import { useERStore } from '../../stores';
 
 interface DeckViewProps {
   table: Table;
@@ -9,7 +9,16 @@ interface DeckViewProps {
 }
 
 export function DeckView({ table, searchQuery = '' }: DeckViewProps) {
-  const sampleData = useMemo(() => generateSampleData(table, 5), [table]);
+  const { sampleDataByTableId, ensureSampleData } = useERStore();
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      ensureSampleData();
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [ensureSampleData, table.id]);
+
+  const sampleData = useMemo(() => sampleDataByTableId[table.id] ?? [], [sampleDataByTableId, table.id]);
   const keyColumn = table.columns.find((c) => c.isKey) || table.columns[0];
 
   const filteredData = useMemo(() => {

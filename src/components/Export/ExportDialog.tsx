@@ -4,7 +4,6 @@ import { save } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 import { Dialog, Button } from '../common';
 import { useERStore, useProjectStore, useUIStore } from '../../stores';
-import { generateSampleData } from '../../lib';
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -15,7 +14,7 @@ type ExportFormat = 'json' | 'excel' | 'package';
 
 export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
   const { t } = useTranslation();
-  const { exportDiagram, tables } = useERStore();
+  const { exportDiagram, tables, sampleDataByTableId, ensureSampleData } = useERStore();
   const { currentProjectId, projects } = useProjectStore();
   const { openProjectDialog } = useUIStore();
   const [format, setFormat] = useState<ExportFormat>('json');
@@ -86,12 +85,21 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
       });
       
       if (!filePath) return;
+
+      if (includeData) {
+        // まずはストア上のサンプルデータを確実に用意する
+        ensureSampleData();
+      }
+
+      const latestSampleDataByTableId = includeData
+        ? useERStore.getState().sampleDataByTableId
+        : {};
       
       // サンプルデータを生成
       const sampleData: Record<string, Record<string, unknown>[]> = {};
       if (includeData) {
         tables.forEach((table) => {
-          sampleData[table.id] = generateSampleData(table, 5);
+          sampleData[table.id] = (latestSampleDataByTableId[table.id] ?? []).slice(0, 5);
         });
       }
       
@@ -112,7 +120,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
     } finally {
       setIsExporting(false);
     }
-  }, [tables, currentProject, includeData, onClose, t]);
+  }, [tables, currentProject, includeData, onClose, t, sampleDataByTableId, ensureSampleData]);
 
   const handleExport = useCallback(async () => {
     switch (format) {

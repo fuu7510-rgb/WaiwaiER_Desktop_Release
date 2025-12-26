@@ -1,9 +1,9 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Table } from '../../types';
-import { generateSampleRow } from '../../lib';
 import { TABLE_BG_COLOR_CLASSES } from '../../lib/constants';
 import { getRowLabel } from './recordLabel';
+import { useERStore } from '../../stores';
 
 interface DetailViewProps {
   table: Table;
@@ -11,7 +11,19 @@ interface DetailViewProps {
 
 export function DetailView({ table }: DetailViewProps) {
   const { t } = useTranslation();
-  const sampleData = useMemo(() => generateSampleRow(table), [table]);
+  const { sampleDataByTableId, ensureSampleData } = useERStore();
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      ensureSampleData();
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [ensureSampleData, table.id]);
+
+  const sampleData = useMemo(() => {
+    const rows = sampleDataByTableId[table.id] ?? [];
+    return rows[0] ?? {};
+  }, [sampleDataByTableId, table.id]);
 
   return (
     <div className="max-w-xl mx-auto">
