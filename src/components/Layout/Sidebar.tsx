@@ -200,6 +200,7 @@ function TableListItem({
   return (
     <li
       ref={setNodeRef}
+      // eslint-disable-next-line no-inline-styles -- dnd-kit sortable requires dynamic transform/transition styles.
       style={style}
       onClick={() => selectTable(table.id)}
       {...attributes}

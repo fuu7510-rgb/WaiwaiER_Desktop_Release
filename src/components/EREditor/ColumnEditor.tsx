@@ -48,6 +48,16 @@ export function ColumnEditor() {
   const pruneAppSheet = useCallback(
     (appSheet: Record<string, unknown> | undefined, removeKeys: string[]) => {
       if (!appSheet) return undefined;
+      let changed = false;
+      for (const key of removeKeys) {
+        if (Object.prototype.hasOwnProperty.call(appSheet, key)) {
+          changed = true;
+          break;
+        }
+      }
+
+      if (!changed) return appSheet;
+
       const next: Record<string, unknown> = { ...appSheet };
       for (const key of removeKeys) {
         delete next[key];
@@ -310,10 +320,6 @@ export function ColumnEditor() {
     }
   }, [selectedTableId, selectedColumnId, deleteColumn]);
 
-  if (!selectedColumn) {
-    return null;
-  }
-
   const typeOptions = columnTypes.map((type) => ({
     value: type,
     label: labelEnJa(String(tEn(`columnTypes.${type}`)), String(tJa(`columnTypes.${type}`))),
@@ -379,6 +385,11 @@ export function ColumnEditor() {
     [labelEnJa]
   );
 
+  // Keep this guard AFTER all hooks so hook order/count never changes.
+  if (!selectedColumn) {
+    return null;
+  }
+
   return (
     <div className="p-4 space-y-4">
       <h3 className="font-bold text-xs text-zinc-500 uppercase tracking-wider mb-2">
@@ -442,7 +453,7 @@ export function ColumnEditor() {
           <label className="flex items-center gap-1.5 cursor-pointer">
             <input
               type="checkbox"
-              checked={selectedColumn.constraints.required}
+              checked={!!selectedColumn.constraints.required}
               onChange={(e) => {
                 const checked = e.target.checked;
                 if (checked) {
@@ -460,7 +471,7 @@ export function ColumnEditor() {
           <label className="flex items-center gap-1.5 cursor-pointer">
             <input
               type="checkbox"
-              checked={selectedColumn.constraints.unique}
+              checked={!!selectedColumn.constraints.unique}
               onChange={(e) => handleConstraintUpdate({ unique: e.target.checked })}
               className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
             />
