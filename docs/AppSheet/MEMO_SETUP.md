@@ -423,8 +423,16 @@ AppSheet:{"Type":"Ref","ReferencedTableName":"顧客"}
 
 #### Ref型（参照）: 代替（TypeAuxData形式）
 
+環境/既存AppSheet設定によっては、トップレベルの `ReferencedTableName` が効かず、`TypeAuxData` 形式でしか反映されないケースがあります。
+
 ```json
 AppSheet:{"Type":"Ref","TypeAuxData":"{\"RefTable\":\"顧客\"}"}
+```
+
+（別表現の例）
+
+```json
+AppSheet:{"Type":"Ref","TypeAuxData":"{\"ReferencedTableName\":\"顧客\"}"}
 ```
 
 ### Ref型（参照、キーカラム指定）
@@ -437,6 +445,12 @@ AppSheet:{"Type":"Ref","ReferencedTableName":"顧客","ReferencedKeyColumn":"顧
 
 ```json
 AppSheet:{"Type":"Ref","TypeAuxData":"{\"RefTable\":\"顧客\",\"RefKeyColumn\":\"顧客ID\",\"RefType\":\"Text\"}"}
+```
+
+（別表現の例: Referenced* を TypeAuxData に入れる）
+
+```json
+AppSheet:{"Type":"Ref","TypeAuxData":"{\"ReferencedTableName\":\"顧客\",\"ReferencedKeyColumn\":\"顧客ID\",\"ReferencedType\":\"Text\"}"}
 ```
 
 ### Enum型（選択肢）
