@@ -18,8 +18,8 @@
   - Simulator内での「Deck/Detail/Form」切り替えUIは **存在しない**。
 
 - Simulator画面のレイアウト
-  - 左ペイン: テーブル一覧（AppSheet風「VIEWS」）+ テーブル検索
-  - 上部バー: テーブル内検索 + 「ダミー更新」ボタン
+  - 左ペイン: テーブル一覧（AppSheet風「VIEWS」）
+  - 上部バー: 「＋追加」などの最低限の操作
   - 中央: TableView（表形式の一覧）
   - 右ペイン: 行選択時のみ表示される詳細/編集パネル
 
@@ -45,7 +45,8 @@
 ### 3.1 保存場所と行数
 
 - sampleData は Zustand store (`useERStore`) 内の `sampleDataByTableId` に保持される。
-- 1テーブルあたり **5行**のダミーデータを生成する（`generateSampleData(table, 5)`）。
+- 初期は 1テーブルあたり **5行（DEFAULT_SAMPLE_ROWS）** を生成する。
+- 上限は **100行（MAX_SAMPLE_ROWS）**。
 
 ### 3.2 初期化・補完
 
@@ -65,18 +66,17 @@
 
 ### 4.1 テーブル/カラム操作での再生成（上書き）
 
-`erStore` の以下操作は、該当テーブルの `sampleDataByTableId[tableId]` を **丸ごと再生成**するため、
-Simulator上での編集内容は失われる。
+`erStore` のテーブル/カラム操作は、`sampleDataByTableId[tableId]` を **テーブルスキーマに同期**する。
+基本は「既存行を維持しつつ、足りない列だけ補完」するため、Simulator上の編集内容が失われにくい。
 
 - `addTable()` → 新テーブル分を生成
 - `duplicateTable()` → 複製先テーブル分を生成
 - `addColumn()` / `updateColumn()` / `deleteColumn()` / `reorderColumn()`
-  - いずれも `generateSampleData(table, 5)` で再生成
+  - 既存行を維持しつつ、スキーマ差分を補完
 
 ### 4.2 全テーブル再生成
 
-- 「ダミー更新」ボタン → `regenerateSampleData()` が実行され、全テーブル分が再生成される。
-- 実行前に ConfirmDialog が出て「編集内容は失われる」旨の文言が表示される。
+- 「ダミー更新（全再生成）」UIは撤去済み。
 
 ---
 
@@ -91,11 +91,15 @@ Simulator上での編集内容は失われる。
   - `Simulator.tsx` から `data={sampleDataByTableId[selectedTable.id]}` を渡す。
 
 - 検索
-  - 上部検索バーの文字列を、全列の文字列化した値に対して部分一致でフィルタ。
+  - `TableView` には検索用の `searchQuery` があるが、現状のSimulator UIからは利用していない。
 
 - 行クリック
   - 右ペインを開く（selectedRowをセット）。
   - 選択識別子（selectedRowKey）は「Key列の値があればそれ」「なければ行index」。
+
+- 行の並べ替え（DnD）
+  - 一覧テーブルの行はドラッグ&ドロップで並べ替え可能。
+  - フィルタ/検索中のような「表示行と実データのindexが一致しない状態」では、安全のため並べ替えを無効化する。
 
 - Ref表示
   - 一覧セルで `column.type === 'Ref'` の場合、参照先行を `sampleDataByTableId` から引いてラベル表示に変換する。
@@ -170,3 +174,10 @@ Simulator上での編集内容は失われる。
 - ER変更（特にカラム操作）で sampleData を再生成する箇所が多く、Simulator上の編集値が頻繁に失われる。
 - sampleData はプロジェクトに保存されないため、編集値はセッション限定。
 - Refは「表示ラベル化」と「プレースホルダ補正」はあるが、無効値の厳密な整合性担保はしていない（手入力は基本保持）。
+
+---
+
+## 9. 並べ替え（DnD）の方針
+
+- 並べ替え操作は **ドラッグ&ドロップ優先**（補助として上/下ボタンを残すことはある）。
+- Tauri(WebView)上の互換性のため、HTML5の`draggable`イベントに依存せず、ポインタベースのDnD（例: `@dnd-kit`）を採用する。

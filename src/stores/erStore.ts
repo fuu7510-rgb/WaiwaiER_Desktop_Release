@@ -111,6 +111,7 @@ interface ERState {
   appendSampleRow: (tableId: string) => void;
   deleteSampleRow: (tableId: string, rowIndex: number) => void;
   undoDeleteSampleRow: () => void;
+  reorderSampleRows: (tableId: string, fromIndex: number, toIndex: number) => void;
   
   // リレーション操作
   addRelation: (relation: Omit<Relation, 'id'>) => string;
@@ -639,6 +640,20 @@ export const useERStore = create<ERState>()(
           tables: state.tables,
           sampleDataByTableId: { ...state.sampleDataByTableId, [restored.tableId]: synced },
         });
+      });
+    },
+
+    reorderSampleRows: (tableId, fromIndex, toIndex) => {
+      set((state) => {
+        const current = state.sampleDataByTableId[tableId] ?? [];
+        if (current.length === 0) return;
+        if (fromIndex === toIndex) return;
+        if (fromIndex < 0 || fromIndex >= current.length) return;
+        if (toIndex < 0 || toIndex >= current.length) return;
+        state.sampleDataByTableId[tableId] = arrayMove(current, fromIndex, toIndex);
+
+        // 行番号が変わるため削除Undoは無効化
+        state.deletedSampleRowStack = [];
       });
     },
     

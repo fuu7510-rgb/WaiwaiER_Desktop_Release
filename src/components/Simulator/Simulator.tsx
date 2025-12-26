@@ -8,6 +8,9 @@ import { formatValue } from '../../lib';
 import type { Column } from '../../types';
 import { Select } from '../common/Select';
 import { getRefDisplayLabel, getRowLabel } from './recordLabel';
+import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 function getInputType(column: Column): string {
   switch (column.type) {
@@ -65,6 +68,7 @@ export function Simulator() {
     deleteSampleRow,
     deletedSampleRowStack,
     undoDeleteSampleRow,
+    reorderSampleRows,
     reorderTables,
   } = useERStore();
     const lastDeletedSampleRow =
@@ -74,6 +78,12 @@ export function Simulator() {
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [draftRow, setDraftRow] = useState<Record<string, unknown> | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    })
+  );
   
   const selectedTable = tables.find((t) => t.id === selectedTableId) || tables[0];
 
@@ -115,6 +125,15 @@ export function Simulator() {
     );
   }
 
+  const handleTableDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    if (!activeId || !overId || activeId === overId) return;
+    reorderTables(activeId, overId);
+  };
+
   return (
     <div className="flex-1 flex h-full bg-zinc-50 overflow-hidden">
       {/* AppSheet風: 左ナビ */}
@@ -138,86 +157,39 @@ export function Simulator() {
               {t('common.noResults', '該当なし')}
             </div>
           ) : (
-            <ul className="divide-y divide-zinc-100">
-              {tables.map((table) => {
-                const isSelected = table.id === selectedTable.id;
-                const index = tables.findIndex((t) => t.id === table.id);
-                const canMoveUp = index > 0;
-                const canMoveDown = index >= 0 && index < tables.length - 1;
-                return (
-                  <li key={table.id}>
-                    <button
-                      onClick={() => selectTable(table.id)}
-                      className={`w-full flex items-center gap-2 px-4 py-2.5 text-left text-xs transition-colors
-                        ${isSelected ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-600 hover:bg-zinc-50'}
-                      `}
-                    >
-                      <span
-                        className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-sm ${TABLE_BG_COLOR_CLASSES[table.color || '#6366f1'] || 'bg-indigo-500'}`}
-                        aria-hidden="true"
+            <DndContext sensors={sensors} onDragEnd={handleTableDragEnd}>
+              <SortableContext items={tables.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                <ul className="divide-y divide-zinc-100">
+                  {tables.map((table, index) => {
+                    const isSelected = table.id === selectedTable.id;
+                    const canMoveUp = index > 0;
+                    const canMoveDown = index >= 0 && index < tables.length - 1;
+                    return (
+                      <SortableSimulatorTableNavItem
+                        key={table.id}
+                        table={table}
+                        isSelected={isSelected}
+                        canMoveUp={canMoveUp}
+                        canMoveDown={canMoveDown}
+                        onSelect={() => selectTable(table.id)}
+                        onMoveUp={() => {
+                          if (!canMoveUp) return;
+                          const overId = tables[index - 1]?.id;
+                          if (!overId) return;
+                          reorderTables(table.id, overId);
+                        }}
+                        onMoveDown={() => {
+                          if (!canMoveDown) return;
+                          const overId = tables[index + 1]?.id;
+                          if (!overId) return;
+                          reorderTables(table.id, overId);
+                        }}
                       />
-                      <span className="truncate">{table.name}</span>
-
-                      <span className="ml-auto flex items-center gap-1.5 shrink-0">
-                        <button
-                          type="button"
-                          className={`
-                            inline-flex items-center justify-center w-7 h-7 rounded-md border
-                            bg-white text-zinc-500 transition-colors
-                            hover:bg-zinc-50 hover:text-zinc-700
-                            ${canMoveUp ? 'border-zinc-200' : 'border-zinc-100 opacity-30 cursor-not-allowed hover:bg-white hover:text-zinc-500'}
-                          `}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!canMoveUp) return;
-                            const overId = tables[index - 1]?.id;
-                            if (!overId) return;
-                            reorderTables(table.id, overId);
-                          }}
-                          aria-label={t('common.moveUp', '上に移動')}
-                          title={t('common.moveUp', '上に移動')}
-                        >
-                          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path
-                              fillRule="evenodd"
-                              d="M10 4a1 1 0 01.707.293l5 5a1 1 0 11-1.414 1.414L10 6.414 5.707 10.707A1 1 0 114.293 9.293l5-5A1 1 0 0110 4z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </button>
-
-                        <button
-                          type="button"
-                          className={`
-                            inline-flex items-center justify-center w-7 h-7 rounded-md border
-                            bg-white text-zinc-500 transition-colors
-                            hover:bg-zinc-50 hover:text-zinc-700
-                            ${canMoveDown ? 'border-zinc-200' : 'border-zinc-100 opacity-30 cursor-not-allowed hover:bg-white hover:text-zinc-500'}
-                          `}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!canMoveDown) return;
-                            const overId = tables[index + 1]?.id;
-                            if (!overId) return;
-                            reorderTables(table.id, overId);
-                          }}
-                          aria-label={t('common.moveDown', '下に移動')}
-                          title={t('common.moveDown', '下に移動')}
-                        >
-                          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path
-                              fillRule="evenodd"
-                              d="M10 16a1 1 0 01-.707-.293l-5-5a1 1 0 011.414-1.414L10 13.586l4.293-4.293a1 1 0 111.414 1.414l-5 5A1 1 0 0110 16z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </button>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+                    );
+                  })}
+                </ul>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
       </aside>
@@ -273,6 +245,17 @@ export function Simulator() {
               sampleDataByTableId={sampleDataByTableId}
               data={tableRows}
               selectedRowKey={selectedRowKey}
+              onReorderRows={(fromIndex, toIndex) => {
+                if (!selectedTable?.id) return;
+                reorderSampleRows(selectedTable.id, fromIndex, toIndex);
+
+                // 選択中行はインデックス基準なので一旦リセット（Keyがある場合は後で選び直せる）
+                setSelectedRow(null);
+                setSelectedRowKey(null);
+                setSelectedRowIndex(null);
+                setIsEditing(false);
+                setDraftRow(null);
+              }}
               onRowClick={(row, rowKey, rowIndex) => {
                 setSelectedRow(row);
                 setSelectedRowKey(rowKey);
@@ -573,5 +556,103 @@ export function Simulator() {
       </section>
 
     </div>
+  );
+}
+
+function SortableSimulatorTableNavItem(props: {
+  table: { id: string; name: string; color?: string };
+  isSelected: boolean;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onSelect: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+}) {
+  const { t } = useTranslation();
+  const { table, isSelected, canMoveUp, canMoveDown, onSelect, onMoveUp, onMoveDown } = props;
+  const { attributes, listeners, setNodeRef, transform, transition, isOver, isDragging } = useSortable({
+    id: table.id,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.7 : undefined,
+  };
+
+  return (
+    <li ref={setNodeRef} style={style}>
+      <button
+        onClick={onSelect}
+        {...attributes}
+        {...listeners}
+        className={`w-full flex items-center gap-2 px-4 py-2.5 text-left text-xs transition-colors
+          ${isSelected ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-600 hover:bg-zinc-50'}
+          ${isOver ? 'ring-2 ring-indigo-200 ring-inset' : ''}
+        `}
+      >
+        <span
+          className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-sm ${TABLE_BG_COLOR_CLASSES[table.color || '#6366f1'] || 'bg-indigo-500'}`}
+          aria-hidden="true"
+        />
+        <span className="truncate">{table.name}</span>
+
+        <span className="ml-auto flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            data-reorder-button="true"
+            className={`
+              inline-flex items-center justify-center w-7 h-7 rounded-md border
+              bg-white text-zinc-500 transition-colors
+              hover:bg-zinc-50 hover:text-zinc-700
+              ${canMoveUp ? 'border-zinc-200' : 'border-zinc-100 opacity-30 cursor-not-allowed hover:bg-white hover:text-zinc-500'}
+            `}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!canMoveUp) return;
+              onMoveUp();
+            }}
+            aria-label={t('common.moveUp', '上に移動')}
+            title={t('common.moveUp', '上に移動')}
+          >
+            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path
+                fillRule="evenodd"
+                d="M10 4a1 1 0 01.707.293l5 5a1 1 0 11-1.414 1.414L10 6.414 5.707 10.707A1 1 0 114.293 9.293l5-5A1 1 0 0110 4z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            data-reorder-button="true"
+            className={`
+              inline-flex items-center justify-center w-7 h-7 rounded-md border
+              bg-white text-zinc-500 transition-colors
+              hover:bg-zinc-50 hover:text-zinc-700
+              ${canMoveDown ? 'border-zinc-200' : 'border-zinc-100 opacity-30 cursor-not-allowed hover:bg-white hover:text-zinc-500'}
+            `}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!canMoveDown) return;
+              onMoveDown();
+            }}
+            aria-label={t('common.moveDown', '下に移動')}
+            title={t('common.moveDown', '下に移動')}
+          >
+            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path
+                fillRule="evenodd"
+                d="M10 16a1 1 0 01-.707-.293l-5-5a1 1 0 011.414-1.414L10 13.586l4.293-4.293a1 1 0 111.414 1.414l-5 5A1 1 0 0110 16z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+        </span>
+      </button>
+    </li>
   );
 }

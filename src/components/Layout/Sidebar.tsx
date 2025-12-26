@@ -5,6 +5,9 @@ import { Button, Input } from '../common';
 import { TableEditor } from '../EREditor/TableEditor';
 import { ColumnEditor } from '../EREditor/ColumnEditor';
 import { TABLE_BG_COLOR_CLASSES } from '../../lib/constants';
+import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 export function Sidebar() {
   const { t } = useTranslation();
@@ -49,6 +52,21 @@ export function Sidebar() {
   if (!isSidebarOpen) {
     return null;
   }
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    })
+  );
+
+  const handleTableDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    if (!activeId || !overId || activeId === overId) return;
+    reorderTables(activeId, overId);
+  };
 
   return (
     <aside className="bg-white border-r border-zinc-200 flex flex-col h-full w-[280px]">
@@ -109,19 +127,23 @@ export function Sidebar() {
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-zinc-100">
-            {tables.map((table, index) => (
-              <TableListItem
-                key={table.id}
-                table={table}
-                isSelected={table.id === selectedTableId}
-                canMoveUp={index > 0}
-                canMoveDown={index < tables.length - 1}
-                onMoveUp={() => reorderTables(table.id, tables[index - 1].id)}
-                onMoveDown={() => reorderTables(table.id, tables[index + 1].id)}
-              />
-            ))}
-          </ul>
+          <DndContext sensors={sensors} onDragEnd={handleTableDragEnd}>
+            <SortableContext items={tables.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+              <ul className="divide-y divide-zinc-100">
+                {tables.map((table, index) => (
+                  <TableListItem
+                    key={table.id}
+                    table={table}
+                    isSelected={table.id === selectedTableId}
+                    canMoveUp={index > 0}
+                    canMoveDown={index < tables.length - 1}
+                    onMoveUp={() => reorderTables(table.id, tables[index - 1].id)}
+                    onMoveDown={() => reorderTables(table.id, tables[index + 1].id)}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 
@@ -167,16 +189,28 @@ function TableListItem({
   onMoveDown,
 }: TableListItemProps) {
   const { selectTable } = useERStore();
+  const { attributes, listeners, setNodeRef, transform, transition, isOver, isDragging } = useSortable({ id: table.id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.7 : undefined,
+  };
 
   return (
     <li
+      ref={setNodeRef}
+      style={style}
       onClick={() => selectTable(table.id)}
+      {...attributes}
+      {...listeners}
       className={`
         px-4 py-3 cursor-pointer transition-all duration-150
         ${isSelected 
           ? 'bg-indigo-50 border-l-4 border-indigo-500 pl-3' 
           : 'hover:bg-zinc-50 border-l-4 border-transparent pl-3'
         }
+        ${isOver ? 'ring-2 ring-indigo-200 ring-inset' : ''}
       `}
     >
       <div className="flex items-center gap-3">
@@ -189,6 +223,7 @@ function TableListItem({
         <span className="ml-auto flex items-center gap-1.5 shrink-0">
           <button
             type="button"
+            data-reorder-button="true"
             className={`
               inline-flex items-center justify-center w-7 h-7 rounded-md border
               bg-white text-zinc-500 transition-colors
@@ -201,6 +236,7 @@ function TableListItem({
               if (!canMoveUp) return;
               onMoveUp?.();
             }}
+            onPointerDown={(e) => e.stopPropagation()}
             aria-label="上に移動"
           >
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -213,6 +249,7 @@ function TableListItem({
           </button>
           <button
             type="button"
+            data-reorder-button="true"
             className={`
               inline-flex items-center justify-center w-7 h-7 rounded-md border
               bg-white text-zinc-500 transition-colors
@@ -225,6 +262,7 @@ function TableListItem({
               if (!canMoveDown) return;
               onMoveDown?.();
             }}
+            onPointerDown={(e) => e.stopPropagation()}
             aria-label="下に移動"
           >
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">

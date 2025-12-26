@@ -5,13 +5,13 @@
 この計画書は、ユーザーが挙げた問題点（6点）を「実装可能なタスク」に落とし込み、影響範囲と受け入れ条件を明確化するためのものです。
 
 関連実装（現状）:
-- `src/components/Simulator/Simulator.tsx`（左ナビ + TableView + 右ペイン編集、ダミー更新ボタン）
+- `src/components/Simulator/Simulator.tsx`（左ナビ + TableView + 右ペイン編集）
 - `src/components/Simulator/TableView.tsx`（一覧表示、検索、Refラベル表示）
-- `src/stores/erStore.ts`（sampleDataByTableId、reorderTables、reorderColumn）
+- `src/stores/erStore.ts`（sampleDataByTableId、reorderTables、reorderColumn、reorderSampleRows）
 - `src/lib/sampleData.ts`（ダミーデータ生成）
 - 既存の並べ替えUI例:
-  - `src/components/Layout/Sidebar.tsx`（テーブルの上下移動）
-  - `src/components/EREditor/TableNode.tsx`（カラムの上下移動）
+  - `src/components/Layout/Sidebar.tsx`（テーブルの並べ替え: DnD優先 + 上下ボタン）
+  - `src/components/EREditor/TableNode.tsx`（カラムの並べ替え: DnD優先 + 上下ボタン）
 
 ---
 
@@ -80,7 +80,7 @@
 ### 3) ダミー更新ボタン不要（全体更新しない）
 
 現状:
-- `Simulator.tsx` 上部に「ダミー更新」ボタンがあり、`regenerateSampleData()`（全テーブル再生成）を行う。
+- （v0.1.1時点）Simulator上部の「ダミー更新（全再生成）」UIは撤去済み。
 
 方針:
 - ボタンとConfirmDialogを削除。
@@ -129,11 +129,12 @@
 - Simulator左ナビは現状ボタンなし。
 
 方針:
-- Simulator左ナビの各テーブル行に「上へ/下へ」ボタンを追加。
-- 実装はEditor Sidebarの `TableListItem` と同等のUI/挙動を最小移植。
+- Simulator左ナビの各テーブル行を **ドラッグ&ドロップ** で並べ替え可能にする。
+- 既存の「上へ/下へ」ボタンは互換のため残してよい（DnDが主導）。
+- 実装はStoreの `reorderTables(activeTableId, overTableId)` を呼ぶ。
 
 受け入れ条件:
-- Simulator左ナビで上下移動でき、順序が即時反映される。
+- Simulator左ナビでドラッグ&ドロップで入れ替えでき、順序が即時反映される。
 
 主な変更箇所（予定）:
 - `src/components/Simulator/Simulator.tsx`
@@ -148,8 +149,9 @@
 - Simulatorの `TableView` は列ヘッダにボタンなし。
 
 方針:
-- `TableView` の列ヘッダに、ホバー時に表示される上下移動ボタンを追加。
-- `reorderColumn` を呼んで、順序変更が即時テーブル表示に反映されるようにする。
+- `TableView` の列ヘッダを **ドラッグ&ドロップ** で並べ替え可能にする。
+- 既存の上下移動ボタンは互換のため残してよい（DnDが主導）。
+- `reorderColumn(tableId, columnId, newOrder)` を呼んで、順序変更が即時テーブル表示に反映されるようにする。
 
 受け入れ条件:
 - Simulatorの一覧テーブル上で列順を入れ替えられる。
