@@ -188,11 +188,25 @@
     "noData": "No data"
   },
   "settings": {
-    "title": "Settings",
+    "title": "User Settings",
     "general": "General",
     "appearance": "Appearance",
     "backup": "Backup",
     "license": "License",
+    "tableCreationRules": {
+      "title": "Table creation rules"
+    },
+    "transfer": {
+      "title": "Transfer",
+      "export": "Export settings",
+      "import": "Import settings",
+      "description": "Save/load settings as a JSON file.",
+      "exportSuccess": "Settings exported.",
+      "exportError": "Export failed: {{message}}",
+      "importSuccess": "Settings imported.",
+      "importInvalid": "This file is not a valid settings file.",
+      "importError": "Import failed: {{message}}"
+    },
     "language": "Language",
     "theme": "Theme",
     "themes": {

@@ -188,11 +188,25 @@
     "noData": "データがありません"
   },
   "settings": {
-    "title": "設定",
+    "title": "ユーザー設定",
     "general": "一般",
     "appearance": "外観",
     "backup": "バックアップ",
     "license": "ライセンス",
+    "tableCreationRules": {
+      "title": "新規作成時のルール"
+    },
+    "transfer": {
+      "title": "移行",
+      "export": "設定をエクスポート",
+      "import": "設定をインポート",
+      "description": "設定をJSONファイルとして保存/読み込みします。",
+      "exportSuccess": "設定をエクスポートしました。",
+      "exportError": "エクスポートに失敗しました: {{message}}",
+      "importSuccess": "設定をインポートしました。",
+      "importInvalid": "このファイルは設定として読み込めません。",
+      "importError": "インポートに失敗しました: {{message}}"
+    },
     "language": "言語",
     "theme": "テーマ",
     "themes": {

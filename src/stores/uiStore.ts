@@ -21,6 +21,10 @@ interface UIState {
   isSidebarOpen: boolean;
   sidebarWidth: number;
 
+  // ユーザー設定UI（開閉状態など）
+  isTableCreationRulesOpen: boolean;
+  isBackupSettingsOpen: boolean;
+
   // ERエディタ表示
   isRelationHighlightEnabled: boolean;
   isGridVisible: boolean;
@@ -49,6 +53,10 @@ interface UIState {
   // サイドバー操作
   toggleSidebar: () => void;
   setSidebarWidth: (width: number) => void;
+
+  // ユーザー設定UI操作
+  toggleTableCreationRulesOpen: () => void;
+  toggleBackupSettingsOpen: () => void;
 
   // ERエディタ表示操作
   toggleRelationHighlight: () => void;
@@ -91,6 +99,8 @@ export const useUIStore = create<UIState>()(
       isAboutDialogOpen: false,
       isSidebarOpen: true,
       sidebarWidth: 280,
+      isTableCreationRulesOpen: true,
+      isBackupSettingsOpen: true,
       isRelationHighlightEnabled: true,
       isGridVisible: true,
       isMemosVisible: true,
@@ -116,6 +126,12 @@ export const useUIStore = create<UIState>()(
       // サイドバー操作
       toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
       setSidebarWidth: (width) => set({ sidebarWidth: Math.max(200, Math.min(500, width)) }),
+
+      // ユーザー設定UI操作
+      toggleTableCreationRulesOpen: () =>
+        set((state) => ({ isTableCreationRulesOpen: !state.isTableCreationRulesOpen })),
+      toggleBackupSettingsOpen: () =>
+        set((state) => ({ isBackupSettingsOpen: !state.isBackupSettingsOpen })),
 
       // ERエディタ表示操作
       toggleRelationHighlight: () =>
@@ -145,6 +161,8 @@ export const useUIStore = create<UIState>()(
         settings: state.settings,
         isSidebarOpen: state.isSidebarOpen,
         sidebarWidth: state.sidebarWidth,
+        isTableCreationRulesOpen: state.isTableCreationRulesOpen,
+        isBackupSettingsOpen: state.isBackupSettingsOpen,
         isRelationHighlightEnabled: state.isRelationHighlightEnabled,
         isGridVisible: state.isGridVisible,
         isMemosVisible: state.isMemosVisible,
