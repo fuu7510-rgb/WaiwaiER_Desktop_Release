@@ -141,15 +141,21 @@ export function Header() {
               }
               title={
                 saveError
-                  ? `保存エラー: ${saveError}`
+                  ? t('project.saveStatus.errorWithMessage', { message: saveError })
                   : isSaving
-                    ? '保存中...'
+                    ? t('project.saveStatus.savingTitle')
                     : isDirty
-                      ? '未保存の変更があります'
-                      : '保存済み'
+                      ? t('project.saveStatus.unsavedTitle')
+                      : t('project.saveStatus.savedTitle')
               }
             >
-              {saveError ? '保存エラー' : isSaving ? '保存中' : isDirty ? '未保存' : '保存済み'}
+              {saveError
+                ? t('project.saveStatus.error')
+                : isSaving
+                  ? t('project.saveStatus.saving')
+                  : isDirty
+                    ? t('project.saveStatus.unsaved')
+                    : t('project.saveStatus.saved')}
             </span>
           </div>
         )}

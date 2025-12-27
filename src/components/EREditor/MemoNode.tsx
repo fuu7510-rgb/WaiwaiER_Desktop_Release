@@ -1,5 +1,6 @@
 import { memo as reactMemo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NodeProps } from 'reactflow';
+import { useTranslation } from 'react-i18next';
 
 import { useERStore } from '../../stores';
 import type { Memo } from '../../types';
@@ -9,6 +10,7 @@ interface MemoNodeData {
 }
 
 export const MemoNode = reactMemo(({ data, selected }: NodeProps<MemoNodeData>) => {
+  const { t } = useTranslation();
   const { memo } = data;
   const { updateMemo, deleteMemo } = useERStore();
 
@@ -114,11 +116,11 @@ export const MemoNode = reactMemo(({ data, selected }: NodeProps<MemoNodeData>) 
   return (
     <div ref={containerRef} className={containerClassName + ' relative min-h-[110px] min-w-[180px]'}>
       <div className="memo-drag-handle flex items-center justify-between border-b border-zinc-200 px-2 py-1 cursor-move select-none">
-        <div className="text-[10px] font-medium text-zinc-500">メモ</div>
+        <div className="text-[10px] font-medium text-zinc-500">{t('editor.memo')}</div>
         <button
           type="button"
           className="nodrag nopan rounded px-1 py-0.5 text-[10px] text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"
-          title="メモを削除"
+          title={t('editor.deleteMemo')}
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
@@ -133,7 +135,7 @@ export const MemoNode = reactMemo(({ data, selected }: NodeProps<MemoNodeData>) 
         ref={textareaRef}
         className="nodrag nopan h-[calc(100%-26px)] w-full resize-none bg-transparent p-2 text-[11px] leading-relaxed text-zinc-700 outline-none"
         value={draft}
-        placeholder="好きなことを自由にメモできます"
+        placeholder={t('editor.memoPlaceholder')}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => {
