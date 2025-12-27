@@ -17,6 +17,8 @@ function getInputType(column: Column): string {
   switch (column.type) {
     case 'Number':
     case 'Decimal':
+    case 'Percent':
+    case 'Price':
     case 'Progress':
       return 'number';
     case 'Date':

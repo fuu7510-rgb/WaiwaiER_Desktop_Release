@@ -3,13 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useERStore } from '../../stores';
 import { Button, Dialog, Input, Select } from '../common';
 import type { Column, ColumnType, ColumnConstraints } from '../../types';
-
-const columnTypes: ColumnType[] = [
-  'Text', 'Number', 'Decimal', 'Date', 'DateTime', 'Time', 'Duration',
-  'Email', 'Phone', 'Url', 'Image', 'File', 'Enum', 'EnumList',
-  'Yes/No', 'Color', 'LatLong', 'Address', 'Ref',
-  'ChangeCounter', 'ChangeLocation', 'ChangeTimestamp', 'Progress', 'UniqueID'
-];
+import { APPSHEET_COLUMN_TYPES } from '../../types';
 
 export function ColumnEditor() {
   const { i18n } = useTranslation();
@@ -34,6 +28,11 @@ export function ColumnEditor() {
 
   const labelEnJa = useCallback(
     (en: string, ja: string) => (isJapanese ? `${en} (${ja})` : en),
+    [isJapanese]
+  );
+
+  const labelEnJaNoSpace = useCallback(
+    (en: string, ja: string) => (isJapanese ? `${en}(${ja})` : en),
     [isJapanese]
   );
 
@@ -81,9 +80,9 @@ export function ColumnEditor() {
 
       const isEnum = type === 'Enum' || type === 'EnumList';
       const isRef = type === 'Ref';
-      const isNumeric = type === 'Number' || type === 'Decimal' || type === 'Progress';
+      const isNumeric = type === 'Number' || type === 'Decimal' || type === 'Percent' || type === 'Price' || type === 'Progress';
       const isChange = type.startsWith('Change');
-      const isText = type === 'Text';
+      const isLongText = type === 'LongText';
       const isEnumList = type === 'EnumList';
 
       if (!isEnum) {
@@ -128,11 +127,11 @@ export function ColumnEditor() {
         nextAppSheet = pruneAppSheet(nextAppSheet, ['ChangeColumns', 'ChangeValues']);
       }
 
-      if (!isText) {
+      if (!isLongText) {
         nextAppSheet = pruneAppSheet(nextAppSheet, ['LongTextFormatting']);
       }
 
-      if (!isText && !isEnumList) {
+      if (!isLongText && !isEnumList) {
         nextAppSheet = pruneAppSheet(nextAppSheet, ['ItemSeparator']);
       }
 
@@ -320,9 +319,9 @@ export function ColumnEditor() {
     }
   }, [selectedTableId, selectedColumnId, deleteColumn]);
 
-  const typeOptions = columnTypes.map((type) => ({
+  const typeOptions = APPSHEET_COLUMN_TYPES.map((type) => ({
     value: type,
-    label: labelEnJa(String(tEn(`columnTypes.${type}`)), String(tJa(`columnTypes.${type}`))),
+    label: labelEnJaNoSpace(String(tEn(`columnTypes.${type}`)), String(tJa(`columnTypes.${type}`))),
   }));
 
   const appSheetTriStateOptions = useMemo(
@@ -674,10 +673,10 @@ export function ColumnEditor() {
           </div>
 
           {/* テキスト */}
-          {(selectedColumn.type === 'Text' || selectedColumn.type === 'EnumList') && (
+          {(selectedColumn.type === 'LongText' || selectedColumn.type === 'EnumList') && (
             <div className="space-y-2">
               <div className="text-[11px] font-medium text-zinc-600">{labelEnJa('Text', 'テキスト')}</div>
-              {selectedColumn.type === 'Text' && (
+              {selectedColumn.type === 'LongText' && (
                 <Select
                   label={labelEnJa('LongTextFormatting', '長文フォーマット')}
                   value={getAppSheetString('LongTextFormatting')}

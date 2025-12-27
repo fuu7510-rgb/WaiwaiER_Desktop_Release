@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Dialog, Button, Input, Select } from '../common';
 import { useUIStore, useProjectStore } from '../../stores';
 import type { Language, Theme, RelationLabelInitialMode, CommonColumnDefinition, ColumnType, ColumnConstraints } from '../../types';
+import { APPSHEET_COLUMN_TYPES } from '../../types';
 import { getAppInfo } from '../../lib/appInfo';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
@@ -14,7 +15,7 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     settings,
     updateSettings,
@@ -80,12 +81,15 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     { value: 'custom', label: t('settings.relationLabel.modes.custom') },
   ];
 
-  const commonColumnTypes: ColumnType[] = [
-    'Text', 'Number', 'Decimal', 'Date', 'DateTime', 'Time', 'Duration',
-    'Email', 'Phone', 'Url', 'Image', 'File', 'Enum', 'EnumList',
-    'Yes/No', 'Color', 'LatLong', 'Address', 'Ref',
-    'ChangeCounter', 'ChangeLocation', 'ChangeTimestamp', 'Progress', 'UniqueID'
-  ];
+  const isJapanese = useMemo(() => {
+    const lang = (i18n.resolvedLanguage ?? i18n.language ?? '').toLowerCase();
+    return lang === 'ja' || lang.startsWith('ja-');
+  }, [i18n.language, i18n.resolvedLanguage]);
+
+  const tEn = useMemo(() => i18n.getFixedT('en'), [i18n]);
+  const tJa = useMemo(() => i18n.getFixedT('ja'), [i18n]);
+
+  const commonColumnTypes: ColumnType[] = [...APPSHEET_COLUMN_TYPES];
 
   const applyCommonColumnsSetting = (next: CommonColumnDefinition[]) => {
     updateSettings({ commonColumns: next });
@@ -211,9 +215,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
 
       const isColumnType = (v: unknown): v is ColumnType => {
         if (typeof v !== 'string') return false;
-        return [
-          'Text','Number','Decimal','Date','DateTime','Time','Duration','Email','Phone','Url','Image','File','Enum','EnumList','Yes/No','Color','LatLong','Address','Ref','ChangeCounter','ChangeLocation','ChangeTimestamp','Progress','UniqueID'
-        ].includes(v);
+        return [...APPSHEET_COLUMN_TYPES, 'UniqueID'].includes(v as ColumnType);
       };
 
       const nextCommon: CommonColumnDefinition[] = [];
@@ -590,7 +592,12 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                       <Select
                         label={t('common.type')}
                         value={selectedCommonColumn.type}
-                        options={commonColumnTypes.map((v) => ({ value: v, label: t('columnTypes.' + v) }))}
+                        options={commonColumnTypes.map((v) => ({
+                          value: v,
+                          label: isJapanese
+                            ? `${String(tEn('columnTypes.' + v))}(${String(tJa('columnTypes.' + v))})`
+                            : String(t('columnTypes.' + v)),
+                        }))}
                         onChange={(e) => updateCommonColumn(selectedCommonColumn.id, { type: e.target.value as ColumnType })}
                       />
 

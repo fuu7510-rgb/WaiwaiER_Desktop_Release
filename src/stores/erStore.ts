@@ -76,7 +76,7 @@ function coerceDummyValueForType(raw: string, type: ColumnType): unknown {
     const n = Number.parseInt(trimmed, 10);
     return Number.isFinite(n) ? n : trimmed;
   }
-  if (type === 'Decimal' || type === 'Progress') {
+  if (type === 'Decimal' || type === 'Percent' || type === 'Price' || type === 'Progress') {
     const n = Number.parseFloat(trimmed);
     return Number.isFinite(n) ? n : trimmed;
   }

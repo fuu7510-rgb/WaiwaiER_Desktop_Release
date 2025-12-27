@@ -1,30 +1,79 @@
 // ER図関連の型定義
 
 export type ColumnType =
-  | 'Text'
-  | 'Number'
-  | 'Decimal'
-  | 'Date'
-  | 'DateTime'
-  | 'Time'
-  | 'Duration'
-  | 'Email'
-  | 'Phone'
-  | 'Url'
-  | 'Image'
-  | 'File'
-  | 'Enum'
-  | 'EnumList'
-  | 'Yes/No'
-  | 'Color'
-  | 'LatLong'
   | 'Address'
-  | 'Ref'
+  | 'App'
   | 'ChangeCounter'
   | 'ChangeLocation'
   | 'ChangeTimestamp'
+  | 'Color'
+  | 'Date'
+  | 'DateTime'
+  | 'Decimal'
+  | 'Drawing'
+  | 'Duration'
+  | 'Email'
+  | 'Enum'
+  | 'EnumList'
+  | 'File'
+  | 'Image'
+  | 'LatLong'
+  | 'LongText'
+  | 'Name'
+  | 'Number'
+  | 'Percent'
+  | 'Phone'
+  | 'Price'
   | 'Progress'
+  | 'Ref'
+  | 'Show'
+  | 'Signature'
+  | 'Text'
+  | 'Thumbnail'
+  | 'Time'
+  | 'Url'
+  | 'Video'
+  | 'XY'
+  | 'Yes/No'
+  // NOTE: legacy type (not in AppSheet type dropdown). Keep for backward compatibility.
   | 'UniqueID';
+
+export const APPSHEET_COLUMN_TYPES: readonly ColumnType[] = [
+  'Address',
+  'App',
+  'ChangeCounter',
+  'ChangeLocation',
+  'ChangeTimestamp',
+  'Color',
+  'Date',
+  'DateTime',
+  'Decimal',
+  'Drawing',
+  'Duration',
+  'Email',
+  'Enum',
+  'EnumList',
+  'File',
+  'Image',
+  'LatLong',
+  'LongText',
+  'Name',
+  'Number',
+  'Percent',
+  'Phone',
+  'Price',
+  'Progress',
+  'Ref',
+  'Show',
+  'Signature',
+  'Text',
+  'Thumbnail',
+  'Time',
+  'Url',
+  'Video',
+  'XY',
+  'Yes/No',
+] as const;
 
 export interface ColumnConstraints {
   required?: boolean;
