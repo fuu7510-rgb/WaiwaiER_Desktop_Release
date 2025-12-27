@@ -34,9 +34,10 @@
 ### 修正
 - ERエディタ（カラム設定）: 選択が変化したタイミングで `Rendered fewer hooks than expected` が発生し画面が落ちることがある問題を修正
 - ERエディタ（カラム設定）: 一部チェックボックスで controlled/uncontrolled 警告が出る可能性を低減（`checked` を boolean に正規化）
+- ERエディタ（サイドバー）: 折りたたみ操作で `Rendered fewer hooks than expected` が発生し画面が真っ白になる問題を修正
 
 ### 開発（Lint）
-- Sidebar（テーブル並べ替え）: DnD の transform 適用に必要な `style` に対して、`no-inline-styles` 警告を抑制（動的 transform/transition のため）
+- Sidebar（テーブル並べ替え）: 存在しないESLintルール（`no-inline-styles`）の無効化コメントを削除
 
 ## 既知の制限
 - ALPHAのため、互換性（DB/プロジェクト形式）が将来変更される可能性があります。
