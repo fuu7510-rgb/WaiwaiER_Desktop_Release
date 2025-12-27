@@ -92,6 +92,7 @@
     "title": "Editor",
     "addTable": "Add Table",
     "tableName": "Table Name",
+    "addCommonColumns": "Also add common columns",
     "noTables": "No tables",
     "clickAddTable": "Click \"Add Table\" to get started.",
     "zoom": "Zoom",
@@ -104,6 +105,7 @@
     "table": "Table",
     "tables": "Tables",
     "addColumn": "Add Column",
+    "addCommonColumns": "Add common columns",
     "columnName": "Column Name",
     "columnType": "Data Type",
     "isKey": "Key",
@@ -289,9 +291,9 @@
     "title": "Export",
     "format": "Format",
     "jsonText": {
-    "pasteHint": "You can import by pasting JSON text. To load from a file, click \"Select file\".",
-    "pastePlaceholder": "Paste JSON here",
-    "pasteEmpty": "JSON text is empty",
+      "pasteHint": "You can import by pasting JSON text. To load from a file, click \"Select file\".",
+      "pastePlaceholder": "Paste JSON here",
+      "pasteEmpty": "JSON text is empty",
       "hint": "Copy the text below.",
       "copied": "Copied",
       "copyFailed": "Copy failed"

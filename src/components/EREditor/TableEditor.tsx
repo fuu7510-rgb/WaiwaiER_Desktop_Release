@@ -1,14 +1,15 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useERStore, useProjectStore } from '../../stores';
+import { useERStore, useProjectStore, useUIStore } from '../../stores';
 import { Button, Input, ConfirmDialog } from '../common';
 import { TABLE_COLORS, TABLE_COLOR_CLASSES } from '../../lib/constants';
 import type { Table } from '../../types';
 
 export function TableEditor() {
   const { t } = useTranslation();
-  const { tables, selectedTableId, updateTable, deleteTable, duplicateTable } = useERStore();
+  const { tables, selectedTableId, updateTable, deleteTable, duplicateTable, applyCommonColumnsToTable } = useERStore();
   const { currentProjectId, canAddTable } = useProjectStore();
+  const commonColumns = useUIStore((s) => s.settings.commonColumns) ?? [];
   
   const selectedTable = tables.find((t) => t.id === selectedTableId);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -30,6 +31,11 @@ export function TableEditor() {
       duplicateTable(selectedTableId);
     }
   }, [selectedTableId, currentProjectId, canAddTable, tables.length, duplicateTable]);
+
+  const handleApplyCommonColumns = useCallback(() => {
+    if (!selectedTableId) return;
+    applyCommonColumnsToTable(selectedTableId);
+  }, [selectedTableId, applyCommonColumnsToTable]);
 
   if (!selectedTable) {
     return null;
@@ -78,6 +84,9 @@ export function TableEditor() {
       
       {/* アクションボタン */}
       <div className="space-y-1.5 border-t border-zinc-100 pt-3">
+        <Button variant="secondary" size="sm" onClick={handleApplyCommonColumns} className="w-full" disabled={commonColumns.length === 0}>
+          {t('table.addCommonColumns')}
+        </Button>
         <Button variant="secondary" size="sm" onClick={handleDuplicate} className="w-full">
           {t('table.duplicateTable')}
         </Button>

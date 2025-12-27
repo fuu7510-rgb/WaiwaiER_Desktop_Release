@@ -157,7 +157,11 @@ interface ERState {
   
   // アクション
   // テーブル操作
-  addTable: (name: string, position?: { x: number; y: number }, options?: { keyColumnName?: string }) => string;
+  addTable: (
+    name: string,
+    position?: { x: number; y: number },
+    options?: { keyColumnName?: string; includeCommonColumns?: boolean }
+  ) => string;
   updateTable: (id: string, updates: Partial<Table>) => void;
   deleteTable: (id: string) => void;
   moveTable: (id: string, position: { x: number; y: number }) => void;
@@ -171,6 +175,7 @@ interface ERState {
   reorderColumn: (tableId: string, columnId: string, newOrder: number) => void;
 
   // 共通カラム（ユーザー設定）
+  applyCommonColumnsToTable: (tableId: string, commonColumns?: CommonColumnDefinition[]) => void;
   applyCommonColumnsToAllTables: (commonColumns: CommonColumnDefinition[]) => void;
 
   // サンプルデータ操作
@@ -521,21 +526,24 @@ export const useERStore = create<ERState>()(
       const table = createDefaultTable(name, position, options?.keyColumnName);
 
       // ユーザー設定「共通カラム」を末尾に自動挿入
-      const commonDefs = normalizeCommonColumns(useUIStore.getState().settings.commonColumns);
-      if (commonDefs.length > 0) {
-        for (const def of commonDefs) {
-          const exists = table.columns.some((c) => String(c.name ?? '').trim() === def.name);
-          if (exists) continue;
-          table.columns.push({
-            id: uuidv4(),
-            name: def.name,
-            type: def.type,
-            isKey: false,
-            isLabel: false,
-            constraints: def.constraints ?? {},
-            appSheet: def.appSheet,
-            order: table.columns.length,
-          });
+      const includeCommonColumns = options?.includeCommonColumns ?? true;
+      if (includeCommonColumns) {
+        const commonDefs = normalizeCommonColumns(useUIStore.getState().settings.commonColumns);
+        if (commonDefs.length > 0) {
+          for (const def of commonDefs) {
+            const exists = table.columns.some((c) => String(c.name ?? '').trim() === def.name);
+            if (exists) continue;
+            table.columns.push({
+              id: uuidv4(),
+              name: def.name,
+              type: def.type,
+              isKey: false,
+              isLabel: false,
+              constraints: def.constraints ?? {},
+              appSheet: def.appSheet,
+              order: table.columns.length,
+            });
+          }
         }
       }
       set((state) => {
@@ -613,8 +621,6 @@ export const useERStore = create<ERState>()(
         id: uuidv4(),
       }));
       newTable.color = source.color;
-
-      applyCommonColumnsToTableInPlace(newTable, useUIStore.getState().settings.commonColumns);
       
       set((state) => {
         state.tables.push(newTable);
@@ -799,6 +805,30 @@ export const useERStore = create<ERState>()(
       });
       get().saveHistory('カラムの順序を変更');
       get().queueSaveToDB();
+    },
+
+    applyCommonColumnsToTable: (tableId, commonColumns) => {
+      const defs = normalizeCommonColumns(commonColumns ?? useUIStore.getState().settings.commonColumns);
+      if (defs.length === 0) return;
+
+      let changed = false;
+      const tables = get().tables;
+      set((state) => {
+        const table = state.tables.find((t) => t.id === tableId);
+        if (!table) return;
+        changed = applyCommonColumnsToTableInPlace(table, defs);
+        if (!changed) return;
+        const synced = syncSampleRowsToTableSchema({ table, currentRows: state.sampleDataByTableId[tableId] });
+        state.sampleDataByTableId = normalizeRefValues({
+          tables: state.tables,
+          sampleDataByTableId: { ...state.sampleDataByTableId, [tableId]: synced },
+        });
+      });
+
+      if (changed) {
+        get().saveHistory('共通カラムを適用');
+        get().queueSaveToDB();
+      }
     },
 
     applyCommonColumnsToAllTables: (commonColumns) => {
@@ -1272,8 +1302,6 @@ export const useERStore = create<ERState>()(
           state.isSaving = false;
           state.saveError = null;
         });
-
-        get().applyCommonColumnsToAllTables(useUIStore.getState().settings.commonColumns);
         get().saveHistory('プロジェクトを読み込み');
       } else {
         set((state) => {

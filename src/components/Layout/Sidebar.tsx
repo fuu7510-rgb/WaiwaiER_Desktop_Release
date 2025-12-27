@@ -23,6 +23,7 @@ function SidebarInner() {
 
   const [newTableName, setNewTableName] = useState('');
   const [isAddingTable, setIsAddingTable] = useState(false);
+  const [shouldAddCommonColumns, setShouldAddCommonColumns] = useState(true);
 
   const handleAddTable = useCallback(() => {
     if (!newTableName.trim()) return;
@@ -50,7 +51,7 @@ function SidebarInner() {
         keyColumnName = `${keyPrefix}${baseName}${keySuffix}`;
       }
     }
-    addTable(fullTableName, { x, y }, { keyColumnName });
+    addTable(fullTableName, { x, y }, { keyColumnName, includeCommonColumns: shouldAddCommonColumns });
     setNewTableName('');
     setIsAddingTable(false);
   }, [
@@ -65,6 +66,7 @@ function SidebarInner() {
     settings.keyColumnPrefix,
     settings.keyColumnSuffix,
     settings.defaultKeyColumnName,
+    shouldAddCommonColumns,
   ]);
 
   const sensors = useSensors(
@@ -91,7 +93,10 @@ function SidebarInner() {
         </h2>
         <Button
           size="sm"
-          onClick={() => setIsAddingTable(true)}
+          onClick={() => {
+            setIsAddingTable(true);
+            setShouldAddCommonColumns(true);
+          }}
           className="shadow-none text-[11.4px] px-3 py-1.5 m-[6px]"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,6 +120,17 @@ function SidebarInner() {
             autoFocus
             className="mb-3"
           />
+
+          <label className="flex items-center gap-2 text-xs text-zinc-700 mb-3 select-none">
+            <input
+              type="checkbox"
+              className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+              checked={shouldAddCommonColumns}
+              onChange={(e) => setShouldAddCommonColumns(e.target.checked)}
+            />
+            {t('editor.addCommonColumns')}
+          </label>
+
           <div className="flex gap-2 justify-end">
             <Button size="sm" variant="secondary" onClick={() => setIsAddingTable(false)} className="m-[3px]">
               {t('common.cancel')}

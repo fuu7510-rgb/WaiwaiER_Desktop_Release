@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, Button, Input, Select } from '../common';
-import { useUIStore, useProjectStore, useERStore } from '../../stores';
+import { useUIStore, useProjectStore } from '../../stores';
 import type { Language, Theme, RelationLabelInitialMode, CommonColumnDefinition, ColumnType, ColumnConstraints } from '../../types';
 import { getAppInfo } from '../../lib/appInfo';
 import { open, save } from '@tauri-apps/plugin-dialog';
@@ -28,7 +28,6 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     isBackupSettingsOpen,
     toggleBackupSettingsOpen,
   } = useUIStore();
-  const applyCommonColumnsToAllTables = useERStore((s) => s.applyCommonColumnsToAllTables);
   const { subscriptionPlan } = useProjectStore();
 
   const [selectedCommonColumnId, setSelectedCommonColumnId] = useState<string | null>(null);
@@ -90,8 +89,6 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
 
   const applyCommonColumnsSetting = (next: CommonColumnDefinition[]) => {
     updateSettings({ commonColumns: next });
-    // テーブル作成後も「設定した通り」末尾に自動挿入
-    applyCommonColumnsToAllTables(next);
   };
 
   const commonColumns = settings.commonColumns ?? [];
@@ -287,9 +284,6 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
       }
 
       updateSettings(next);
-      if (Array.isArray(next.commonColumns)) {
-        applyCommonColumnsToAllTables(next.commonColumns);
-      }
       setTransferMessage({ type: 'success', text: t('settings.transfer.importSuccess') });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
