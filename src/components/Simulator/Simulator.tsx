@@ -8,6 +8,7 @@ import { formatValue } from '../../lib';
 import type { Column } from '../../types';
 import { Select } from '../common/Select';
 import { getRefDisplayLabel, getRowLabel } from './recordLabel';
+import { computeRowWithAppFormulas, getAppFormulaString } from '../../lib/appsheet/expression';
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -158,6 +159,43 @@ export function Simulator() {
   }, [ensureSampleData, tables]);
 
   const tableRows = selectedTable?.id ? sampleDataByTableId[selectedTable.id] ?? [] : [];
+
+  const computedTableRows = useMemo(() => {
+    if (!selectedTable) return [];
+    const now = new Date();
+    return tableRows.map((row) =>
+      computeRowWithAppFormulas({
+        tables,
+        sampleDataByTableId,
+        table: selectedTable,
+        row,
+        now,
+      })
+    );
+  }, [sampleDataByTableId, selectedTable, tableRows, tables]);
+
+  const computedSelectedRow = useMemo(() => {
+    if (!selectedTable || !selectedRow) return null;
+    return computeRowWithAppFormulas({
+      tables,
+      sampleDataByTableId,
+      table: selectedTable,
+      row: selectedRow,
+      now: new Date(),
+    });
+  }, [sampleDataByTableId, selectedRow, selectedTable, tables]);
+
+  const computedDraftRow = useMemo(() => {
+    if (!selectedTable || !selectedRow) return null;
+    if (!draftRow) return null;
+    return computeRowWithAppFormulas({
+      tables,
+      sampleDataByTableId,
+      table: selectedTable,
+      row: draftRow,
+      now: new Date(),
+    });
+  }, [draftRow, sampleDataByTableId, selectedRow, selectedTable, tables]);
 
   const selectedTableKeyColumnId = useMemo(() => {
     return selectedTable?.columns.find((c) => c.isKey)?.id ?? selectedTable?.columns[0]?.id;
@@ -376,7 +414,7 @@ export function Simulator() {
               table={selectedTable}
               tables={tables}
               sampleDataByTableId={sampleDataByTableId}
-              data={tableRows}
+              data={computedTableRows}
               selectedRowKey={selectedRowKey}
               onReorderRows={(fromIndex, toIndex) => {
                 if (!selectedTable?.id) return;
@@ -390,7 +428,8 @@ export function Simulator() {
                 setDraftRow(null);
               }}
               onRowClick={(row, rowKey, rowIndex) => {
-                setSelectedRow(row);
+                const rawRow = tableRows[rowIndex] ?? row;
+                setSelectedRow(rawRow);
                 setSelectedRowKey(rowKey);
                 setSelectedRowIndex(rowIndex);
                 setIsEditing(false);
@@ -411,7 +450,7 @@ export function Simulator() {
                     <h3 className="text-sm font-medium truncate">
                       {(() => {
                         return (
-                          getRowLabel(selectedTable, selectedRow, { fallback: selectedTable.name }) ||
+                          getRowLabel(selectedTable, computedSelectedRow ?? selectedRow, { fallback: selectedTable.name }) ||
                           selectedTable.name
                         );
                       })()}
@@ -472,9 +511,21 @@ export function Simulator() {
                             if (!selectedTable.id) return;
                             if (selectedRowIndex === null) return;
                             if (!draftRow) return;
-                            updateSampleRow(selectedTable.id, selectedRowIndex, draftRow);
-                            setSelectedRow(draftRow);
-                            setSelectedRowKey(makeSelectedRowKey(draftRow, selectedRowIndex));
+
+                            const appFormulaColumnIds = new Set(
+                              selectedTable.columns
+                                .filter((c) => getAppFormulaString(c).length > 0)
+                                .map((c) => c.id)
+                            );
+                            const sanitizedDraft: Record<string, unknown> = {};
+                            for (const [k, v] of Object.entries(draftRow)) {
+                              if (appFormulaColumnIds.has(k)) continue;
+                              sanitizedDraft[k] = v;
+                            }
+
+                            updateSampleRow(selectedTable.id, selectedRowIndex, sanitizedDraft);
+                            setSelectedRow(sanitizedDraft);
+                            setSelectedRowKey(makeSelectedRowKey(sanitizedDraft, selectedRowIndex));
                             setIsEditing(false);
                             setDraftRow(null);
                           }}
@@ -529,12 +580,27 @@ export function Simulator() {
                               tables,
                               sampleDataByTableId,
                               column,
-                              value: selectedRow[column.id],
+                              value: (computedSelectedRow ?? selectedRow)[column.id],
                             })
-                          : formatValue(selectedRow[column.id], column.type)
+                          : formatValue((computedSelectedRow ?? selectedRow)[column.id], column.type)
                       ) : (
                         (() => {
-                          const currentValue = (draftRow ?? selectedRow)[column.id];
+                          const appFormula = getAppFormulaString(column);
+                          const displayRow = computedDraftRow ?? draftRow ?? computedSelectedRow ?? selectedRow;
+                          const currentValue = displayRow?.[column.id];
+
+                          // AppFormula列は編集不可（表示のみ）
+                          if (appFormula.length > 0) {
+                            if (column.type === 'Ref') {
+                              return getRefDisplayLabel({
+                                tables,
+                                sampleDataByTableId,
+                                column,
+                                value: currentValue,
+                              });
+                            }
+                            return formatValue(currentValue, column.type);
+                          }
 
                           if (column.type === 'Yes/No') {
                             const checked =
@@ -729,6 +795,16 @@ export function Simulator() {
                                     </thead>
                                     <tbody className="bg-white">
                                       {section.rows.map(({ row, rowIndex }) => (
+                                        (() => {
+                                          const computedRow = computeRowWithAppFormulas({
+                                            tables,
+                                            sampleDataByTableId,
+                                            table: section.childTable,
+                                            row,
+                                            now: new Date(),
+                                          });
+
+                                          return (
                                         <tr
                                           key={rowIndex}
                                           className="border-b border-zinc-100 hover:bg-zinc-50 cursor-pointer"
@@ -753,15 +829,17 @@ export function Simulator() {
                                                     tables,
                                                     sampleDataByTableId,
                                                     column: c,
-                                                    value: row[c.id],
+                                                    value: computedRow[c.id],
                                                   })
-                                                : formatValue(row[c.id], c.type)}
+                                                : formatValue(computedRow[c.id], c.type)}
                                             </td>
                                           ))}
                                           <td className="px-2 py-2 text-right text-zinc-400">
                                             <span aria-hidden="true">›</span>
                                           </td>
                                         </tr>
+                                          );
+                                        })()
                                       ))}
                                     </tbody>
                                   </table>

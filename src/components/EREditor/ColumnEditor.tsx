@@ -572,17 +572,25 @@ export function ColumnEditor() {
               }}
             />
 
-            <Input
-              label={labelEnJa('AppFormula', 'アプリ数式')}
-              value={getAppSheetString('AppFormula')}
-              onChange={(e) => {
-                const v = e.target.value;
-                setAppSheetValue('AppFormula', v);
-                if (v.trim().length > 0) {
-                  handleConstraintUpdate({ defaultValue: undefined });
-                }
-              }}
-            />
+            <div className="space-y-1">
+              <Input
+                label={labelEnJa('AppFormula', 'アプリ数式')}
+                value={getAppSheetString('AppFormula')}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setAppSheetValue('AppFormula', v);
+                  if (v.trim().length > 0) {
+                    handleConstraintUpdate({ defaultValue: undefined });
+                  }
+                }}
+              />
+              <div className="text-[11px] text-zinc-500 leading-snug">
+                {labelEnJa(
+                  'Compatibility: leading "=" is ignored; full-width operators are normalized; "-" is treated as blank; numbers like "1,234" are supported.',
+                  '互換注意: 先頭の「=」は無視されます / 全角演算子は正規化されます / 「-」は空欄扱いになります / 「1,234」のようなカンマ付き数値に対応しています。'
+                )}
+              </div>
+            </div>
           </div>
 
           {/* 識別・検索 */}
