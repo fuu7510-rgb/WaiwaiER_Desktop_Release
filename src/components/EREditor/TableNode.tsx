@@ -184,7 +184,7 @@ function TableNodeSortableColumns(props: { table: Table }) {
     const m = new Map<string, (typeof table.columns)[number]>();
     for (const c of table.columns) m.set(c.id, c);
     return m;
-  }, [table.columns]);
+  }, [table]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;

@@ -14,7 +14,7 @@ type ExportFormat = 'json' | 'excel' | 'package';
 
 export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
   const { t } = useTranslation();
-  const { exportDiagram, tables, sampleDataByTableId, ensureSampleData } = useERStore();
+  const { exportDiagram, tables, ensureSampleData } = useERStore();
   const { currentProjectId, projects } = useProjectStore();
   const { openProjectDialog } = useUIStore();
   const [format, setFormat] = useState<ExportFormat>('json');
@@ -120,7 +120,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
     } finally {
       setIsExporting(false);
     }
-  }, [tables, currentProject, includeData, onClose, t, sampleDataByTableId, ensureSampleData]);
+  }, [tables, currentProject, includeData, onClose, t, ensureSampleData]);
 
   const handleExport = useCallback(async () => {
     switch (format) {

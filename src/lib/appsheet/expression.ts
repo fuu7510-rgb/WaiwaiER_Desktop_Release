@@ -743,10 +743,7 @@ function evalAst(ast: Expr, ctx: AppSheetEvalContext): unknown {
         if (!listExpr) return [];
 
         const listValue = evalAst(listExpr, ctx) as unknown;
-        const tableColumn =
-          typeof listValue === 'object' && listValue && (listValue as any).__kind === 'tableColumnRef'
-            ? (listValue as any)
-            : null;
+        const tableColumn = isTableColumnRuntimeRef(listValue) ? listValue : null;
 
         if (!tableColumn) return [];
 
@@ -799,6 +796,18 @@ function evalAst(ast: Expr, ctx: AppSheetEvalContext): unknown {
     default:
       return '';
   }
+}
+
+type TableColumnRuntimeRef = { __kind: 'tableColumnRef'; tableName: string; columnName: string };
+
+function isTableColumnRuntimeRef(value: unknown): value is TableColumnRuntimeRef {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    v.__kind === 'tableColumnRef' &&
+    typeof v.tableName === 'string' &&
+    typeof v.columnName === 'string'
+  );
 }
 
 export function getAppFormulaString(column: Column): string {

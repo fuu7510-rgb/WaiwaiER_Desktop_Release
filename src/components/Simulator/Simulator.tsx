@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useERStore } from '../../stores';
 import { Button } from '../common';
 import { TableView } from './TableView';
@@ -93,21 +93,20 @@ export function Simulator() {
   
   const selectedTable = tables.find((t) => t.id === selectedTableId) || tables[0];
 
-  const getTableKeyColumnId = (table: (typeof tables)[number] | undefined): string | undefined => {
+  const getTableKeyColumnId = useCallback((table: (typeof tables)[number] | undefined): string | undefined => {
     if (!table) return undefined;
     return table.columns.find((c) => c.isKey)?.id ?? table.columns[0]?.id;
-  };
+  }, []);
 
-  const makeRowKeyForTable = (
-    table: (typeof tables)[number] | undefined,
-    row: Record<string, unknown>,
-    rowIndex: number
-  ): string => {
-    const keyColumnId = getTableKeyColumnId(table);
-    const keyValue = keyColumnId ? row[keyColumnId] : undefined;
-    const keyString = String(keyValue ?? '').trim();
-    return keyString && keyColumnId ? `${keyColumnId}:${keyString}` : `row:${rowIndex}`;
-  };
+  const makeRowKeyForTable = useCallback(
+    (table: (typeof tables)[number] | undefined, row: Record<string, unknown>, rowIndex: number): string => {
+      const keyColumnId = getTableKeyColumnId(table);
+      const keyValue = keyColumnId ? row[keyColumnId] : undefined;
+      const keyString = String(keyValue ?? '').trim();
+      return keyString && keyColumnId ? `${keyColumnId}:${keyString}` : `row:${rowIndex}`;
+    },
+    [getTableKeyColumnId]
+  );
 
   const toComparableString = (value: unknown): string => String(value ?? '').trim();
 
@@ -126,15 +125,14 @@ export function Simulator() {
     if (!pendingSelection) return;
     if (!selectedTable?.id) return;
     if (pendingSelection.tableId !== selectedTable.id) return;
-
-    const rows = sampleDataByTableId[selectedTable.id] ?? [];
-    const row = rows[pendingSelection.rowIndex];
-    if (!row) {
-      setPendingSelection(null);
-      return;
-    }
-
     const raf = requestAnimationFrame(() => {
+      const rows = sampleDataByTableId[selectedTable.id] ?? [];
+      const row = rows[pendingSelection.rowIndex];
+      if (!row) {
+        setPendingSelection(null);
+        return;
+      }
+
       setSelectedRow(row);
       setSelectedRowIndex(pendingSelection.rowIndex);
       setSelectedRowKey(makeRowKeyForTable(selectedTable, row, pendingSelection.rowIndex));
@@ -149,7 +147,7 @@ export function Simulator() {
     });
 
     return () => cancelAnimationFrame(raf);
-  }, [pendingSelection, selectedTable, sampleDataByTableId]);
+  }, [makeRowKeyForTable, pendingSelection, selectedTable, sampleDataByTableId]);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
@@ -158,10 +156,9 @@ export function Simulator() {
     return () => cancelAnimationFrame(raf);
   }, [ensureSampleData, tables]);
 
-  const tableRows = selectedTable?.id ? sampleDataByTableId[selectedTable.id] ?? [] : [];
-
   const computedTableRows = useMemo(() => {
-    if (!selectedTable) return [];
+    if (!selectedTable?.id) return [];
+    const tableRows = sampleDataByTableId[selectedTable.id] ?? [];
     const now = new Date();
     return tableRows.map((row) =>
       computeRowWithAppFormulas({
@@ -172,7 +169,7 @@ export function Simulator() {
         now,
       })
     );
-  }, [sampleDataByTableId, selectedTable, tableRows, tables]);
+  }, [sampleDataByTableId, selectedTable, tables]);
 
   const computedSelectedRow = useMemo(() => {
     if (!selectedTable || !selectedRow) return null;
@@ -248,7 +245,7 @@ export function Simulator() {
     }
 
     return sections;
-  }, [sampleDataByTableId, selectedRow, selectedTable, tables]);
+  }, [getTableKeyColumnId, sampleDataByTableId, selectedRow, selectedTable, tables]);
 
   const handleAddRelatedRow = (section: (typeof relatedSections)[number]) => {
     if (!selectedRow) return;

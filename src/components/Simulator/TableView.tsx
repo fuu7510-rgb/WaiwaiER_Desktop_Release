@@ -35,11 +35,11 @@ export function TableView({
 }: TableViewProps) {
   const { t } = useTranslation();
   const { reorderColumn } = useERStore();
-  const rows = data ?? sampleDataByTableId[table.id] ?? [];
+  const rows = useMemo(() => data ?? sampleDataByTableId[table.id] ?? [], [data, sampleDataByTableId, table.id]);
 
   const keyColumnId = useMemo(() => {
     return table.columns.find((c) => c.isKey)?.id ?? table.columns[0]?.id;
-  }, [table.columns]);
+  }, [table]);
 
   const indexedRows = useMemo(() => rows.map((row, index) => ({ row, index })), [rows]);
 
@@ -53,7 +53,7 @@ export function TableView({
     const m = new Map<string, (typeof table.columns)[number]>();
     for (const c of table.columns) m.set(c.id, c);
     return m;
-  }, [table.columns]);
+  }, [table]);
 
   const handleColumnDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
