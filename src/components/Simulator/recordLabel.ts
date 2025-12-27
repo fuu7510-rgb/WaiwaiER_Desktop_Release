@@ -1,4 +1,5 @@
 import type { Column, Table } from '../../types';
+import { computeRowWithAppFormulas } from '../../lib/appsheet/expression';
 
 function isMeaninglessIdLikeLabel(value: string): boolean {
   const s = String(value ?? '').trim();
@@ -77,6 +78,13 @@ export function getRefDisplayLabel(params: {
   const refRow = refRows.find((r) => String(r[refKeyColId] ?? '').trim() === raw);
   if (!refRow) return raw;
 
-  const label = getRowLabel(refTable, refRow, { fallback: raw });
+  const computedRefRow = computeRowWithAppFormulas({
+    tables: params.tables,
+    sampleDataByTableId: params.sampleDataByTableId,
+    table: refTable,
+    row: refRow,
+  });
+
+  const label = getRowLabel(refTable, computedRefRow, { fallback: raw });
   return label || raw;
 }

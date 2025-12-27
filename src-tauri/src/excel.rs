@@ -61,6 +61,17 @@ pub struct ExportRequest {
     pub include_data: bool,
 }
 
+// AppSheetのLabel列はテーブルにつき1つが基本。
+// 複数の IsLabel があると反映が不安定になることがあるため、エクスポート時は最小 order の列に正規化する。
+fn pick_effective_label_column_id(table: &Table) -> Option<&str> {
+    table
+        .columns
+        .iter()
+        .filter(|c| c.is_label)
+        .min_by_key(|c| c.order)
+        .map(|c| c.id.as_str())
+}
+
 // カラム設定のメモ内容を生成
 fn generate_column_note(column: &Column, tables: &[Table]) -> String {
     // docs/AppSheet/MEMO_SETUP.md に従い、AppSheet Note Parameters の形式で出力する
@@ -70,9 +81,10 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
 
     let user_has = |k: &str| -> bool { user.map(|m| m.contains_key(k)).unwrap_or(false) };
 
-    // Type（Textは省略して空メモにしやすくする）
+    // Type
     // user側で Type が指定されている場合は自動付与しない（userを優先）
-    if !user_has("Type") && column.column_type != "Text" {
+    // AppSheet側の型推論の揺れを減らすため、Textも含めて明示する。
+    if !user_has("Type") {
         data.insert("Type".to_string(), Value::String(column.column_type.clone()));
     }
 
@@ -222,11 +234,48 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
         }
     }
 
-    let json_string = serde_json::to_string(&Value::Object(data)).unwrap_or_else(|_| "{}".to_string());
-    if json_string == "{}" {
+    let body = serialize_note_parameters_object(&data);
+    if body == "{}" {
         return "AppSheet:{}".to_string();
     }
-    format!("AppSheet:{}", json_string)
+    format!("AppSheet:{}", body)
+}
+
+// Note Parameters は「JSONに似ているが TRUE/FALSE を使う」資料表記があり、
+// `IsLabel` 等のトグルが `true/false` だと反映されないケースがある。
+// そのため、Bool は `TRUE/FALSE` で出力する（他はJSON互換表記）。
+fn serialize_note_parameters_object(map: &serde_json::Map<String, Value>) -> String {
+    if map.is_empty() {
+        return "{}".to_string();
+    }
+
+    let mut parts: Vec<String> = Vec::with_capacity(map.len());
+    for (k, v) in map {
+        let key = serde_json::to_string(k).unwrap_or_else(|_| format!("\"{}\"", k));
+        let value = serialize_note_parameters_value(v);
+        parts.push(format!("{}:{}", key, value));
+    }
+    format!("{{{}}}", parts.join(","))
+}
+
+fn serialize_note_parameters_value(value: &Value) -> String {
+    match value {
+        Value::Null => "null".to_string(),
+        Value::Bool(b) => {
+            if *b {
+                "TRUE".to_string()
+            } else {
+                "FALSE".to_string()
+            }
+        }
+        Value::Number(n) => n.to_string(),
+        Value::String(s) => serde_json::to_string(s).unwrap_or_else(|_| format!("\"{}\"", s)),
+        Value::Array(arr) => {
+            let items: Vec<String> = arr.iter().map(serialize_note_parameters_value).collect();
+            format!("[{}]", items.join(","))
+        }
+        Value::Object(obj) => serialize_note_parameters_object(obj),
+    }
 }
 
 // サンプル値を文字列に変換
@@ -260,6 +309,8 @@ pub fn export_to_excel(request: &ExportRequest, file_path: &str) -> Result<(), X
         .set_border(rust_xlsxwriter::FormatBorder::Thin);
     
     for table in &request.tables {
+        let effective_label_column_id = pick_effective_label_column_id(table);
+
         let worksheet = workbook.add_worksheet();
         worksheet.set_name(&table.name)?;
         
@@ -278,9 +329,16 @@ pub fn export_to_excel(request: &ExportRequest, file_path: &str) -> Result<(), X
             
             // カラム設定をメモとして追加
             // 【重要】write_noteを使用（write_commentではなくGoogleスプレッドシート互換）
-            let note_text = generate_column_note(column, &request.tables);
+            let mut column_for_note = column.clone();
+            column_for_note.is_label = effective_label_column_id
+                .is_some_and(|id| id == column_for_note.id);
+
+            let note_text = generate_column_note(&column_for_note, &request.tables);
             if note_text != "AppSheet:{}" {
-                let note = Note::new(&note_text);
+                // AppSheet は Note Parameters の先頭 `AppSheet:` をトリガーに解釈する。
+                // rust_xlsxwriter の Note は既定で著者名プレフィックス（例: "Author:\n"）を付与するため、
+                // 先頭一致が崩れて AppSheet に読まれないことがある。必ず無効化して `AppSheet:` を先頭に置く。
+                let note = Note::new(&note_text).add_author_prefix(false);
                 worksheet.insert_note(0, col, &note)?;
             }
         }
@@ -340,9 +398,9 @@ mod tests {
         
         let note = generate_column_note(&column, &[]);
         assert!(note.starts_with("AppSheet:"));
-        assert!(note.contains("\"IsKey\":true"));
-        assert!(note.contains("\"IsLabel\":true"));
-        assert!(note.contains("\"IsRequired\":true"));
+        assert!(note.contains("\"IsKey\":TRUE"));
+        assert!(note.contains("\"IsLabel\":TRUE"));
+        assert!(note.contains("\"IsRequired\":TRUE"));
         assert!(note.contains("\"Description\":\"Test description\""));
     }
 }

@@ -36,6 +36,10 @@ Tauri 2.x + React + TypeScriptで構築されています。
 - Rust (Tauri用)
 - pnpm / npm / yarn
 
+Windowsで `npm` が認識されない場合は、Node.js（npm同梱）が未インストール、または `PATH` 未設定の可能性があります。Node.jsをインストール後、ターミナル/VS Codeを開き直して `node -v` / `npm -v` で確認してください。
+
+複数プロジェクトでNodeのバージョンを切り替える場合は、Windows向けのNodeバージョンマネージャ（例: nvm-windows）を利用するのが簡単です。本リポジトリには `.nvmrc`（推奨メジャーバージョン）が含まれます。
+
 ### セットアップ
 
 ```bash

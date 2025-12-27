@@ -764,11 +764,27 @@ export const useERStore = create<ERState>()(
     },
 
     updateSampleRow: (tableId, rowIndex, updates) => {
+      const table = get().tables.find((t) => t.id === tableId);
+      if (!table) return;
+
+      // AppFormula列はユーザー編集・保存対象にしない（表示時に計算する）
+      const appFormulaColumnIds = new Set(
+        table.columns
+          .filter((c) => typeof c.appSheet?.AppFormula === 'string' && String(c.appSheet?.AppFormula ?? '').trim().length > 0)
+          .map((c) => c.id)
+      );
+
+      const sanitizedUpdates: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(updates ?? {})) {
+        if (appFormulaColumnIds.has(k)) continue;
+        sanitizedUpdates[k] = v;
+      }
+
       set((state) => {
         const current = state.sampleDataByTableId[tableId];
         if (!current || !current[rowIndex]) return;
         const next = current.slice();
-        next[rowIndex] = { ...next[rowIndex], ...updates };
+        next[rowIndex] = { ...next[rowIndex], ...sanitizedUpdates };
         state.sampleDataByTableId[tableId] = next;
 
         // 行内容の変更で整合が取れなくなる可能性があるため削除Undoは無効化

@@ -22,15 +22,6 @@ import { MemoNode } from './MemoNode';
 import { RelationEdge } from './RelationEdge';
 import type { Table, Relation, Memo } from '../../types';
 
-const nodeTypes = {
-  tableNode: TableNode,
-  memoNode: MemoNode,
-};
-
-const edgeTypes = {
-  relationEdge: RelationEdge,
-};
-
 function EREditorInner() {
   const { tables, relations, memos, moveTable, moveMemo, addMemo, addRelation, addColumn, updateColumn, selectTable, selectedTableId } = useERStore();
   const {
@@ -44,6 +35,22 @@ function EREditorInner() {
   } = useUIStore();
   const zoom = useReactFlowStore((state) => state.transform[2]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+
+  // Keep these objects referentially stable to avoid React Flow warning #002.
+  const nodeTypes = useMemo(
+    () => ({
+      tableNode: TableNode,
+      memoNode: MemoNode,
+    }),
+    []
+  );
+
+  const edgeTypes = useMemo(
+    () => ({
+      relationEdge: RelationEdge,
+    }),
+    []
+  );
 
   const relatedGraph = useMemo(() => {
     const upstreamTableIds = new Set<string>();

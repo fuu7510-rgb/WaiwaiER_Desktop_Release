@@ -10,11 +10,17 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 
 export function Sidebar() {
+  const isSidebarOpen = useUIStore((s) => s.isSidebarOpen);
+  if (!isSidebarOpen) return null;
+  return <SidebarInner />;
+}
+
+function SidebarInner() {
   const { t } = useTranslation();
-  const { isSidebarOpen, settings } = useUIStore();
+  const { settings } = useUIStore();
   const { tables, addTable, selectedTableId, selectedColumnId, reorderTables } = useERStore();
   const { currentProjectId, canAddTable } = useProjectStore();
-  
+
   const [newTableName, setNewTableName] = useState('');
   const [isAddingTable, setIsAddingTable] = useState(false);
 
@@ -24,14 +30,14 @@ export function Sidebar() {
       alert(t('project.limits.maxTables', { max: 5 }));
       return;
     }
-    
+
     const x = 100 + (tables.length % 5) * 250;
     const y = 100 + Math.floor(tables.length / 5) * 300;
     const tablePrefix = settings.tableNamePrefix || '';
     const tableSuffix = settings.tableNameSuffix || '';
     const baseName = newTableName.trim();
     const fullTableName = `${tablePrefix}${baseName}${tableSuffix}`;
-    
+
     // キーカラム名を生成: プレフィックス + ベース名 + サフィックス
     // defaultKeyColumnNameが設定されている場合はそちらを優先
     let keyColumnName: string | undefined;
@@ -47,11 +53,19 @@ export function Sidebar() {
     addTable(fullTableName, { x, y }, { keyColumnName });
     setNewTableName('');
     setIsAddingTable(false);
-  }, [newTableName, currentProjectId, canAddTable, tables.length, addTable, t, settings.tableNamePrefix, settings.tableNameSuffix, settings.keyColumnPrefix, settings.keyColumnSuffix, settings.defaultKeyColumnName]);
-
-  if (!isSidebarOpen) {
-    return null;
-  }
+  }, [
+    newTableName,
+    currentProjectId,
+    canAddTable,
+    tables.length,
+    addTable,
+    t,
+    settings.tableNamePrefix,
+    settings.tableNameSuffix,
+    settings.keyColumnPrefix,
+    settings.keyColumnSuffix,
+    settings.defaultKeyColumnName,
+  ]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
