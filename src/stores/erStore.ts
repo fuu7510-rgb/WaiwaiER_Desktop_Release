@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { v4 as uuidv4 } from 'uuid';
-import type { Table, Column, Relation, Memo, ERDiagram, ColumnType, HistoryEntry } from '../types';
+import type { Table, Column, Relation, Memo, ERDiagram, ColumnType, HistoryEntry, CommonColumnDefinition } from '../types';
 import { saveDiagram, loadDiagram, loadSampleData, saveSampleData } from '../lib/database';
+import { useUIStore } from './uiStore';
 
 const DEFAULT_SAMPLE_ROWS = 5;
 const MAX_SAMPLE_ROWS = 100;
@@ -169,6 +170,9 @@ interface ERState {
   deleteColumn: (tableId: string, columnId: string) => void;
   reorderColumn: (tableId: string, columnId: string, newOrder: number) => void;
 
+  // 共通カラム（ユーザー設定）
+  applyCommonColumnsToAllTables: (commonColumns: CommonColumnDefinition[]) => void;
+
   // サンプルデータ操作
   ensureSampleData: () => void;
   regenerateSampleData: () => void;
@@ -234,6 +238,88 @@ const createDefaultTable = (name: string, position: { x: number; y: number }, ke
     updatedAt: now,
   };
 };
+
+function normalizeCommonColumns(defs: CommonColumnDefinition[] | undefined | null): CommonColumnDefinition[] {
+  if (!Array.isArray(defs)) return [];
+  const out: CommonColumnDefinition[] = [];
+  for (const d of defs) {
+    const name = String(d?.name ?? '').trim();
+    if (!name) continue;
+    out.push({
+      id: String(d.id ?? ''),
+      name,
+      type: d.type,
+      constraints: d.constraints ?? {},
+      appSheet: d.appSheet,
+    });
+  }
+  return out;
+}
+
+function applyCommonColumnsToTableInPlace(table: Table, defs: CommonColumnDefinition[]): boolean {
+  const commonDefs = normalizeCommonColumns(defs);
+  if (commonDefs.length === 0) return false;
+
+  const byName = new Map<string, Column>();
+  for (const c of table.columns) {
+    const key = String(c.name ?? '').trim();
+    if (!key) continue;
+    if (!byName.has(key)) byName.set(key, c);
+  }
+
+  const usedNonKeyIds = new Set<string>();
+  const appended: Column[] = [];
+
+  for (const def of commonDefs) {
+    const existing = byName.get(def.name);
+    if (existing) {
+      // 既存のカラム定義は壊さない（型/制約は上書きしない）。末尾へ移動だけ行う。
+      if (!existing.isKey) {
+        usedNonKeyIds.add(existing.id);
+        appended.push(existing);
+      }
+      continue;
+    }
+
+    appended.push({
+      id: uuidv4(),
+      name: def.name,
+      type: def.type,
+      isKey: false,
+      isLabel: false,
+      constraints: def.constraints ?? {},
+      appSheet: def.appSheet,
+      order: -1,
+    });
+  }
+
+  const nonCommon = table.columns.filter((c) => c.isKey || !usedNonKeyIds.has(c.id));
+  const next = [...nonCommon, ...appended];
+
+  let changed = false;
+  if (next.length !== table.columns.length) {
+    changed = true;
+  } else {
+    for (let i = 0; i < next.length; i++) {
+      if (next[i].id !== table.columns[i].id) {
+        changed = true;
+        break;
+      }
+    }
+  }
+
+  for (let i = 0; i < next.length; i++) {
+    if (next[i].order !== i) {
+      next[i].order = i;
+      changed = true;
+    }
+  }
+
+  if (!changed) return false;
+  table.columns = next;
+  table.updatedAt = new Date().toISOString();
+  return true;
+}
 
 const createDefaultMemo = (position: { x: number; y: number }, initialText?: string): Memo => {
   const now = new Date().toISOString();
@@ -433,6 +519,25 @@ export const useERStore = create<ERState>()(
     // テーブル操作
     addTable: (name, position = { x: 100, y: 100 }, options) => {
       const table = createDefaultTable(name, position, options?.keyColumnName);
+
+      // ユーザー設定「共通カラム」を末尾に自動挿入
+      const commonDefs = normalizeCommonColumns(useUIStore.getState().settings.commonColumns);
+      if (commonDefs.length > 0) {
+        for (const def of commonDefs) {
+          const exists = table.columns.some((c) => String(c.name ?? '').trim() === def.name);
+          if (exists) continue;
+          table.columns.push({
+            id: uuidv4(),
+            name: def.name,
+            type: def.type,
+            isKey: false,
+            isLabel: false,
+            constraints: def.constraints ?? {},
+            appSheet: def.appSheet,
+            order: table.columns.length,
+          });
+        }
+      }
       set((state) => {
         state.tables.push(table);
         state.sampleDataByTableId[table.id] = syncSampleRowsToTableSchema({ table, currentRows: undefined });
@@ -508,6 +613,8 @@ export const useERStore = create<ERState>()(
         id: uuidv4(),
       }));
       newTable.color = source.color;
+
+      applyCommonColumnsToTableInPlace(newTable, useUIStore.getState().settings.commonColumns);
       
       set((state) => {
         state.tables.push(newTable);
@@ -692,6 +799,29 @@ export const useERStore = create<ERState>()(
       });
       get().saveHistory('カラムの順序を変更');
       get().queueSaveToDB();
+    },
+
+    applyCommonColumnsToAllTables: (commonColumns) => {
+      const commonDefs = normalizeCommonColumns(commonColumns);
+      if (commonDefs.length === 0) return;
+
+      let anyChanged = false;
+      set((state) => {
+        for (const table of state.tables) {
+          const changed = applyCommonColumnsToTableInPlace(table, commonDefs);
+          if (!changed) continue;
+          anyChanged = true;
+          const synced = syncSampleRowsToTableSchema({ table, currentRows: state.sampleDataByTableId[table.id] });
+          state.sampleDataByTableId = normalizeRefValues({
+            tables: state.tables,
+            sampleDataByTableId: { ...state.sampleDataByTableId, [table.id]: synced },
+          });
+        }
+      });
+
+      if (anyChanged) {
+        get().queueSaveToDB();
+      }
     },
 
     // サンプルデータ操作
@@ -1142,6 +1272,8 @@ export const useERStore = create<ERState>()(
           state.isSaving = false;
           state.saveError = null;
         });
+
+        get().applyCommonColumnsToAllTables(useUIStore.getState().settings.commonColumns);
         get().saveHistory('プロジェクトを読み込み');
       } else {
         set((state) => {

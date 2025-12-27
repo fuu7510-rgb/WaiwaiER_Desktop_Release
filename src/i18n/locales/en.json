@@ -196,6 +196,18 @@
     "tableCreationRules": {
       "title": "Table creation rules"
     },
+    "commonColumns": {
+      "title": "Common Columns",
+      "description": "Columns configured here are automatically appended to the end of every table.",
+      "listTitle": "List",
+      "editorTitle": "Edit",
+      "empty": "No common columns yet. Click Add to create one.",
+      "selectToEdit": "Select an item from the list to edit.",
+      "unnamed": "(Unnamed)",
+      "namePlaceholder": "e.g. CreatedAt",
+      "enumHint": "One per line",
+      "note": "Columns with an empty name are not applied."
+    },
     "transfer": {
       "title": "Transfer",
       "export": "Export settings",

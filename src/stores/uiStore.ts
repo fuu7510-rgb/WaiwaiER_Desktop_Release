@@ -23,6 +23,7 @@ interface UIState {
 
   // ユーザー設定UI（開閉状態など）
   isTableCreationRulesOpen: boolean;
+  isCommonColumnsOpen: boolean;
   isBackupSettingsOpen: boolean;
 
   // ERエディタ表示
@@ -56,6 +57,7 @@ interface UIState {
 
   // ユーザー設定UI操作
   toggleTableCreationRulesOpen: () => void;
+  toggleCommonColumnsOpen: () => void;
   toggleBackupSettingsOpen: () => void;
 
   // ERエディタ表示操作
@@ -81,6 +83,7 @@ const defaultSettings: AppSettings = {
   keyColumnPrefix: '',
   keyColumnSuffix: '',
   defaultKeyColumnName: '',
+  commonColumns: [],
   relationLabelInitialMode: 'auto',
   relationLabelInitialCustomText: '',
 };
@@ -100,6 +103,7 @@ export const useUIStore = create<UIState>()(
       isSidebarOpen: true,
       sidebarWidth: 280,
       isTableCreationRulesOpen: true,
+      isCommonColumnsOpen: true,
       isBackupSettingsOpen: true,
       isRelationHighlightEnabled: true,
       isGridVisible: true,
@@ -130,6 +134,8 @@ export const useUIStore = create<UIState>()(
       // ユーザー設定UI操作
       toggleTableCreationRulesOpen: () =>
         set((state) => ({ isTableCreationRulesOpen: !state.isTableCreationRulesOpen })),
+      toggleCommonColumnsOpen: () =>
+        set((state) => ({ isCommonColumnsOpen: !state.isCommonColumnsOpen })),
       toggleBackupSettingsOpen: () =>
         set((state) => ({ isBackupSettingsOpen: !state.isBackupSettingsOpen })),
 
@@ -162,6 +168,7 @@ export const useUIStore = create<UIState>()(
         isSidebarOpen: state.isSidebarOpen,
         sidebarWidth: state.sidebarWidth,
         isTableCreationRulesOpen: state.isTableCreationRulesOpen,
+        isCommonColumnsOpen: state.isCommonColumnsOpen,
         isBackupSettingsOpen: state.isBackupSettingsOpen,
         isRelationHighlightEnabled: state.isRelationHighlightEnabled,
         isGridVisible: state.isGridVisible,

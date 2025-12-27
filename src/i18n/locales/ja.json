@@ -196,6 +196,18 @@
     "tableCreationRules": {
       "title": "新規作成時のルール"
     },
+    "commonColumns": {
+      "title": "共通カラム",
+      "description": "ここで設定したカラムは、すべてのテーブルの末尾に自動追加されます。",
+      "listTitle": "一覧",
+      "editorTitle": "編集",
+      "empty": "共通カラムがありません。右上の「追加」で作成できます。",
+      "selectToEdit": "左の一覧から選択して編集します。",
+      "unnamed": "(無名)",
+      "namePlaceholder": "例: CreatedAt",
+      "enumHint": "1行に1つ入力",
+      "note": "空の名前のカラムは適用されません。"
+    },
     "transfer": {
       "title": "移行",
       "export": "設定をエクスポート",

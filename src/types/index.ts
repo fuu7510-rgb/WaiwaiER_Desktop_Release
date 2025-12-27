@@ -64,6 +64,20 @@ export interface Column {
   order: number;
 }
 
+/**
+ * ユーザー設定「共通カラム」用のカラム定義。
+ * 各テーブルへ追加する際は、新しい Column(id/order付き) に変換して挿入する。
+ */
+export interface CommonColumnDefinition {
+  /** 設定一覧内での安定ID（テーブルのColumn.idとは別物） */
+  id: string;
+  name: string;
+  type: ColumnType;
+  constraints: ColumnConstraints;
+  /** Column.appSheet 相当（必要な場合のみ） */
+  appSheet?: Record<string, unknown>;
+}
+
 export interface TablePosition {
   x: number;
   y: number;
@@ -188,6 +202,11 @@ export interface AppSettings {
   keyColumnPrefix: string;
   keyColumnSuffix: string;
   defaultKeyColumnName: string;
+
+  /**
+   * すべてのテーブルに末尾追加（+末尾へ移動）される共通カラム。
+   */
+  commonColumns: CommonColumnDefinition[];
 
   /**
    * 新規作成されるリレーション(線)ラベルの初期値ルール
