@@ -128,6 +128,7 @@
   },
   "table": {
     "table": "テーブル",
+    "settingsTitle": "テーブル設定",
     "tables": "テーブル",
     "addColumn": "カラムを追加",
     "addCommonColumns": "共通カラムを追加",
@@ -381,5 +382,15 @@
     "invalidData": "無効なデータです",
     "saveFailed": "保存に失敗しました",
     "loadFailed": "読み込みに失敗しました"
+  },
+  "columnEditorHelp": {
+    "title": "カラム設定のヘルプ",
+    "columnSettings": "カラム名、データ型、キー・ラベル設定など、カラムの基本情報を設定します。AppSheetにエクスポートする際、これらの設定がNoteパラメータとして出力されます。",
+    "constraints": "必須、ユニーク、デフォルト値などの制約を設定します。これらはAppSheetでのバリデーションルールになります。",
+    "enumValues": "Enum型またはEnumList型の場合、選択肢をここに設定します。1行に1つの値を入力してください。",
+    "appSheetFormulas": "AppFormula、Initial_Value、Show_Ifなど、AppSheet特有の式を設定できます。これらはExcelエクスポート時にNoteとして出力されます。",
+    "refSettings": "Ref型の場合、参照先テーブルや参照キーカラムを設定します。これによりテーブル間のリレーションが定義されます。",
+    "numericSettings": "数値型（Number、Decimal、Percent、Price、Progress）の場合、桁数や表示形式を設定できます。",
+    "sampleData": "シミュレーターで表示されるサンプルデータを設定します。Excelエクスポート時にもこのデータが含まれます。"
   }
 }

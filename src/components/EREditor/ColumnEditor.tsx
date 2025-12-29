@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useERStore } from '../../stores';
-import { Button, Dialog, Input, Select } from '../common';
+import { Button, Dialog, Input, Select, InfoTooltip } from '../common';
 import type { Column, ColumnType, ColumnConstraints } from '../../types';
 import { APPSHEET_COLUMN_TYPES } from '../../types';
 
@@ -26,6 +26,7 @@ export function ColumnEditor() {
     return lang === 'ja' || lang.startsWith('ja-');
   }, [i18n.language, i18n.resolvedLanguage]);
 
+  // AppSheet画面に関連する項目（見出し、データ型名など）→「英語(日本語)」併記
   const labelEnJa = useCallback(
     (en: string, ja: string) => (isJapanese ? `${en} (${ja})` : en),
     [isJapanese]
@@ -33,6 +34,12 @@ export function ColumnEditor() {
 
   const labelEnJaNoSpace = useCallback(
     (en: string, ja: string) => (isJapanese ? `${en}(${ja})` : en),
+    [isJapanese]
+  );
+
+  // ヘルプテキストなどAppSheet画面にない説明文 → 言語別表示
+  const helpText = useCallback(
+    (en: string, ja: string) => (isJapanese ? ja : en),
     [isJapanese]
   );
 
@@ -391,12 +398,25 @@ export function ColumnEditor() {
 
   return (
     <div className="p-4 space-y-4">
-      <h3 className="font-bold text-xs text-zinc-500 uppercase tracking-wider mb-2">
-        {labelEnJa(
-          `${tEn('column.column')} ${tEn('common.settings')}`,
-          `${tJa('column.column')}${tJa('common.settings')}`
-        )}
-      </h3>
+      <div className="flex items-center">
+        <h3 className="font-bold text-xs text-zinc-500 uppercase tracking-wider">
+          {labelEnJa(
+            `${tEn('column.column')} ${tEn('common.settings')}`,
+            `${tJa('column.column')}${tJa('common.settings')}`
+          )}
+        </h3>
+        <InfoTooltip
+          content={
+            <div>
+              <div className="font-medium mb-1">{helpText('Column Settings Help', 'カラム設定のヘルプ')}</div>
+              <p>{helpText(
+                'Set basic column information such as name, data type, and key/label settings. These settings are exported as Note parameters for AppSheet.',
+                'カラム名、データ型、キー・ラベル設定などの基本情報を設定します。AppSheetエクスポート時にNoteパラメータとして出力されます。'
+              )}</p>
+            </div>
+          }
+        />
+      </div>
       
       {/* カラム名 */}
       <Input
@@ -446,7 +466,20 @@ export function ColumnEditor() {
       
       {/* 制約設定 */}
       <div className="border-t border-zinc-100 pt-3">
-        <h4 className="font-medium text-xs text-zinc-500 mb-2">{labelKey('table.constraints')}</h4>
+        <div className="flex items-center mb-2">
+          <h4 className="font-medium text-xs text-zinc-500">{labelKey('table.constraints')}</h4>
+          <InfoTooltip
+            content={
+              <div>
+                <div className="font-medium mb-1">{helpText('Constraints', '制約')}</div>
+                <p>{helpText(
+                  'Set constraints like required, unique, and default values. These become validation rules in AppSheet.',
+                  '必須、ユニーク、デフォルト値などの制約を設定します。これらはAppSheetでのバリデーションルールになります。'
+                )}</p>
+              </div>
+            }
+          />
+        </div>
         
         <div className="space-y-2">
           <label className="flex items-center gap-1.5 cursor-pointer">
@@ -506,20 +539,29 @@ export function ColumnEditor() {
 
       {/* AppSheetメモ設定（Note Parameters） */}
       <div className="border-t border-zinc-100 pt-3">
-        <h4 className="font-medium text-xs text-zinc-500 mb-2">
-          {labelEnJa('AppSheet Note Parameters', 'AppSheetメモ設定')}
-        </h4>
-        <div className="text-[10px] text-zinc-400 mb-2">
-          {labelEnJa(
-            'Configure the JSON written to the header cell Note (unset keys are not written).',
-            'ヘッダーセルのNoteに出力されるAppSheetメモ（JSON）の中身を設定します（未設定は出力しません）。'
-          )}
-          <div>
-            {labelEnJa(
-              'Type / IsKey / IsLabel / IsRequired / DEFAULT / EnumValues are generated from the settings above.',
-              'Type / IsKey / IsLabel / IsRequired / DEFAULT / EnumValues は上の設定から自動生成されます。'
-            )}
-          </div>
+        <div className="flex items-center mb-2">
+          <h4 className="font-medium text-xs text-zinc-500">
+            {labelEnJa('AppSheet Note Parameters', 'AppSheetメモ設定')}
+          </h4>
+          <InfoTooltip
+            content={
+              <div>
+                <div className="font-medium mb-1">{helpText('AppSheet Note Parameters', 'AppSheetメモ設定')}</div>
+                <p className="mb-2">{helpText(
+                  'Set AppSheet-specific formulas like AppFormula, Initial_Value, Show_If. These are exported as Notes in Excel export.',
+                  'AppFormula、Initial_Value、Show_Ifなど、AppSheet特有の式を設定できます。Excelエクスポート時にNoteとして出力されます。'
+                )}</p>
+                <p className="mb-1">{helpText(
+                  'Configure the JSON written to the header cell Note (unset keys are not written).',
+                  'ヘッダーセルのNoteに出力されるAppSheetメモ（JSON）の中身を設定します（未設定は出力しません）。'
+                )}</p>
+                <p>{helpText(
+                  'Type / IsKey / IsLabel / IsRequired / DEFAULT / EnumValues are generated from the settings above.',
+                  'Type / IsKey / IsLabel / IsRequired / DEFAULT / EnumValues は上の設定から自動生成されます。'
+                )}</p>
+              </div>
+            }
+          />
         </div>
 
         <div className="space-y-3">
@@ -571,25 +613,38 @@ export function ColumnEditor() {
               }}
             />
 
-            <div className="space-y-1">
-              <Input
-                label={labelEnJa('AppFormula', 'アプリ数式')}
-                value={getAppSheetString('AppFormula')}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setAppSheetValue('AppFormula', v);
-                  if (v.trim().length > 0) {
-                    handleConstraintUpdate({ defaultValue: undefined });
+            <Input
+              label={labelEnJa('AppFormula', 'アプリ数式')}
+              labelSuffix={
+                <InfoTooltip
+                  content={
+                    <div className="max-w-xs">
+                      <div className="font-medium mb-1">{helpText('AppFormula Simulator', 'アプリ数式シミュレーター')}</div>
+                      <p className="mb-2">{helpText(
+                        'Supported: [Column], [Ref].[Column], operators (+, -, *, /, &, =, <>, <, >, <=, >=), IF, AND, OR, NOT, ISBLANK, CONCATENATE, TEXT, TODAY, NOW, LOOKUP, FILTER, SELECT, ANY.',
+                        '対応: [列名], [Ref].[列名], 演算子 (+, -, *, /, &, =, <>, <, >, <=, >=), IF, AND, OR, NOT, ISBLANK, CONCATENATE, TEXT, TODAY, NOW, LOOKUP, FILTER, SELECT, ANY'
+                      )}</p>
+                      <p className="mb-2">{helpText(
+                        'Not supported: COUNT, SUM, MAX, MIN, SWITCH, IFS, CONTAINS, IN, SPLIT, LEN, LEFT, RIGHT, USEREMAIL, CONTEXT, etc.',
+                        '未対応: COUNT, SUM, MAX, MIN, SWITCH, IFS, CONTAINS, IN, SPLIT, LEN, LEFT, RIGHT, USEREMAIL, CONTEXT など'
+                      )}</p>
+                      <p>{helpText(
+                        'Compatibility: leading "=" is ignored; full-width operators are normalized; "-" is treated as blank; numbers like "1,234" are supported.',
+                        '互換注意: 先頭の「=」は無視 / 全角演算子は正規化 / 「-」は空欄扱い / 「1,234」のようなカンマ付き数値に対応'
+                      )}</p>
+                    </div>
                   }
-                }}
-              />
-              <div className="text-[11px] text-zinc-500 leading-snug">
-                {labelEnJa(
-                  'Compatibility: leading "=" is ignored; full-width operators are normalized; "-" is treated as blank; numbers like "1,234" are supported.',
-                  '互換注意: 先頭の「=」は無視されます / 全角演算子は正規化されます / 「-」は空欄扱いになります / 「1,234」のようなカンマ付き数値に対応しています。'
-                )}
-              </div>
-            </div>
+                />
+              }
+              value={getAppSheetString('AppFormula')}
+              onChange={(e) => {
+                const v = e.target.value;
+                setAppSheetValue('AppFormula', v);
+                if (v.trim().length > 0) {
+                  handleConstraintUpdate({ defaultValue: undefined });
+                }
+              }}
+            />
           </div>
 
           {/* 識別・検索 */}
@@ -879,7 +934,20 @@ export function ColumnEditor() {
       {/* サンプルデータ */}
       <div className="border-t border-zinc-100 pt-3">
         <div className="flex items-center justify-between gap-2 mb-2">
-          <h4 className="font-medium text-xs text-zinc-500">{labelKey('column.dummyData')}</h4>
+          <div className="flex items-center">
+            <h4 className="font-medium text-xs text-zinc-500">{labelKey('column.dummyData')}</h4>
+            <InfoTooltip
+              content={
+                <div>
+                  <div className="font-medium mb-1">{helpText('Sample Data', 'サンプルデータ')}</div>
+                  <p>{helpText(
+                    'Set sample data displayed in the simulator. This data is also included in Excel exports.',
+                    'シミュレーターで表示されるサンプルデータを設定します。Excelエクスポート時にもこのデータが含まれます。'
+                  )}</p>
+                </div>
+              }
+            />
+          </div>
           <Button variant="secondary" size="sm" onClick={openDummyValuesDialog}>
             {labelEnJa('Edit Sample Data', 'サンプルデータ編集')}
           </Button>

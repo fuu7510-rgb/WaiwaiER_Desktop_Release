@@ -44,6 +44,7 @@
     "type": "Type",
     "required": "Required",
     "optional": "Optional",
+    "settings": "Settings",
     "collapseSidebar": "Collapse sidebar",
     "expandSidebar": "Expand sidebar",
     "create": "Create",
@@ -145,6 +146,7 @@
   },
   "table": {
     "table": "Table",
+    "settingsTitle": "Table Settings",
     "tables": "Tables",
     "addColumn": "Add Column",
     "addCommonColumns": "Add common columns",
@@ -398,5 +400,15 @@
     "invalidData": "Invalid data",
     "saveFailed": "Save failed",
     "loadFailed": "Load failed"
+  },
+  "columnEditorHelp": {
+    "title": "Column Settings Help",
+    "columnSettings": "Set basic column information such as name, data type, and key/label settings. These settings are exported as Note parameters for AppSheet.",
+    "constraints": "Set constraints like required, unique, and default values. These become validation rules in AppSheet.",
+    "enumValues": "For Enum or EnumList types, set the options here. Enter one value per line.",
+    "appSheetFormulas": "Set AppSheet-specific formulas like AppFormula, Initial_Value, Show_If. These are exported as Notes in Excel export.",
+    "refSettings": "For Ref type, set the referenced table and key column. This defines relationships between tables.",
+    "numericSettings": "For numeric types (Number, Decimal, Percent, Price, Progress), set digits and display format.",
+    "sampleData": "Set sample data displayed in the simulator. This data is also included in Excel exports."
   }
 }

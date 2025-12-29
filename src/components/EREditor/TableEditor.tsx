@@ -43,7 +43,7 @@ export function TableEditor() {
 
   return (
     <div className="p-4 space-y-4">
-      <h3 className="font-bold text-xs text-zinc-500 uppercase tracking-wider mb-2">{t('table.table')}設定</h3>
+      <h3 className="font-bold text-xs text-zinc-500 uppercase tracking-wider mb-2">{t('table.settingsTitle')}</h3>
       
       {/* テーブル名 */}
       <Input

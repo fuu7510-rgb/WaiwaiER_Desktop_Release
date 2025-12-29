@@ -1,22 +1,26 @@
 import { forwardRef, useId } from 'react';
-import type { InputHTMLAttributes } from 'react';
+import type { InputHTMLAttributes, ReactNode } from 'react';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
+  labelSuffix?: ReactNode;
   error?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className = '', label, error, id, ...props }, ref) => {
+  ({ className = '', label, labelSuffix, error, id, ...props }, ref) => {
     const generatedId = useId();
     const inputId = id ?? `input-${generatedId}`;
     
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-xs font-medium text-zinc-600 mb-1">
-            {label}
-          </label>
+          <div className="flex items-center mb-1">
+            <label htmlFor={inputId} className="block text-xs font-medium text-zinc-600">
+              {label}
+            </label>
+            {labelSuffix}
+          </div>
         )}
         <input
           ref={ref}
