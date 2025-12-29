@@ -99,63 +99,74 @@ export function TableView({
     return keyString ? `${keyColumnId}:${keyString}` : `row:${fallbackIndex}`;
   };
 
+  // DndContextのaccessibility機能を無効化（テーブル内での<div>生成を防ぐ）
+  const noAccessibility = {
+    screenReaderInstructions: { draggable: '' },
+    announcements: {
+      onDragStart: () => '',
+      onDragOver: () => '',
+      onDragEnd: () => '',
+      onDragCancel: () => '',
+    },
+  };
+
   return (
-    <div className="h-full bg-white border border-zinc-200 overflow-auto">
-      <div className="min-w-full">
-        <table className="min-w-full border-collapse">
-          <thead className="sticky top-0 z-10 bg-zinc-50 border-b border-zinc-200">
-            <tr>
-              <DndContext sensors={sensors} onDragEnd={handleColumnDragEnd}>
-                <SortableContext items={table.columns.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
-                  {table.columns.map((column, columnIndex) => (
-                    <SortableTableHeaderCell
-                      key={column.id}
-                      tableId={table.id}
-                      column={column}
-                      columnIndex={columnIndex}
-                      totalColumns={table.columns.length}
-                      onMoveUp={() => reorderColumn(table.id, column.id, column.order - 1)}
-                      onMoveDown={() => reorderColumn(table.id, column.id, column.order + 1)}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
-            </tr>
-          </thead>
-          <DndContext sensors={rowSensors} onDragEnd={handleRowDragEnd}>
-            <SortableContext items={filteredData.map(({ index }) => String(index))} strategy={verticalListSortingStrategy}>
-              <tbody className="bg-white">
-                {filteredData.length === 0 ? (
-                  <tr>
-                    <td colSpan={table.columns.length} className="px-3 py-8 text-center text-zinc-400 text-xs">
-                      {t('simulator.noData')}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredData.map(({ row, index: originalIndex }) => (
-                    <SortableTableRow
-                      key={originalIndex}
-                      rowId={String(originalIndex)}
-                      row={row}
-                      isSelected={selectedRowKey === getRowKey(row, originalIndex)}
-                      isClickable={Boolean(onRowClick)}
-                      canDrag={canReorderRows}
-                      columns={table.columns}
-                      tables={tables}
-                      sampleDataByTableId={sampleDataByTableId}
-                      onClick={() => {
-                        if (!onRowClick) return;
-                        onRowClick(row, getRowKey(row, originalIndex), originalIndex);
-                      }}
-                    />
-                  ))
-                )}
-              </tbody>
-            </SortableContext>
-          </DndContext>
-        </table>
-      </div>
-    </div>
+    <DndContext sensors={sensors} onDragEnd={handleColumnDragEnd} accessibility={noAccessibility}>
+      <DndContext sensors={rowSensors} onDragEnd={handleRowDragEnd} accessibility={noAccessibility}>
+        <div className="h-full bg-white border border-zinc-200 overflow-auto">
+          <div className="min-w-full">
+            <table className="min-w-full border-collapse">
+              <thead className="sticky top-0 z-10 bg-zinc-50 border-b border-zinc-200">
+                <tr>
+                  <SortableContext items={table.columns.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
+                    {table.columns.map((column, columnIndex) => (
+                      <SortableTableHeaderCell
+                        key={column.id}
+                        tableId={table.id}
+                        column={column}
+                        columnIndex={columnIndex}
+                        totalColumns={table.columns.length}
+                        onMoveUp={() => reorderColumn(table.id, column.id, column.order - 1)}
+                        onMoveDown={() => reorderColumn(table.id, column.id, column.order + 1)}
+                      />
+                    ))}
+                  </SortableContext>
+                </tr>
+              </thead>
+              <SortableContext items={filteredData.map(({ index }) => String(index))} strategy={verticalListSortingStrategy}>
+                <tbody className="bg-white">
+                  {filteredData.length === 0 ? (
+                    <tr>
+                      <td colSpan={table.columns.length} className="px-3 py-8 text-center text-zinc-400 text-xs">
+                        {t('simulator.noData')}
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredData.map(({ row, index: originalIndex }) => (
+                      <SortableTableRow
+                        key={originalIndex}
+                        rowId={String(originalIndex)}
+                        row={row}
+                        isSelected={selectedRowKey === getRowKey(row, originalIndex)}
+                        isClickable={Boolean(onRowClick)}
+                        canDrag={canReorderRows}
+                        columns={table.columns}
+                        tables={tables}
+                        sampleDataByTableId={sampleDataByTableId}
+                        onClick={() => {
+                          if (!onRowClick) return;
+                          onRowClick(row, getRowKey(row, originalIndex), originalIndex);
+                        }}
+                      />
+                    ))
+                  )}
+                </tbody>
+              </SortableContext>
+            </table>
+          </div>
+        </div>
+      </DndContext>
+    </DndContext>
   );
 }
 

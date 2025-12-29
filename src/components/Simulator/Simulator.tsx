@@ -158,9 +158,15 @@ export function Simulator() {
     return () => cancelAnimationFrame(raf);
   }, [ensureSampleData, tables]);
 
+  // 生データ (AppFormula未計算)
+  const tableRows = useMemo(() => {
+    if (!selectedTable?.id) return [];
+    return sampleDataByTableId[selectedTable.id] ?? [];
+  }, [sampleDataByTableId, selectedTable?.id]);
+
+  // 計算済みデータ (AppFormula適用後)
   const computedTableRows = useMemo(() => {
     if (!selectedTable?.id) return [];
-    const tableRows = sampleDataByTableId[selectedTable.id] ?? [];
     const now = new Date();
     return tableRows.map((row) =>
       computeRowWithAppFormulas({
@@ -171,7 +177,7 @@ export function Simulator() {
         now,
       })
     );
-  }, [sampleDataByTableId, selectedTable, tables]);
+  }, [tableRows, sampleDataByTableId, selectedTable, tables]);
 
   const computedSelectedRow = useMemo(() => {
     if (!selectedTable || !selectedRow) return null;
@@ -895,20 +901,27 @@ function SortableSimulatorTableNavItem(props: {
 
   return (
     <li ref={setNodeRef} style={style}>
-      <button
-        onClick={onSelect}
-        {...attributes}
-        {...listeners}
-        className={`w-full flex items-center gap-2 px-4 py-2.5 text-left text-xs transition-colors
+      <div
+        className={`w-full flex items-center gap-2 px-4 py-2.5 text-xs transition-colors
           ${isSelected ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-600 hover:bg-zinc-50'}
           ${isOver ? 'ring-2 ring-indigo-200 ring-inset' : ''}
         `}
       >
+        {/* ドラッグハンドル */}
         <span
-          className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-sm ${TABLE_BG_COLOR_CLASSES[table.color || '#6366f1'] || 'bg-indigo-500'}`}
+          {...attributes}
+          {...listeners}
+          className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-sm cursor-grab ${TABLE_BG_COLOR_CLASSES[table.color || '#6366f1'] || 'bg-indigo-500'}`}
           aria-hidden="true"
         />
-        <span className="truncate">{table.name}</span>
+        {/* クリック可能なテーブル名 */}
+        <button
+          type="button"
+          onClick={onSelect}
+          className="flex-1 text-left truncate hover:underline focus:outline-none focus:underline"
+        >
+          {table.name}
+        </button>
 
         <span className="ml-auto flex items-center gap-1.5 shrink-0">
           <button
@@ -965,7 +978,7 @@ function SortableSimulatorTableNavItem(props: {
             </svg>
           </button>
         </span>
-      </button>
+      </div>
     </li>
   );
 }

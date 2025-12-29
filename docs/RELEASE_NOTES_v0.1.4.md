@@ -38,6 +38,8 @@
 - ERエディタ/設定: 日本語表示時の型ラベルを `English(日本語)` 形式に統一
 
 ### 修正
+- Simulator: DOMネストエラーを修正（`<button>` 内に `<button>` がネストされていた問題）
+- Simulator: TableViewでDndContext（ドラッグ&ドロップ）のAccessibility要素がテーブル構造を壊していた問題を修正（`<tr>` / `<table>` 内に `<div>` が配置される警告を解消）
 - 開発: `npm run lint` が失敗する問題を修正（React Hooks の依存配列/Effect内setState、AppSheet式評価の型安全性を改善）
 
 ## 既知の制限
