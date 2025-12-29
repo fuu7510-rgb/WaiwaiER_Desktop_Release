@@ -283,6 +283,12 @@
       "dark": "Dark",
       "system": "System"
     },
+    "fontSize": "Font Size",
+    "fontSizes": {
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large"
+    },
     "autoBackup": {
       "enable": "Enable auto backup",
       "interval": "Backup interval (minutes)",

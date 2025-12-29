@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ViewMode, Language, Theme, AppSettings } from '../types';
+import type { ViewMode, Language, Theme, FontSize, AppSettings } from '../types';
 
 interface UIState {
   // ビュー状態
@@ -69,11 +69,13 @@ interface UIState {
   updateSettings: (settings: Partial<AppSettings>) => void;
   setLanguage: (language: Language) => void;
   setTheme: (theme: Theme) => void;
+  setFontSize: (fontSize: FontSize) => void;
 }
 
 const defaultSettings: AppSettings = {
   language: 'ja',
   theme: 'system',
+  fontSize: 'medium',
   autoBackupEnabled: true,
   autoBackupIntervalMinutes: 5,
   backupRetentionDays: 7,
@@ -159,6 +161,10 @@ export const useUIStore = create<UIState>()(
       setTheme: (theme) =>
         set((state) => ({
           settings: { ...state.settings, theme },
+        })),
+      setFontSize: (fontSize) =>
+        set((state) => ({
+          settings: { ...state.settings, fontSize },
         })),
     }),
     {

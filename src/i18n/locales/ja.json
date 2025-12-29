@@ -265,6 +265,12 @@
       "dark": "ダーク",
       "system": "システム設定に従う"
     },
+    "fontSize": "文字の大きさ",
+    "fontSizes": {
+      "small": "小",
+      "medium": "中",
+      "large": "大"
+    },
     "autoBackup": {
       "enable": "自動バックアップを有効にする",
       "interval": "バックアップ間隔（分）",

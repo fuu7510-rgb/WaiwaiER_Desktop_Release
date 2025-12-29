@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, Button, Input, Select } from '../common';
 import { useUIStore, useProjectStore } from '../../stores';
-import type { Language, Theme, RelationLabelInitialMode, CommonColumnDefinition, ColumnType, ColumnConstraints } from '../../types';
+import type { Language, Theme, FontSize, RelationLabelInitialMode, CommonColumnDefinition, ColumnType, ColumnConstraints } from '../../types';
 import { APPSHEET_COLUMN_TYPES } from '../../types';
 import { getAppInfo } from '../../lib/appInfo';
 import { open, save } from '@tauri-apps/plugin-dialog';
@@ -21,6 +21,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     updateSettings,
     setLanguage,
     setTheme,
+    setFontSize,
     openAboutDialog,
     isTableCreationRulesOpen,
     toggleTableCreationRulesOpen,
@@ -73,6 +74,12 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     { value: 'light', label: t('settings.themes.light') },
     { value: 'dark', label: t('settings.themes.dark') },
     { value: 'system', label: t('settings.themes.system') },
+  ];
+
+  const fontSizeOptions = [
+    { value: 'small', label: t('settings.fontSizes.small') },
+    { value: 'medium', label: t('settings.fontSizes.medium') },
+    { value: 'large', label: t('settings.fontSizes.large') },
   ];
 
   const relationLabelModeOptions = [
@@ -169,6 +176,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     // enum
     if (obj.language === 'ja' || obj.language === 'en') next.language = obj.language;
     if (obj.theme === 'light' || obj.theme === 'dark' || obj.theme === 'system') next.theme = obj.theme;
+    if (obj.fontSize === 'small' || obj.fontSize === 'medium' || obj.fontSize === 'large') next.fontSize = obj.fontSize;
     if (obj.relationLabelInitialMode === 'auto' || obj.relationLabelInitialMode === 'hidden' || obj.relationLabelInitialMode === 'custom') {
       next.relationLabelInitialMode = obj.relationLabelInitialMode;
     }
@@ -342,6 +350,13 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
               value={settings.theme}
               options={themeOptions}
               onChange={(e) => setTheme(e.target.value as Theme)}
+            />
+
+            <Select
+              label={t('settings.fontSize')}
+              value={settings.fontSize}
+              options={fontSizeOptions}
+              onChange={(e) => setFontSize(e.target.value as FontSize)}
             />
           </div>
         </section>

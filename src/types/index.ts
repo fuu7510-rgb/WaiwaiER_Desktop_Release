@@ -236,12 +236,14 @@ export interface UIState {
 
 export type Language = 'ja' | 'en';
 export type Theme = 'light' | 'dark' | 'system';
+export type FontSize = 'small' | 'medium' | 'large';
 
 export type RelationLabelInitialMode = 'auto' | 'hidden' | 'custom';
 
 export interface AppSettings {
   language: Language;
   theme: Theme;
+  fontSize: FontSize;
   autoBackupEnabled: boolean;
   autoBackupIntervalMinutes: number;
   backupRetentionDays: number;
