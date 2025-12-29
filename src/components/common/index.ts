@@ -4,3 +4,4 @@ export { Select } from './Select';
 export { Dialog } from './Dialog';
 export { ConfirmDialog } from './ConfirmDialog';
 export { InfoTooltip } from './InfoTooltip';
+export { ResizableSplitter } from './ResizableSplitter';

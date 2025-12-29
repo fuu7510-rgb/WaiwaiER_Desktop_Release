@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useERStore, useProjectStore, useUIStore } from '../../stores';
-import { Button, Input } from '../common';
+import { Button, Input, ResizableSplitter } from '../common';
 import { TableEditor } from '../EREditor/TableEditor';
 import { ColumnEditor } from '../EREditor/ColumnEditor';
 import { TABLE_BG_COLOR_CLASSES } from '../../lib/constants';
@@ -87,8 +87,8 @@ function SidebarInner() {
   return (
     <aside className="bg-white border-r border-zinc-200 flex flex-col h-full w-[280px]">
       {/* Tables List Header */}
-      <div className="p-4 border-b border-zinc-100 flex items-center justify-between bg-white sticky top-0 z-10">
-        <h2 className="text-sm font-bold text-zinc-600 uppercase tracking-wider mt-[6px] mb-[6px] ml-[6px] mr-[6px] align-bottom">
+      <div className="px-3 py-2 border-b border-zinc-100 flex items-center justify-between bg-white sticky top-0 z-10 flex-shrink-0">
+        <h2 className="text-sm font-bold text-zinc-600 uppercase tracking-wider align-bottom">
           {t('table.tables')} <span className="text-zinc-400 ml-1">({tables.length})</span>
         </h2>
         <Button
@@ -97,7 +97,7 @@ function SidebarInner() {
             setIsAddingTable(true);
             setShouldAddCommonColumns(true);
           }}
-          className="shadow-none text-[11.4px] px-3 py-1.5 m-[6px]"
+          className="shadow-none text-[11.4px] px-2.5 py-1"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -108,7 +108,7 @@ function SidebarInner() {
 
       {/* Add Table Form */}
       {isAddingTable && (
-        <div className="p-4 border-b border-zinc-100 bg-indigo-50/30">
+        <div className="p-4 border-b border-zinc-100 bg-indigo-50/30 flex-shrink-0">
           <Input
             placeholder={t('editor.tableName')}
             value={newTableName}
@@ -142,56 +142,66 @@ function SidebarInner() {
         </div>
       )}
 
-      {/* Tables List */}
-      <div className="flex-1 overflow-y-auto">
-        {tables.length === 0 ? (
-          <div className="p-8 text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-zinc-100 mb-3 text-zinc-400 align-middle">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <p className="text-sm text-zinc-500 mb-1 font-medium align-middle">{t('editor.noTables')}</p>
-            <p className="text-xs text-zinc-400 align-middle">
-              {t('editor.clickAddTable')}
-            </p>
+      {/* Resizable Splitter: Tables List + Property Editor */}
+      <ResizableSplitter
+        storageKey="sidebar-splitter-height"
+        initialTopHeightPercent={55}
+        minTopHeight={80}
+        minBottomHeight={120}
+        topPanel={
+          /* Tables List */
+          <div className="flex-1 overflow-y-auto h-full">
+            {tables.length === 0 ? (
+              <div className="p-8 text-center">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-zinc-100 mb-3 text-zinc-400 align-middle">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <p className="text-sm text-zinc-500 mb-1 font-medium align-middle">{t('editor.noTables')}</p>
+                <p className="text-xs text-zinc-400 align-middle">
+                  {t('editor.clickAddTable')}
+                </p>
+              </div>
+            ) : (
+              <DndContext sensors={sensors} onDragEnd={handleTableDragEnd}>
+                <SortableContext items={tables.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                  <ul className="divide-y divide-zinc-100">
+                    {tables.map((table, index) => (
+                      <TableListItem
+                        key={table.id}
+                        table={table}
+                        isSelected={table.id === selectedTableId}
+                        canMoveUp={index > 0}
+                        canMoveDown={index < tables.length - 1}
+                        onMoveUp={() => reorderTables(table.id, tables[index - 1].id)}
+                        onMoveDown={() => reorderTables(table.id, tables[index + 1].id)}
+                      />
+                    ))}
+                  </ul>
+                </SortableContext>
+              </DndContext>
+            )}
           </div>
-        ) : (
-          <DndContext sensors={sensors} onDragEnd={handleTableDragEnd}>
-            <SortableContext items={tables.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-              <ul className="divide-y divide-zinc-100">
-                {tables.map((table, index) => (
-                  <TableListItem
-                    key={table.id}
-                    table={table}
-                    isSelected={table.id === selectedTableId}
-                    canMoveUp={index > 0}
-                    canMoveDown={index < tables.length - 1}
-                    onMoveUp={() => reorderTables(table.id, tables[index - 1].id)}
-                    onMoveDown={() => reorderTables(table.id, tables[index + 1].id)}
-                  />
-                ))}
-              </ul>
-            </SortableContext>
-          </DndContext>
-        )}
-      </div>
-
-      {/* Property Editor */}
-      <div className="border-t border-zinc-200 flex-1 overflow-y-auto max-h-[50%] bg-zinc-50/50">
-        {selectedColumnId ? (
-          <ColumnEditor />
-        ) : selectedTableId ? (
-          <TableEditor />
-        ) : (
-          <div className="h-full flex flex-col items-center justify-center p-8 text-zinc-400">
-            <svg className="w-8 h-8 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-            <p className="text-xs text-center">{t('editor.selectTableOrColumnToEdit')}</p>
+        }
+        bottomPanel={
+          /* Property Editor */
+          <div className="h-full overflow-y-auto bg-zinc-50/50">
+            {selectedColumnId ? (
+              <ColumnEditor />
+            ) : selectedTableId ? (
+              <TableEditor />
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center p-8 text-zinc-400">
+                <svg className="w-8 h-8 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                <p className="text-xs text-center">{t('editor.selectTableOrColumnToEdit')}</p>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        }
+      />
     </aside>
   );
 }
