@@ -7,20 +7,28 @@
 
 ### A. コードベースの参照
 実装時は、必ず **`references/` フォルダ内の既存コード** を設計・ロジックのベースにしてください。
-- **UI/ロジックの再利用**: `references/EREditor/`, `references/Simulator/` などは極力流用します。
+- **UI/ロジックの再利用**: 
+  - `references/XppSheetSimulator/src/components/EREditor/` (ER図エディタ)
+  - `references/XppSheetSimulator/src/components/Simulator/` (シミュレーター)
+  - これらのコンポーネントは極力流用します。
 - **技術スタックの置換**:
-  - `Liveblocks` / `Supabase` → **Tauri Command + SQLite (SQLCipher)** に変更。
+  - `Liveblocks` / `Supabase` → **Tauri Command + SQLite** に変更。
   - `Auth` → **ローカルライセンス検証 (JWT)** に変更。
 
-### B. AppSheet仕様の参照 (★追加)
+### B. AppSheet仕様の参照
 **シミュレーター機能**および**Excelエクスポート機能**の実装時は、必ず **`docs/AppSheet/` 配下の資料** を参照してください。
 - 作成するER図は、最終的にAppSheetに取り込まれることを前提とします。
 - シミュレーターは、AppSheetのUI/UX（Deck View, Detail View, Form Viewの挙動）を忠実に再現する必要があります。
 
 ## 2. 技術スタックとコーディング規約
-- **Frontend**: React 18, TypeScript, Tailwind CSS, Zustand
-- **Backend**: Tauri 2.x (Rust), SQLite, SQLCipher
+- **Frontend**: React 19, TypeScript, Tailwind CSS v4, Zustand 5
+- **Backend**: Tauri 2.x (Rust), SQLite (rusqlite)
 - **Package Manager**: pnpm
+- **状態管理**: Zustand 5 (注: v4以前とはAPI互換性がないため、公式ドキュメント参照)
+- **多言語対応 (i18n)**: react-i18next を使用
+  - **日本語 (ja)** をデフォルト言語とし、**英語 (en)** に対応
+  - 翻訳ファイルは `src/i18n/locales/` に配置
+  - UIテキストは直接ハードコーディングせず、必ず `t()` 関数を使用すること
 
 ## 3. 重要実装ルール (Gotchas)
 
@@ -36,10 +44,28 @@
   - ❌ `write_comment` (スレッド形式) は使用禁止。
   - ✅ **`write_note` (レガシーメモ)** を使用すること。これがないとAppSheet作成時に型推論のヒントが失われます。
 
-### C. データベースとセキュリティ
-- データ保存: SQLite + SQLCipher (プロジェクト単位の暗号化)。
-- パスワードハッシュ: Argon2id。
+### C. データベース
+- データ保存: SQLite (rusqlite)
+- 現時点では暗号化（SQLCipher）は未実装。将来的に対応予定。
 
 ## 4. コンテキストのヒント
 - **シミュレーターの挙動**で迷った際は、「AppSheetではどう振る舞うか？」を基準に考え、`docs/AppSheet/` を確認してください。
-- **コードの実装**で迷った際は、`references/` の既存ロジックを確認してください。
+- **コードの実装**で迷った際は、`references/XppSheetSimulator/` の既存ロジックを確認してください。
+- **AppFormula関数**のサポート状況は `docs/SIMULATOR_APPFORMULA_SUPPORTED_FUNCTIONS.md` を参照してください。
+
+## 5. データ互換性ルール
+- スキーマバージョン管理: `src/lib/diagramSchema.ts`
+- **直近2世代**のデータをサポート（詳細は `docs/DATA_COMPATIBILITY.md` 参照）
+- スキーマ変更時は `DIAGRAM_SCHEMA_VERSION` を上げ、migrateロジックを追加すること
+- カラム型定義は `src/types/index.ts` の `ColumnType` を参照
+
+## 6. ファイル構成ガイド
+| 種類 | 配置場所 |
+|------|---------|
+| コンポーネント | `src/components/{機能名}/` |
+| 状態管理 (Zustand) | `src/stores/` |
+| 型定義 | `src/types/index.ts` |
+| AppSheet関連ロジック | `src/lib/appsheet/` |
+| 翻訳ファイル | `src/i18n/locales/{ja,en}.json` |
+| ドキュメント | `docs/` |
+| Rustコマンド | `src-tauri/src/commands/` |

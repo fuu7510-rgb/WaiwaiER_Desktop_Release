@@ -29,9 +29,21 @@
   --sidebar-width: 260px;
 }
 
-
+/* フォントサイズ設定 */
 html {
+  font-size: 15px;
+}
+
+html[data-font-size="small"] {
   font-size: 13px;
+}
+
+html[data-font-size="medium"] {
+  font-size: 15px;
+}
+
+html[data-font-size="large"] {
+  font-size: 17px;
 }
 
 body {

@@ -61,6 +61,97 @@ pub struct ExportRequest {
     pub include_data: bool,
 }
 
+// Note Parametersのサポート状況
+// docs/AppSheet/NOTE_PARAMETERS_SUPPORT_STATUS.md に検証結果を記録する
+//
+// ステータス:
+// - Verified: AppSheetで正しく認識されることを確認済み
+// - Unstable: 環境によって動作したりしなかったりする
+// - Untested: まだテストしていない
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum NoteParamStatus {
+    Verified,  // ✅ 確認済み
+    Unstable,  // ⚠️ 不安定
+    Untested,  // 🔍 未検証
+}
+
+// 各Note Parameterキーのサポート状況を返す
+// NOTE: 検証結果が得られたらここを更新し、NOTE_PARAMETERS_SUPPORT_STATUS.md にも記録する
+fn get_note_param_status(key: &str) -> NoteParamStatus {
+    match key {
+        // 基本設定
+        "Type" => NoteParamStatus::Verified,
+        "IsRequired" => NoteParamStatus::Untested,
+        "Required_If" => NoteParamStatus::Untested,
+        "IsHidden" => NoteParamStatus::Untested,
+        "Show_If" => NoteParamStatus::Untested,
+        "DisplayName" => NoteParamStatus::Untested,
+        "Description" => NoteParamStatus::Untested,
+        "DEFAULT" => NoteParamStatus::Untested,
+        "AppFormula" => NoteParamStatus::Untested,
+        
+        // 識別・検索設定
+        "IsKey" => NoteParamStatus::Untested,
+        "IsLabel" => NoteParamStatus::Unstable, // 環境によって反映されないケースあり
+        "IsScannable" => NoteParamStatus::Untested,
+        "IsNfcScannable" => NoteParamStatus::Untested,
+        "Searchable" => NoteParamStatus::Untested,
+        "IsSensitive" => NoteParamStatus::Untested,
+        
+        // バリデーション設定
+        "Valid_If" => NoteParamStatus::Untested,
+        "Error_Message_If_Invalid" => NoteParamStatus::Untested,
+        "Suggested_Values" => NoteParamStatus::Untested,
+        "Editable_If" => NoteParamStatus::Untested,
+        "Reset_If" => NoteParamStatus::Untested,
+        
+        // 数値型設定
+        "MinValue" => NoteParamStatus::Untested,
+        "MaxValue" => NoteParamStatus::Untested,
+        "DecimalDigits" => NoteParamStatus::Untested,
+        "NumericDigits" => NoteParamStatus::Untested,
+        "ShowThousandsSeparator" => NoteParamStatus::Untested,
+        "NumberDisplayMode" => NoteParamStatus::Untested,
+        "StepValue" => NoteParamStatus::Untested,
+        
+        // Enum型設定
+        "EnumValues" => NoteParamStatus::Untested,
+        "BaseType" => NoteParamStatus::Untested,
+        "EnumInputMode" => NoteParamStatus::Untested,
+        "AllowOtherValues" => NoteParamStatus::Untested,
+        "AutoCompleteOtherValues" => NoteParamStatus::Untested,
+        "ReferencedRootTableName" => NoteParamStatus::Untested,
+        
+        // Ref型設定
+        "ReferencedTableName" => NoteParamStatus::Untested,
+        "ReferencedKeyColumn" => NoteParamStatus::Untested,
+        "ReferencedType" => NoteParamStatus::Untested,
+        "IsAPartOf" => NoteParamStatus::Untested,
+        "InputMode" => NoteParamStatus::Untested,
+        
+        // テキスト型設定
+        "LongTextFormatting" => NoteParamStatus::Untested,
+        "ItemSeparator" => NoteParamStatus::Untested,
+        
+        // メタキー
+        "TypeAuxData" => NoteParamStatus::Untested,
+        "BaseTypeQualifier" => NoteParamStatus::Untested,
+        
+        // その他
+        "UpdateMode" => NoteParamStatus::Untested,
+        "ChangeColumns" => NoteParamStatus::Untested,
+        "ChangeValues" => NoteParamStatus::Untested,
+        
+        _ => NoteParamStatus::Untested,
+    }
+}
+
+// 指定されたキーを出力すべきかどうかを判定
+// 現時点では Verified のみ出力する
+fn should_output_note_param(key: &str) -> bool {
+    matches!(get_note_param_status(key), NoteParamStatus::Verified)
+}
+
 // AppSheetのLabel列はテーブルにつき1つが基本。
 // 複数の IsLabel があると反映が不安定になることがあるため、エクスポート時は最小 order の列に正規化する。
 fn pick_effective_label_column_id(table: &Table) -> Option<&str> {
@@ -76,33 +167,38 @@ fn pick_effective_label_column_id(table: &Table) -> Option<&str> {
 fn generate_column_note(column: &Column, tables: &[Table]) -> String {
     // docs/AppSheet/MEMO_SETUP.md に従い、AppSheet Note Parameters の形式で出力する
     // 例: AppSheet:{"Type":"Ref","IsRequired":true,"ReferencedTableName":"顧客"}
+    //
+    // NOTE: should_output_note_param() で Verified と判定されたキーのみ出力する
+    // 検証が進んだら get_note_param_status() を更新すること
+    
     let mut data = serde_json::Map::<String, Value>::new();
     let user = column.app_sheet.as_ref();
 
     let user_has = |k: &str| -> bool { user.map(|m| m.contains_key(k)).unwrap_or(false) };
 
-    // Type
+    // Type (✅ Verified)
     // user側で Type が指定されている場合は自動付与しない（userを優先）
     // AppSheet側の型推論の揺れを減らすため、Textも含めて明示する。
-    if !user_has("Type") {
+    if should_output_note_param("Type") && !user_has("Type") {
         data.insert("Type".to_string(), Value::String(column.column_type.clone()));
     }
 
     // 基本フラグ
     // user側で IsKey/IsLabel/IsRequired が指定されている場合は自動付与しない（userを優先）
-    if !user_has("IsKey") && column.is_key {
+    if should_output_note_param("IsKey") && !user_has("IsKey") && column.is_key {
         data.insert("IsKey".to_string(), Value::Bool(true));
     }
-    if !user_has("IsLabel") && column.is_label {
+    // IsLabel は不安定なので現時点では出力しない（should_output_note_param が false を返す）
+    if should_output_note_param("IsLabel") && !user_has("IsLabel") && column.is_label {
         data.insert("IsLabel".to_string(), Value::Bool(true));
     }
     // Required_If がある場合は IsRequired を出さない（docs/AppSheet/MEMO_SETUP.md の推奨）
-    if !user_has("IsRequired") && !user_has("Required_If") && column.constraints.required == Some(true) {
+    if should_output_note_param("IsRequired") && !user_has("IsRequired") && !user_has("Required_If") && column.constraints.required == Some(true) {
         data.insert("IsRequired".to_string(), Value::Bool(true));
     }
 
-    // 初期値
-    if !user_has("DEFAULT") {
+    // 初期値 (🔍 Untested)
+    if should_output_note_param("DEFAULT") && !user_has("DEFAULT") {
         if let Some(ref default_value) = column.constraints.default_value {
             if !default_value.is_empty() {
                 data.insert("DEFAULT".to_string(), Value::String(default_value.clone()));
@@ -110,8 +206,8 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
         }
     }
 
-    // 説明
-    if !user_has("Description") {
+    // 説明 (🔍 Untested)
+    if should_output_note_param("Description") && !user_has("Description") {
         if let Some(ref desc) = column.description {
             if !desc.is_empty() {
                 data.insert("Description".to_string(), Value::String(desc.clone()));
@@ -119,8 +215,8 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
         }
     }
 
-    // Valid_If（正規表現）
-    if !user_has("Valid_If") {
+    // Valid_If（正規表現） (🔍 Untested)
+    if should_output_note_param("Valid_If") && !user_has("Valid_If") {
         if let Some(ref pattern) = column.constraints.pattern {
             if !pattern.is_empty() {
                 // AppSheetの式で [_THIS] を参照し、MATCHES を使う
@@ -139,8 +235,8 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
         }
     }
 
-    // 数値型: Min/Max
-    if !user_has("MinValue") {
+    // 数値型: Min/Max (🔍 Untested)
+    if should_output_note_param("MinValue") && !user_has("MinValue") {
         if let Some(min) = column.constraints.min_value {
             data.insert(
                 "MinValue".to_string(),
@@ -151,7 +247,7 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
             );
         }
     }
-    if !user_has("MaxValue") {
+    if should_output_note_param("MaxValue") && !user_has("MaxValue") {
         if let Some(max) = column.constraints.max_value {
             data.insert(
                 "MaxValue".to_string(),
@@ -163,16 +259,16 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
         }
     }
 
-    // Enum/EnumList: EnumValues + BaseType（選択肢がある場合のみ）
+    // Enum/EnumList: EnumValues + BaseType（選択肢がある場合のみ） (🔍 Untested)
     if column.column_type == "Enum" || column.column_type == "EnumList" {
-        if !user_has("EnumValues") {
+        if should_output_note_param("EnumValues") && !user_has("EnumValues") {
             if let Some(ref enum_values) = column.constraints.enum_values {
                 if !enum_values.is_empty() {
                     data.insert(
                         "EnumValues".to_string(),
                         Value::Array(enum_values.iter().cloned().map(Value::String).collect()),
                     );
-                    if !user_has("BaseType") {
+                    if should_output_note_param("BaseType") && !user_has("BaseType") {
                         let max_len = enum_values.iter().map(|v| v.chars().count()).max().unwrap_or(0);
                         let base_type = if max_len > 20 { "LongText" } else { "Text" };
                         data.insert("BaseType".to_string(), Value::String(base_type.to_string()));
@@ -182,41 +278,39 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
         }
     }
 
-    // Ref: 参照先テーブル情報
+    // Ref: 参照先テーブル情報 (🔍 Untested)
     if column.column_type == "Ref" {
-        if !user_has("ReferencedTableName") || !user_has("ReferencedKeyColumn") || !user_has("ReferencedType") {
-            if let Some(ref ref_table_id) = column.constraints.ref_table_id {
-                if let Some(ref_table) = tables.iter().find(|t| t.id == *ref_table_id) {
-                    // Note Parameter Workshop のキー名に合わせて ReferencedTableName / ReferencedKeyColumn / ReferencedType を使う
-                    if !user_has("ReferencedTableName") {
+        if let Some(ref ref_table_id) = column.constraints.ref_table_id {
+            if let Some(ref_table) = tables.iter().find(|t| t.id == *ref_table_id) {
+                // Note Parameter Workshop のキー名に合わせて ReferencedTableName / ReferencedKeyColumn / ReferencedType を使う
+                if should_output_note_param("ReferencedTableName") && !user_has("ReferencedTableName") {
+                    data.insert(
+                        "ReferencedTableName".to_string(),
+                        Value::String(ref_table.name.clone()),
+                    );
+                }
+
+                // 参照キー列（指定があれば優先、なければ Key、それもなければ先頭）
+                let ref_col = column
+                    .constraints
+                    .ref_column_id
+                    .as_ref()
+                    .and_then(|cid| ref_table.columns.iter().find(|c| c.id == *cid))
+                    .or_else(|| ref_table.columns.iter().find(|c| c.is_key))
+                    .or_else(|| ref_table.columns.first());
+
+                if let Some(rc) = ref_col {
+                    if should_output_note_param("ReferencedKeyColumn") && !user_has("ReferencedKeyColumn") {
                         data.insert(
-                            "ReferencedTableName".to_string(),
-                            Value::String(ref_table.name.clone()),
+                            "ReferencedKeyColumn".to_string(),
+                            Value::String(rc.name.clone()),
                         );
                     }
-
-                    // 参照キー列（指定があれば優先、なければ Key、それもなければ先頭）
-                    let ref_col = column
-                        .constraints
-                        .ref_column_id
-                        .as_ref()
-                        .and_then(|cid| ref_table.columns.iter().find(|c| c.id == *cid))
-                        .or_else(|| ref_table.columns.iter().find(|c| c.is_key))
-                        .or_else(|| ref_table.columns.first());
-
-                    if let Some(rc) = ref_col {
-                        if !user_has("ReferencedKeyColumn") {
-                            data.insert(
-                                "ReferencedKeyColumn".to_string(),
-                                Value::String(rc.name.clone()),
-                            );
-                        }
-                        if !user_has("ReferencedType") {
-                            data.insert(
-                                "ReferencedType".to_string(),
-                                Value::String(rc.column_type.clone()),
-                            );
-                        }
+                    if should_output_note_param("ReferencedType") && !user_has("ReferencedType") {
+                        data.insert(
+                            "ReferencedType".to_string(),
+                            Value::String(rc.column_type.clone()),
+                        );
                     }
                 }
             }
@@ -224,13 +318,16 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
     }
 
     // user指定を最後にマージ（上書き/追加）
+    // ただし、Verified でないキーはフィルタリングする（ユーザーが明示的に指定した場合も除外）
     if let Some(user_map) = user {
         for (k, v) in user_map {
             if v.is_null() {
                 data.remove(k);
-            } else {
+            } else if should_output_note_param(k) {
+                // Verified のキーのみマージ
                 data.insert(k.clone(), v.clone());
             }
+            // Untested/Unstable のキーはユーザー指定でもスキップ（現時点では）
         }
     }
 
@@ -241,9 +338,9 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
     format!("AppSheet:{}", body)
 }
 
-// Note Parameters は「JSONに似ているが TRUE/FALSE を使う」資料表記があり、
-// `IsLabel` 等のトグルが `true/false` だと反映されないケースがある。
-// そのため、Bool は `TRUE/FALSE` で出力する（他はJSON互換表記）。
+// Note Parameters は JSON と同様に bool を `true/false`（小文字）で出力する。
+// AppSheet 側が `TRUE/FALSE`（大文字）を正しく認識しないケースがあるため、
+// WaiwaiER Desktop の出力は `true/false` に統一する。
 fn serialize_note_parameters_object(map: &serde_json::Map<String, Value>) -> String {
     if map.is_empty() {
         return "{}".to_string();
@@ -262,11 +359,7 @@ fn serialize_note_parameters_value(value: &Value) -> String {
     match value {
         Value::Null => "null".to_string(),
         Value::Bool(b) => {
-            if *b {
-                "TRUE".to_string()
-            } else {
-                "FALSE".to_string()
-            }
+            if *b { "true".to_string() } else { "false".to_string() }
         }
         Value::Number(n) => n.to_string(),
         Value::String(s) => serde_json::to_string(s).unwrap_or_else(|_| format!("\"{}\"", s)),
@@ -371,7 +464,8 @@ mod tests {
     use super::*;
     
     #[test]
-    fn test_generate_column_note() {
+    fn test_generate_column_note_verified_only() {
+        // 現時点では Type のみが Verified なので、他のキーは出力されない
         let column = Column {
             id: "col1".to_string(),
             name: "Name".to_string(),
@@ -398,9 +492,32 @@ mod tests {
         
         let note = generate_column_note(&column, &[]);
         assert!(note.starts_with("AppSheet:"));
-        assert!(note.contains("\"IsKey\":TRUE"));
-        assert!(note.contains("\"IsLabel\":TRUE"));
-        assert!(note.contains("\"IsRequired\":TRUE"));
-        assert!(note.contains("\"Description\":\"Test description\""));
+        // Type は Verified なので出力される
+        assert!(note.contains("\"Type\":\"Text\""));
+        // IsKey, IsLabel, IsRequired, Description は Untested なので出力されない
+        assert!(!note.contains("\"IsKey\""));
+        assert!(!note.contains("\"IsLabel\""));
+        assert!(!note.contains("\"IsRequired\""));
+        assert!(!note.contains("\"Description\""));
+    }
+
+    #[test]
+    fn test_note_param_status() {
+        // Type は Verified
+        assert_eq!(get_note_param_status("Type"), NoteParamStatus::Verified);
+        // IsLabel は Unstable
+        assert_eq!(get_note_param_status("IsLabel"), NoteParamStatus::Unstable);
+        // 未知のキーは Untested
+        assert_eq!(get_note_param_status("UnknownKey"), NoteParamStatus::Untested);
+    }
+
+    #[test]
+    fn test_should_output_note_param() {
+        // Verified のみ true
+        assert!(should_output_note_param("Type"));
+        // Unstable は false
+        assert!(!should_output_note_param("IsLabel"));
+        // Untested は false
+        assert!(!should_output_note_param("IsKey"));
     }
 }

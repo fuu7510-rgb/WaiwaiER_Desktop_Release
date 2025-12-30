@@ -21,8 +21,10 @@ import { TableNode } from './TableNode';
 import { MemoNode } from './MemoNode';
 import { RelationEdge } from './RelationEdge';
 import type { Table, Relation, Memo } from '../../types';
+import { useTranslation } from 'react-i18next';
 
 function EREditorInner() {
+  const { t } = useTranslation();
   const { tables, relations, memos, moveTable, moveMemo, addMemo, addRelation, addColumn, updateColumn, selectTable, selectedTableId } = useERStore();
   const {
     isRelationHighlightEnabled,
@@ -367,7 +369,7 @@ function EREditorInner() {
 
       <div className="absolute left-16 bottom-3 z-10 flex flex-col gap-2">
         <div className="select-none rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-700 shadow-sm">
-          拡大倍率: {Math.round(zoom * 100)}%
+          {t('editor.zoomLevel', { percent: Math.round(zoom * 100) })}
         </div>
         <Button
           type="button"
@@ -375,9 +377,9 @@ function EREditorInner() {
           size="sm"
           onClick={toggleMemosVisible}
           aria-pressed={isMemosVisible}
-          title={isMemosVisible ? 'メモを非表示' : 'メモを表示'}
+          title={isMemosVisible ? t('editor.hideMemos') : t('editor.showMemos')}
         >
-          {isMemosVisible ? 'メモ: ON' : 'メモ: OFF'}
+          {t('editor.memo')}: {isMemosVisible ? 'ON' : 'OFF'}
         </Button>
 
         {isMemosVisible && (
@@ -389,9 +391,9 @@ function EREditorInner() {
             const offset = memos.length * 24;
             addMemo({ x: 200 + offset, y: 200 + offset });
           }}
-          title="好きな場所にメモを追加"
+          title={t('editor.addMemoTooltip')}
         >
-          メモ追加
+          {t('editor.addMemo')}
         </Button>
         )}
         <Button
@@ -400,9 +402,13 @@ function EREditorInner() {
           size="sm"
           onClick={toggleRelationHighlight}
           aria-pressed={isRelationHighlightEnabled}
-          title={isRelationHighlightEnabled ? '関連強調をOFF' : '関連強調をON'}
+          title={
+            isRelationHighlightEnabled
+              ? t('editor.disableRelationHighlight')
+              : t('editor.enableRelationHighlight')
+          }
         >
-          {isRelationHighlightEnabled ? '関連強調: ON' : '関連強調: OFF'}
+          {t('editor.relationHighlight')}: {isRelationHighlightEnabled ? 'ON' : 'OFF'}
         </Button>
         <Button
           type="button"
@@ -410,9 +416,9 @@ function EREditorInner() {
           size="sm"
           onClick={toggleGridVisible}
           aria-pressed={isGridVisible}
-          title={isGridVisible ? 'グリッドを非表示' : 'グリッドを表示'}
+          title={isGridVisible ? t('editor.hideGrid') : t('editor.showGrid')}
         >
-          {isGridVisible ? 'グリッド: ON' : 'グリッド: OFF'}
+          {t('editor.grid')}: {isGridVisible ? 'ON' : 'OFF'}
         </Button>
       </div>
     </div>

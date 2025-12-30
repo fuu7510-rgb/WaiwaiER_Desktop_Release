@@ -1,30 +1,79 @@
 // ER図関連の型定義
 
 export type ColumnType =
-  | 'Text'
-  | 'Number'
-  | 'Decimal'
-  | 'Date'
-  | 'DateTime'
-  | 'Time'
-  | 'Duration'
-  | 'Email'
-  | 'Phone'
-  | 'Url'
-  | 'Image'
-  | 'File'
-  | 'Enum'
-  | 'EnumList'
-  | 'Yes/No'
-  | 'Color'
-  | 'LatLong'
   | 'Address'
-  | 'Ref'
+  | 'App'
   | 'ChangeCounter'
   | 'ChangeLocation'
   | 'ChangeTimestamp'
+  | 'Color'
+  | 'Date'
+  | 'DateTime'
+  | 'Decimal'
+  | 'Drawing'
+  | 'Duration'
+  | 'Email'
+  | 'Enum'
+  | 'EnumList'
+  | 'File'
+  | 'Image'
+  | 'LatLong'
+  | 'LongText'
+  | 'Name'
+  | 'Number'
+  | 'Percent'
+  | 'Phone'
+  | 'Price'
   | 'Progress'
+  | 'Ref'
+  | 'Show'
+  | 'Signature'
+  | 'Text'
+  | 'Thumbnail'
+  | 'Time'
+  | 'Url'
+  | 'Video'
+  | 'XY'
+  | 'Yes/No'
+  // NOTE: legacy type (not in AppSheet type dropdown). Keep for backward compatibility.
   | 'UniqueID';
+
+export const APPSHEET_COLUMN_TYPES: readonly ColumnType[] = [
+  'Address',
+  'App',
+  'ChangeCounter',
+  'ChangeLocation',
+  'ChangeTimestamp',
+  'Color',
+  'Date',
+  'DateTime',
+  'Decimal',
+  'Drawing',
+  'Duration',
+  'Email',
+  'Enum',
+  'EnumList',
+  'File',
+  'Image',
+  'LatLong',
+  'LongText',
+  'Name',
+  'Number',
+  'Percent',
+  'Phone',
+  'Price',
+  'Progress',
+  'Ref',
+  'Show',
+  'Signature',
+  'Text',
+  'Thumbnail',
+  'Time',
+  'Url',
+  'Video',
+  'XY',
+  'Yes/No',
+] as const;
 
 export interface ColumnConstraints {
   required?: boolean;
@@ -62,6 +111,20 @@ export interface Column {
   dummyValues?: string[];
   constraints: ColumnConstraints;
   order: number;
+}
+
+/**
+ * ユーザー設定「共通カラム」用のカラム定義。
+ * 各テーブルへ追加する際は、新しい Column(id/order付き) に変換して挿入する。
+ */
+export interface CommonColumnDefinition {
+  /** 設定一覧内での安定ID（テーブルのColumn.idとは別物） */
+  id: string;
+  name: string;
+  type: ColumnType;
+  constraints: ColumnConstraints;
+  /** Column.appSheet 相当（必要な場合のみ） */
+  appSheet?: Record<string, unknown>;
 }
 
 export interface TablePosition {
@@ -173,12 +236,14 @@ export interface UIState {
 
 export type Language = 'ja' | 'en';
 export type Theme = 'light' | 'dark' | 'system';
+export type FontSize = 'small' | 'medium' | 'large';
 
 export type RelationLabelInitialMode = 'auto' | 'hidden' | 'custom';
 
 export interface AppSettings {
   language: Language;
   theme: Theme;
+  fontSize: FontSize;
   autoBackupEnabled: boolean;
   autoBackupIntervalMinutes: number;
   backupRetentionDays: number;
@@ -188,6 +253,11 @@ export interface AppSettings {
   keyColumnPrefix: string;
   keyColumnSuffix: string;
   defaultKeyColumnName: string;
+
+  /**
+   * すべてのテーブルに末尾追加（+末尾へ移動）される共通カラム。
+   */
+  commonColumns: CommonColumnDefinition[];
 
   /**
    * 新規作成されるリレーション(線)ラベルの初期値ルール

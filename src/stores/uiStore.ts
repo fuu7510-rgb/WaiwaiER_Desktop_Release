@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ViewMode, Language, Theme, AppSettings } from '../types';
+import type { ViewMode, Language, Theme, FontSize, AppSettings } from '../types';
 
 interface UIState {
   // ビュー状態
@@ -20,6 +20,11 @@ interface UIState {
   // サイドバー
   isSidebarOpen: boolean;
   sidebarWidth: number;
+
+  // ユーザー設定UI（開閉状態など）
+  isTableCreationRulesOpen: boolean;
+  isCommonColumnsOpen: boolean;
+  isBackupSettingsOpen: boolean;
 
   // ERエディタ表示
   isRelationHighlightEnabled: boolean;
@@ -50,6 +55,11 @@ interface UIState {
   toggleSidebar: () => void;
   setSidebarWidth: (width: number) => void;
 
+  // ユーザー設定UI操作
+  toggleTableCreationRulesOpen: () => void;
+  toggleCommonColumnsOpen: () => void;
+  toggleBackupSettingsOpen: () => void;
+
   // ERエディタ表示操作
   toggleRelationHighlight: () => void;
   toggleGridVisible: () => void;
@@ -59,11 +69,13 @@ interface UIState {
   updateSettings: (settings: Partial<AppSettings>) => void;
   setLanguage: (language: Language) => void;
   setTheme: (theme: Theme) => void;
+  setFontSize: (fontSize: FontSize) => void;
 }
 
 const defaultSettings: AppSettings = {
   language: 'ja',
   theme: 'system',
+  fontSize: 'medium',
   autoBackupEnabled: true,
   autoBackupIntervalMinutes: 5,
   backupRetentionDays: 7,
@@ -73,6 +85,7 @@ const defaultSettings: AppSettings = {
   keyColumnPrefix: '',
   keyColumnSuffix: '',
   defaultKeyColumnName: '',
+  commonColumns: [],
   relationLabelInitialMode: 'auto',
   relationLabelInitialCustomText: '',
 };
@@ -91,6 +104,9 @@ export const useUIStore = create<UIState>()(
       isAboutDialogOpen: false,
       isSidebarOpen: true,
       sidebarWidth: 280,
+      isTableCreationRulesOpen: true,
+      isCommonColumnsOpen: true,
+      isBackupSettingsOpen: true,
       isRelationHighlightEnabled: true,
       isGridVisible: true,
       isMemosVisible: true,
@@ -117,6 +133,14 @@ export const useUIStore = create<UIState>()(
       toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
       setSidebarWidth: (width) => set({ sidebarWidth: Math.max(200, Math.min(500, width)) }),
 
+      // ユーザー設定UI操作
+      toggleTableCreationRulesOpen: () =>
+        set((state) => ({ isTableCreationRulesOpen: !state.isTableCreationRulesOpen })),
+      toggleCommonColumnsOpen: () =>
+        set((state) => ({ isCommonColumnsOpen: !state.isCommonColumnsOpen })),
+      toggleBackupSettingsOpen: () =>
+        set((state) => ({ isBackupSettingsOpen: !state.isBackupSettingsOpen })),
+
       // ERエディタ表示操作
       toggleRelationHighlight: () =>
         set((state) => ({ isRelationHighlightEnabled: !state.isRelationHighlightEnabled })),
@@ -138,6 +162,10 @@ export const useUIStore = create<UIState>()(
         set((state) => ({
           settings: { ...state.settings, theme },
         })),
+      setFontSize: (fontSize) =>
+        set((state) => ({
+          settings: { ...state.settings, fontSize },
+        })),
     }),
     {
       name: 'waiwaier-ui',
@@ -145,6 +173,9 @@ export const useUIStore = create<UIState>()(
         settings: state.settings,
         isSidebarOpen: state.isSidebarOpen,
         sidebarWidth: state.sidebarWidth,
+        isTableCreationRulesOpen: state.isTableCreationRulesOpen,
+        isCommonColumnsOpen: state.isCommonColumnsOpen,
+        isBackupSettingsOpen: state.isBackupSettingsOpen,
         isRelationHighlightEnabled: state.isRelationHighlightEnabled,
         isGridVisible: state.isGridVisible,
         isMemosVisible: state.isMemosVisible,

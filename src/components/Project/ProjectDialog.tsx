@@ -421,7 +421,7 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
 
                       {currentProjectId !== project.id && (
                         <Button size="sm" onClick={() => handleOpen(project.id)}>
-                          開く
+                          {t('common.open')}
                         </Button>
                       )}
 

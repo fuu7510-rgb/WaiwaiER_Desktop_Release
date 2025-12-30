@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useERStore } from '../../stores';
 import { Button } from '../common';
 import { TableView } from './TableView';
@@ -17,6 +17,8 @@ function getInputType(column: Column): string {
   switch (column.type) {
     case 'Number':
     case 'Decimal':
+    case 'Percent':
+    case 'Price':
     case 'Progress':
       return 'number';
     case 'Date':
@@ -93,21 +95,20 @@ export function Simulator() {
   
   const selectedTable = tables.find((t) => t.id === selectedTableId) || tables[0];
 
-  const getTableKeyColumnId = (table: (typeof tables)[number] | undefined): string | undefined => {
+  const getTableKeyColumnId = useCallback((table: (typeof tables)[number] | undefined): string | undefined => {
     if (!table) return undefined;
     return table.columns.find((c) => c.isKey)?.id ?? table.columns[0]?.id;
-  };
+  }, []);
 
-  const makeRowKeyForTable = (
-    table: (typeof tables)[number] | undefined,
-    row: Record<string, unknown>,
-    rowIndex: number
-  ): string => {
-    const keyColumnId = getTableKeyColumnId(table);
-    const keyValue = keyColumnId ? row[keyColumnId] : undefined;
-    const keyString = String(keyValue ?? '').trim();
-    return keyString && keyColumnId ? `${keyColumnId}:${keyString}` : `row:${rowIndex}`;
-  };
+  const makeRowKeyForTable = useCallback(
+    (table: (typeof tables)[number] | undefined, row: Record<string, unknown>, rowIndex: number): string => {
+      const keyColumnId = getTableKeyColumnId(table);
+      const keyValue = keyColumnId ? row[keyColumnId] : undefined;
+      const keyString = String(keyValue ?? '').trim();
+      return keyString && keyColumnId ? `${keyColumnId}:${keyString}` : `row:${rowIndex}`;
+    },
+    [getTableKeyColumnId]
+  );
 
   const toComparableString = (value: unknown): string => String(value ?? '').trim();
 
@@ -126,15 +127,14 @@ export function Simulator() {
     if (!pendingSelection) return;
     if (!selectedTable?.id) return;
     if (pendingSelection.tableId !== selectedTable.id) return;
-
-    const rows = sampleDataByTableId[selectedTable.id] ?? [];
-    const row = rows[pendingSelection.rowIndex];
-    if (!row) {
-      setPendingSelection(null);
-      return;
-    }
-
     const raf = requestAnimationFrame(() => {
+      const rows = sampleDataByTableId[selectedTable.id] ?? [];
+      const row = rows[pendingSelection.rowIndex];
+      if (!row) {
+        setPendingSelection(null);
+        return;
+      }
+
       setSelectedRow(row);
       setSelectedRowIndex(pendingSelection.rowIndex);
       setSelectedRowKey(makeRowKeyForTable(selectedTable, row, pendingSelection.rowIndex));
@@ -149,7 +149,7 @@ export function Simulator() {
     });
 
     return () => cancelAnimationFrame(raf);
-  }, [pendingSelection, selectedTable, sampleDataByTableId]);
+  }, [makeRowKeyForTable, pendingSelection, selectedTable, sampleDataByTableId]);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
@@ -158,10 +158,15 @@ export function Simulator() {
     return () => cancelAnimationFrame(raf);
   }, [ensureSampleData, tables]);
 
-  const tableRows = selectedTable?.id ? sampleDataByTableId[selectedTable.id] ?? [] : [];
+  // 生データ (AppFormula未計算)
+  const tableRows = useMemo(() => {
+    if (!selectedTable?.id) return [];
+    return sampleDataByTableId[selectedTable.id] ?? [];
+  }, [sampleDataByTableId, selectedTable?.id]);
 
+  // 計算済みデータ (AppFormula適用後)
   const computedTableRows = useMemo(() => {
-    if (!selectedTable) return [];
+    if (!selectedTable?.id) return [];
     const now = new Date();
     return tableRows.map((row) =>
       computeRowWithAppFormulas({
@@ -172,7 +177,7 @@ export function Simulator() {
         now,
       })
     );
-  }, [sampleDataByTableId, selectedTable, tableRows, tables]);
+  }, [tableRows, sampleDataByTableId, selectedTable, tables]);
 
   const computedSelectedRow = useMemo(() => {
     if (!selectedTable || !selectedRow) return null;
@@ -248,7 +253,7 @@ export function Simulator() {
     }
 
     return sections;
-  }, [sampleDataByTableId, selectedRow, selectedTable, tables]);
+  }, [getTableKeyColumnId, sampleDataByTableId, selectedRow, selectedTable, tables]);
 
   const handleAddRelatedRow = (section: (typeof relatedSections)[number]) => {
     if (!selectedRow) return;
@@ -896,20 +901,27 @@ function SortableSimulatorTableNavItem(props: {
 
   return (
     <li ref={setNodeRef} style={style}>
-      <button
-        onClick={onSelect}
-        {...attributes}
-        {...listeners}
-        className={`w-full flex items-center gap-2 px-4 py-2.5 text-left text-xs transition-colors
+      <div
+        className={`w-full flex items-center gap-2 px-4 py-2.5 text-xs transition-colors
           ${isSelected ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-600 hover:bg-zinc-50'}
           ${isOver ? 'ring-2 ring-indigo-200 ring-inset' : ''}
         `}
       >
+        {/* ドラッグハンドル */}
         <span
-          className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-sm ${TABLE_BG_COLOR_CLASSES[table.color || '#6366f1'] || 'bg-indigo-500'}`}
+          {...attributes}
+          {...listeners}
+          className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-sm cursor-grab ${TABLE_BG_COLOR_CLASSES[table.color || '#6366f1'] || 'bg-indigo-500'}`}
           aria-hidden="true"
         />
-        <span className="truncate">{table.name}</span>
+        {/* クリック可能なテーブル名 */}
+        <button
+          type="button"
+          onClick={onSelect}
+          className="flex-1 text-left truncate hover:underline focus:outline-none focus:underline"
+        >
+          {table.name}
+        </button>
 
         <span className="ml-auto flex items-center gap-1.5 shrink-0">
           <button
@@ -966,7 +978,7 @@ function SortableSimulatorTableNavItem(props: {
             </svg>
           </button>
         </span>
-      </button>
+      </div>
     </li>
   );
 }

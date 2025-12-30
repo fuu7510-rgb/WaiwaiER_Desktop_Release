@@ -1,0 +1,81 @@
+# Note Parameters サンプル
+
+このファイルは、AppSheet Note Parametersの動作検証用サンプルです。
+検証結果は `NOTE_PARAMETERS_SUPPORT_STATUS.md` に記録してください。
+
+---
+
+## 現在の出力仕様
+
+WaiwaiER Desktop v0.1.x では、検証済み (Verified) のパラメーターのみを出力します。
+検証が進むにつれて、出力されるパラメーターが増えていきます。
+
+### 現在出力されるパラメーター (Verified)
+
+- `Type`: カラム型（例: "Text", "Number", "Ref", "Enum" など）
+
+### 出力を保留中のパラメーター (Untested / Unstable)
+
+以下のパラメーターは検証が完了するまで出力されません：
+
+- `IsKey`, `IsLabel`, `IsRequired` - 基本フラグ
+- `DEFAULT`, `Description`, `DisplayName` - 基本設定
+- `EnumValues`, `BaseType` - Enum型設定
+- `ReferencedTableName`, `ReferencedKeyColumn`, `ReferencedType` - Ref型設定
+- その他多数（詳細は NOTE_PARAMETERS_SUPPORT_STATUS.md 参照）
+
+---
+
+## 検証用サンプル（AppSheetで動作確認が必要）
+
+以下は検証用のサンプルです。AppSheetへの取り込み時に動作を確認してください。
+
+### 基本形式（Typeのみ - 動作確認済み）
+
+```
+AppSheet:{"Type":"Text"}
+AppSheet:{"Type":"Number"}
+AppSheet:{"Type":"Date"}
+AppSheet:{"Type":"Email"}
+AppSheet:{"Type":"Ref"}
+AppSheet:{"Type":"Enum"}
+```
+
+### 検証待ちサンプル
+
+以下は将来の検証用です。動作確認ができたら NOTE_PARAMETERS_SUPPORT_STATUS.md を更新してください。
+
+```
+# IsRequired の検証
+AppSheet:{"Type":"Text","IsRequired":true}
+
+# IsKey の検証
+AppSheet:{"Type":"Text","IsKey":true}
+
+# DEFAULT の検証
+AppSheet:{"Type":"Text","DEFAULT":"デフォルト値"}
+
+# Description の検証
+AppSheet:{"Type":"Text","Description":"説明文"}
+
+# Ref型の検証（トップレベルキー）
+AppSheet:{"Type":"Ref","ReferencedTableName":"顧客","ReferencedKeyColumn":"ID","ReferencedType":"Text"}
+
+# Enum型の検証
+AppSheet:{"Type":"Enum","EnumValues":["選択肢1","選択肢2","選択肢3"],"BaseType":"Text"}
+
+# 数値型の検証
+AppSheet:{"Type":"Number","MinValue":0,"MaxValue":100}
+```
+
+---
+
+## 検証方法
+
+1. WaiwaiER DesktopでER図を作成
+2. Excelエクスポート (.xlsx)
+3. Google Driveにアップロード → Googleスプレッドシートとして開く
+4. ヘッダーセルのメモを確認
+5. AppSheetで「Add a table」
+6. カラム設定が正しく反映されているか確認
+7. 結果を NOTE_PARAMETERS_SUPPORT_STATUS.md に記録
