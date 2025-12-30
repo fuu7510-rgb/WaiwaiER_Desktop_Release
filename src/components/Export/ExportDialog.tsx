@@ -4,6 +4,11 @@ import { save } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 import { Dialog, Button } from '../common';
 import { useERStore, useProjectStore, useUIStore } from '../../stores';
+import {
+  getVerifiedParams,
+  getNoteParamsByStatus,
+  type NoteParamInfo,
+} from '../../lib/appsheet/noteParameters';
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -214,7 +219,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
 
           {/* Options */}
           {format === 'excel' && (
-            <div>
+            <div className="space-y-3">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -224,6 +229,9 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
                 />
                 <span className="text-xs text-zinc-600">{t('export.includeData')}</span>
               </label>
+
+              {/* Note Parameters サポート状況パネル */}
+              <NoteParamsInfoPanel />
             </div>
           )}
 
@@ -247,5 +255,53 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
         </div>
       )}
     </Dialog>
+  );
+}
+
+/**
+ * Note Parameters サポート状況を表示するパネル
+ */
+function NoteParamsInfoPanel() {
+  const { t, i18n } = useTranslation();
+  const isJa = i18n.language === 'ja';
+
+  const verified = getVerifiedParams();
+  const unstable = getNoteParamsByStatus('unstable');
+  const untested = getNoteParamsByStatus('untested');
+
+  const getLabel = (p: NoteParamInfo) => (isJa ? p.labelJa : p.labelEn);
+
+  return (
+    <div className="rounded border border-zinc-200 bg-zinc-50 p-2.5 text-[10px]">
+      <p className="font-medium text-zinc-600 mb-1.5">
+        {t('export.noteParams.title')}
+      </p>
+
+      {/* Verified */}
+      <div className="mb-1.5">
+        <span className="text-green-600">✅ {t('export.noteParams.verified')}:</span>{' '}
+        <span className="text-zinc-700">
+          {verified.length > 0
+            ? verified.map((p) => getLabel(p)).join(', ')
+            : t('export.noteParams.none')}
+        </span>
+      </div>
+
+      {/* Unstable / Untested */}
+      <div className="text-zinc-400">
+        <span>⚠️🔍 {t('export.noteParams.pending')}:</span>{' '}
+        <span>
+          {[...unstable, ...untested]
+            .slice(0, 5)
+            .map((p) => getLabel(p))
+            .join(', ')}
+          {unstable.length + untested.length > 5 && ` (+${unstable.length + untested.length - 5})`}
+        </span>
+      </div>
+
+      <p className="mt-1.5 text-zinc-400 italic">
+        {t('export.noteParams.hint')}
+      </p>
+    </div>
   );
 }

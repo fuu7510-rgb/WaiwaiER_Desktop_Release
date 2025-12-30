@@ -46,7 +46,7 @@ AppSheetのNote Parametersは「セルのメモ（Note）」に書きます。�
 `IsLabel` は Note Parameters としては仕様上存在しますが、AppSheet 側の挙動（既存アプリ状態/内部キャッシュ/取り込みのタイミング等）により、
 **新規 Add a table / 既存テーブル更新のいずれでも反映されない**ケースがあります。
 
-- WaiwaiER Desktop の出力はトリガー文字列 `AppSheet:` を先頭に置き、トグル値も `TRUE/FALSE` で出力します。
+- WaiwaiER Desktop の出力はトリガー文字列 `AppSheet:` を先頭に置き、トグル値は `true/false`（小文字）で出力します。
 - それでも `IsLabel` が反映されない場合は、現状は **AppSheet エディタ側で Label 列を手動設定**するのが確実です。
 
 （同様に `IsKey` 等も AppSheet 側で必ずしも自動反映されるとは限りません。重要な設定は最終的に AppSheet エディタで確認してください。）
@@ -87,8 +87,8 @@ AppSheet:{"Type":"データ型","IsRequired":true,"TypeAuxData":"..."}
 - 後続は **JSONオブジェクト**（`{...}`）
 - キー名は **大文字小文字を区別**（例: `DisplayName` と `Displayname` は別）
 - 文字列は **ダブルクォート**のみ（JSON準拠）
-- 真偽値（トグル系）は `TRUE/FALSE`（大文字）を推奨（資料表記に合わせる）
-- `true/false`（小文字）が効かないケースがあるため、WaiwaiER Desktop の自動出力は `TRUE/FALSE` を使用
+- 真偽値（トグル系）は **`true/false`（小文字）で記載**する（AppSheet側でこちらが正しく認識される）
+- `TRUE/FALSE`（大文字）だと AppSheet が正しく認識しないケースがあるため、WaiwaiER Desktop の自動出力は `true/false` を使用
 - 末尾カンマは不可（`{"a":1,}` はNG）
 
 > 補足: 見た目のために `AppSheet: {\n  "Type": "Text"\n}` のように空白や改行を入れても、多くのケースで動きますが、トラブルを減らすため本ガイドでは**1行のJSON**を推奨します。
@@ -108,20 +108,20 @@ Note Parametersで使用できる主要な設定項目は以下の通りです�
 | キー名 | AppSheetエディタでの名称 | データ型 | 説明 |
 |--------|---------------------------|----------|------|
 | `Type` | Column Type | String | カラムのデータ型（ドロップダウンから選択した値そのまま） |
-| `IsHidden` | Show? (toggle) | TRUE/FALSE | 非表示フラグ（数式を使用する場合は `Show_If` を使用） |
+| `IsHidden` | Show? (toggle) | true/false | 非表示フラグ（数式を使用する場合は `Show_If` を使用） |
 | `Show_If` | Show? (formula) | String | 表示条件を数式で指定（数式を使用する場合のみ） |
-| `IsRequired` | Require? (toggle) | TRUE/FALSE | 必須項目フラグ（数式を使用する場合は `Required_If` を使用） |
+| `IsRequired` | Require? (toggle) | true/false | 必須項目フラグ（数式を使用する場合は `Required_If` を使用） |
 | `Required_If` | Required? (formula) | String | 必須条件を数式で指定（数式を使用する場合のみ） |
 | `AppFormula` | App formula | String | アプリ数式 |
 | `DEFAULT` | Initial value | String | 初期値 |
 | `DisplayName` | Display name | String | 表示名 |
 | `Description` | Description | String | 説明文 |
-| `IsLabel` | Label | TRUE/FALSE | ラベルカラムとして設定 |
-| `IsKey` | Key | TRUE/FALSE | キーカラムとして設定 |
-| `IsScannable` | Scannable | TRUE/FALSE | スキャン可能に設定 |
-| `IsNfcScannable` | NFC Scannable | TRUE/FALSE | NFCスキャン可能に設定 |
-| `Searchable` | Searchable | TRUE/FALSE | 検索可能に設定 |
-| `IsSensitive` | Sensitive data | TRUE/FALSE | 機密データとして設定 |
+| `IsLabel` | Label | true/false | ラベルカラムとして設定 |
+| `IsKey` | Key | true/false | キーカラムとして設定 |
+| `IsScannable` | Scannable | true/false | スキャン可能に設定 |
+| `IsNfcScannable` | NFC Scannable | true/false | NFCスキャン可能に設定 |
+| `Searchable` | Searchable | true/false | 検索可能に設定 |
+| `IsSensitive` | Sensitive data | true/false | 機密データとして設定 |
 | `Valid_If` | Valid If | String | 有効性チェックの数式 |
 | `Error_Message_If_Invalid` | Invalid value error | String | 無効値エラーメッセージ |
 | `Suggested_Values` | Suggested values | String | 推奨値 |
@@ -130,18 +130,18 @@ Note Parametersで使用できる主要な設定項目は以下の通りです�
 | `LongTextFormatting` | Formatting | Enum string | フォーマット（Plain Text, Markdown, HTML） |
 | `ItemSeparator` | Item separator | String | 項目区切り文字 |
 | `EnumValues` | Values | Array | 選択肢の配列（各項目はダブルクォートで囲む） |
-| `AllowOtherValues` | Allow other values | TRUE/FALSE | その他の値を許可 |
-| `AutoCompleteOtherValues` | Auto-complete other values | TRUE/FALSE | その他の値の自動補完 |
+| `AllowOtherValues` | Allow other values | true/false | その他の値を許可 |
+| `AutoCompleteOtherValues` | Auto-complete other values | true/false | その他の値の自動補完 |
 | `BaseType` | Base type | String | ベース型（ドロップダウンから選択した値そのまま） |
 | `ReferencedRootTableName` | Referenced table name | String | 参照テーブル名（enum/enumlist base type referenceの場合のみ） |
 | `EnumInputMode` | Input mode | Enum string | 入力モード（Auto, Buttons, Stack, Dropdown） |
 | `ReferencedTableName` | Referenced table name | String | 参照先テーブル名（REF型の場合のみ、テーブル名そのまま） |
 | `ReferencedKeyColumn` | n/a | String | 参照先テーブルのキーカラム名 |
 | `ReferencedType` | n/a | String | 参照先テーブルのキーカラムの型 |
-| `IsAPartOf` | Is a part of? | TRUE/FALSE | パートオブ関係として設定 |
+| `IsAPartOf` | Is a part of? | true/false | パートオブ関係として設定 |
 | `InputMode` | Input mode | Enum string | 入力モード（Auto, Buttons, Dropdown） |
 | `NumericDigits` | Numeric digits | Integer | 数値桁数 |
-| `ShowThousandsSeparator` | Show thousands separator | TRUE/FALSE | 千の位区切りを表示 |
+| `ShowThousandsSeparator` | Show thousands separator | true/false | 千の位区切りを表示 |
 | `NumberDisplayMode` | Display mode | Enum string | 表示モード（Auto, Standard, Range, Label） |
 | `MaxValue` | Maximum value | Integer/Decimal | 最大値 |
 | `MinValue` | Minimum value | Integer/Decimal | 最小値 |
@@ -163,9 +163,9 @@ Note Parametersで使用できる主要な設定項目は以下の通りです�
 | キー名 | AppSheetエディタでの名称 | データ型 | 説明 |
 |--------|-------------------------|----------|------|
 | `Type` | Column Type | String | カラムのデータ型（ドロップダウンから選択した値そのまま） |
-| `IsRequired` | Require? (toggle) | TRUE/FALSE | 必須項目フラグ（数式を使用する場合は `Required_If` を使用） |
+| `IsRequired` | Require? (toggle) | true/false | 必須項目フラグ（数式を使用する場合は `Required_If` を使用） |
 | `Required_If` | Require? (formula) | String | 必須条件を数式で指定（数式を使用する場合のみ） |
-| `IsHidden` | Show? (toggle) | TRUE/FALSE | 非表示フラグ（数式を使用する場合は `Show_If` を使用） |
+| `IsHidden` | Show? (toggle) | true/false | 非表示フラグ（数式を使用する場合は `Show_If` を使用） |
 | `Show_If` | Show? (formula) | String | 表示条件を数式で指定（数式を使用する場合のみ） |
 | `DisplayName` | Display name | String | 表示名 |
 | `Description` | Description | String | 説明文 |
@@ -176,12 +176,12 @@ Note Parametersで使用できる主要な設定項目は以下の通りです�
 
 | キー名 | AppSheetエディタでの名称 | データ型 | 説明 |
 |--------|-------------------------|----------|------|
-| `IsKey` | Key | TRUE/FALSE | キーカラムとして設定 |
-| `IsLabel` | Label | TRUE/FALSE | ラベルカラムとして設定 |
-| `IsScannable` | Scannable | TRUE/FALSE | スキャン可能に設定 |
-| `IsNfcScannable` | NFC Scannable | TRUE/FALSE | NFCスキャン可能に設定 |
-| `Searchable` | Searchable | TRUE/FALSE | 検索可能に設定 |
-| `IsSensitive` | Sensitive data | TRUE/FALSE | 機密データとして設定 |
+| `IsKey` | Key | true/false | キーカラムとして設定 |
+| `IsLabel` | Label | true/false | ラベルカラムとして設定 |
+| `IsScannable` | Scannable | true/false | スキャン可能に設定 |
+| `IsNfcScannable` | NFC Scannable | true/false | NFCスキャン可能に設定 |
+| `Searchable` | Searchable | true/false | 検索可能に設定 |
+| `IsSensitive` | Sensitive data | true/false | 機密データとして設定 |
 
 ### 表示・編集設定
 
@@ -212,8 +212,8 @@ Note Parametersで使用できる主要な設定項目は以下の通りです�
 | `EnumValues` | Values | Array | 選択肢の配列（各項目はダブルクォートで囲む） |
 | `BaseType` | Base type | String | ベース型（ドロップダウンから選択した値そのまま） |
 | `ReferencedRootTableName` | Referenced table name | String | 参照テーブル名（enum/enumlist base type referenceの場合のみ） |
-| `AllowOtherValues` | Allow other values | TRUE/FALSE | その他の値を許可 |
-| `AutoCompleteOtherValues` | Auto-complete other values | TRUE/FALSE | その他の値の自動補完 |
+| `AllowOtherValues` | Allow other values | true/false | その他の値を許可 |
+| `AutoCompleteOtherValues` | Auto-complete other values | true/false | その他の値の自動補完 |
 | `EnumInputMode` | Input mode | Enum string | 入力モード（Auto, Buttons, Stack, Dropdown） |
 
 ### Ref型の設定
@@ -223,7 +223,7 @@ Note Parametersで使用できる主要な設定項目は以下の通りです�
 | `ReferencedTableName` | Referenced table name | String | 参照先テーブル名（REF型の場合のみ、テーブル名そのまま） |
 | `ReferencedKeyColumn` | n/a | String | 参照先テーブルのキーカラム名 |
 | `ReferencedType` | n/a | String | 参照先テーブルのキーカラムの型 |
-| `IsAPartOf` | Is a part of? | TRUE/FALSE | パートオブ関係として設定 |
+| `IsAPartOf` | Is a part of? | true/false | パートオブ関係として設定 |
 | `InputMode` | Input mode | Enum string | 入力モード（Auto, Buttons, Dropdown） |
 
 ### 数値型の設定
@@ -231,7 +231,7 @@ Note Parametersで使用できる主要な設定項目は以下の通りです�
 | キー名 | AppSheetエディタでの名称 | データ型 | 説明 |
 |--------|-------------------------|----------|------|
 | `NumericDigits` | Numeric digits | Integer | 数値桁数 |
-| `ShowThousandsSeparator` | Show thousands separator | TRUE/FALSE | 千の位区切りを表示 |
+| `ShowThousandsSeparator` | Show thousands separator | true/false | 千の位区切りを表示 |
 | `NumberDisplayMode` | Display mode | Enum string | 表示モード（Auto, Standard, Range, Label） |
 | `MaxValue` | Maximum value | Integer/Decimal | 最大値 |
 | `MinValue` | Minimum value | Integer/Decimal | 最小値 |

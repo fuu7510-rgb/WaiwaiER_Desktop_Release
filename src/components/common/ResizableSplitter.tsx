@@ -96,7 +96,7 @@ export function ResizableSplitter({
     <div ref={containerRef} className={`flex flex-col h-full ${className}`}>
       {/* 上部パネル */}
       <div
-        className="overflow-hidden flex flex-col"
+        className="overflow-hidden flex flex-col min-h-0"
         style={{ height: `${topHeightPercent}%` }}
       >
         {topPanel}
@@ -122,7 +122,7 @@ export function ResizableSplitter({
 
       {/* 下部パネル */}
       <div
-        className="overflow-hidden flex flex-col"
+        className="overflow-hidden flex flex-col min-h-0"
         style={{ height: `${100 - topHeightPercent}%` }}
       >
         {bottomPanel}

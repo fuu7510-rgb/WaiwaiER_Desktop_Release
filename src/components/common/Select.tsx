@@ -1,8 +1,8 @@
 import { forwardRef, useId } from 'react';
-import type { SelectHTMLAttributes } from 'react';
+import type { SelectHTMLAttributes, ReactNode } from 'react';
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  label?: string;
+  label?: string | ReactNode;
   error?: string;
   options: { value: string; label: string }[];
 }

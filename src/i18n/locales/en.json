@@ -387,6 +387,13 @@
     "info": {
       "tablesCount": "Tables"
     },
+    "noteParams": {
+      "title": "Note Parameters Output Status",
+      "verified": "Output",
+      "pending": "Pending verification",
+      "none": "None",
+      "hint": "Only verified parameters are exported to Excel"
+    },
     "exportSuccess": "Export completed",
     "exportError": "Export failed"
   },

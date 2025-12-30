@@ -4,6 +4,37 @@ import { useERStore } from '../../stores';
 import { Button, Dialog, Input, Select, InfoTooltip, CollapsibleSection } from '../common';
 import type { Column, ColumnType, ColumnConstraints } from '../../types';
 import { APPSHEET_COLUMN_TYPES } from '../../types';
+import {
+  getStatusForField,
+  getStatusBadgeInfo,
+} from '../../lib/appsheet/noteParameters';
+
+/**
+ * Note Parameterのサポート状況を示すバッジ
+ * Excel出力時に該当パラメーターが出力されるかどうかを表示
+ */
+function NoteParamBadge({ field }: { field: string }) {
+  const { i18n } = useTranslation();
+  const status = getStatusForField(field);
+
+  if (!status) return null;
+
+  const badge = getStatusBadgeInfo(status);
+  const label = i18n.language === 'ja' ? badge.labelJa : badge.labelEn;
+
+  return (
+    <span
+      className={`ml-1 px-1 py-0.5 text-[9px] rounded ${badge.colorClass}`}
+      title={
+        i18n.language === 'ja'
+          ? `Excelエクスポート: ${label}`
+          : `Excel export: ${label}`
+      }
+    >
+      {badge.emoji}
+    </span>
+  );
+}
 
 export function ColumnEditor() {
   const { i18n } = useTranslation();
@@ -464,20 +495,25 @@ export function ColumnEditor() {
       />
       
       {/* データ型 */}
-      <Select
-        label={labelKey('table.columnType')}
-        value={selectedColumn.type}
-        options={typeOptions}
-        onChange={(e) => {
-          const nextType = e.target.value as ColumnType;
-          const { constraints, appSheet } = sanitizeForType(
-            nextType,
-            selectedColumn.constraints,
-            selectedColumn.appSheet as Record<string, unknown> | undefined
-          );
-          handleUpdate({ type: nextType, constraints, appSheet });
-        }}
-      />
+      <div>
+        <div className="flex items-center mb-1">
+          <span className="text-xs font-medium text-zinc-600">{labelKey('table.columnType')}</span>
+          <NoteParamBadge field="type" />
+        </div>
+        <Select
+          value={selectedColumn.type}
+          options={typeOptions}
+          onChange={(e) => {
+            const nextType = e.target.value as ColumnType;
+            const { constraints, appSheet } = sanitizeForType(
+              nextType,
+              selectedColumn.constraints,
+              selectedColumn.appSheet as Record<string, unknown> | undefined
+            );
+            handleUpdate({ type: nextType, constraints, appSheet });
+          }}
+        />
+      </div>
       
       
       {/* 制約設定 */}
@@ -650,7 +686,10 @@ export function ColumnEditor() {
                   }}
                   className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
                 />
-                <span className="text-xs text-zinc-600">{labelEnJa('Require?', '必須')}</span>
+                <span className="text-xs text-zinc-600">
+                  {labelEnJa('Require?', '必須')}
+                  <NoteParamBadge field="required" />
+                </span>
               </label>
               <Input
                 label={labelEnJa('Required_If', '必須条件（数式）')}
@@ -741,7 +780,10 @@ export function ColumnEditor() {
                   onChange={(e) => handleUpdate({ isKey: e.target.checked })}
                   className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
                 />
-                <span className="text-xs text-zinc-600">{labelEnJa('Key', 'キー')}</span>
+                <span className="text-xs text-zinc-600">
+                  {labelEnJa('Key', 'キー')}
+                  <NoteParamBadge field="isKey" />
+                </span>
                 <InfoTooltip
                   content={helpText(
                     'This column uniquely identifies rows from this table.',
@@ -835,7 +877,10 @@ export function ColumnEditor() {
                   onChange={(e) => handleUpdate({ isLabel: e.target.checked })}
                   className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
                 />
-                <span className="text-xs text-zinc-600">{labelEnJa('Label', 'ラベル')}</span>
+                <span className="text-xs text-zinc-600">
+                  {labelEnJa('Label', 'ラベル')}
+                  <NoteParamBadge field="isLabel" />
+                </span>
                 <InfoTooltip
                   content={helpText(
                     'This column represents rows from this table in lists and refs.',
@@ -1240,7 +1285,7 @@ export function ColumnEditor() {
       </Dialog>
       
       {/* 削除ボタン */}
-      <div className="border-t border-zinc-100 pt-3">
+      <div className="border-t border-zinc-100 pt-3 pb-16">
         <Button variant="danger" size="sm" onClick={handleDelete} className="w-full">
           {labelKey('column.deleteColumn')}
         </Button>

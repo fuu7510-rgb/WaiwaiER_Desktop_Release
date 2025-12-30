@@ -366,6 +366,13 @@
     "info": {
       "tablesCount": "テーブル数"
     },
+    "noteParams": {
+      "title": "Note Parameters 出力状況",
+      "verified": "出力",
+      "pending": "検証中",
+      "none": "なし",
+      "hint": "検証済みのパラメーターのみExcelに出力されます"
+    },
     "exportSuccess": "エクスポートが完了しました",
     "exportError": "エクスポートに失敗しました"
   },

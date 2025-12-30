@@ -1138,9 +1138,8 @@ export const useERStore = create<ERState>()(
     selectTable: (id) => {
       set((state) => {
         state.selectedTableId = id;
-        if (!id) {
-          state.selectedColumnId = null;
-        }
+        // テーブル選択時はカラム選択を常にクリアする
+        state.selectedColumnId = null;
       });
     },
     

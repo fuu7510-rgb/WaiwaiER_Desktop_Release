@@ -186,7 +186,7 @@ function SidebarInner() {
         }
         bottomPanel={
           /* Property Editor */
-          <div className="h-full overflow-y-auto bg-zinc-50/50">
+          <div className="flex-1 min-h-0 overflow-y-auto bg-zinc-50/50">
             {selectedColumnId ? (
               <ColumnEditor />
             ) : selectedTableId ? (
