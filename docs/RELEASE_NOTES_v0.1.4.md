@@ -30,6 +30,9 @@
 - 設定: 「共通カラム」を追加（テーブル作成時/作成後に、設定したカラムを各テーブルの末尾へ自動追加）
 - 設定: 「共通カラム」編集画面を追加（追加/削除/順序変更/型・制約の編集）
 - 設定: 「文字の大きさ」設定を追加（小/中/大の3段階で切り替え可能）
+- Excelエクスポート: Note Parametersサポート状況パネルを追加（出力されるパラメーターを事前に確認可能）
+- ERエディタ: カラム設定項目にNote Parametersステータスバッジを追加（Type/Key/Label/Requiredの出力状況を表示）
+- ドキュメント: Note Parametersサポート状況トラッキング用ドキュメントを追加
 
 ### 改善
 - 設定: 「新規作成時のルール」「バックアップ」を折りたたみ（開閉）できるように改善
@@ -44,6 +47,9 @@
   - 不要なキー（Category/Content/ResetOnEdit）をappSheetから自動除去するクリーンアップ処理を追加
   - Show/Required/Editable などの競合しやすいキーを自動調整（`Show_If` と `IsHidden`、`Required_If` と `IsRequired`、`Editable_If` と `Editable` の両立を避ける）
 - ドキュメント: AppSheet Note Parameters（メモ）ガイドとキー一覧を更新（不要キー `Category`/`Content` を削除）
+- Excelエクスポート: Note Parametersの出力を検証済み（Verified）パラメーターのみに限定（未検証パラメーターによる不具合を防止）
+- Excelエクスポート: 真偽値を `true/false`（小文字）で出力するように変更（AppSheetの認識精度向上）
+- ERエディタ: サイドバーのプロパティエディタ下部スクロールを改善
 
 ### 修正
 - Simulator: DOMネストエラーを修正（`<button>` 内に `<button>` がネストされていた問題）
