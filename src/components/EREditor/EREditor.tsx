@@ -347,9 +347,9 @@ function EREditorInner() {
         {isGridVisible && (
           <Background
             color="currentColor"
-            className="text-zinc-300"
+            className="text-zinc-400"
             gap={15}
-            lineWidth={1.5}
+            lineWidth={2}
           />
         )}
         <Controls className="!bg-white !border-zinc-200 !shadow-sm [&>button]:!border-zinc-200 [&>button]:!bg-white [&>button:hover]:!bg-zinc-50" />
