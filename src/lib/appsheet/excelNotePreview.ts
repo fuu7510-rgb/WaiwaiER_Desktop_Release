@@ -11,11 +11,13 @@ import { getDefaultNoteParamOutputSettings } from './noteParameters';
 type AppSheetRecord = Record<string, unknown>;
 
 function shouldOutputNoteParam(key: string, userSettings: NoteParamOutputSettings | undefined): boolean {
-  // ユーザー設定がある場合はそれに従う
-  if (userSettings && key in userSettings) {
+  // 保存された設定を最優先する。
+  // userSettings が存在する場合、未定義キーは false として扱い、最新デフォルトにフォールバックしない。
+  if (userSettings) {
     return userSettings[key] ?? false;
   }
-  // デフォルト設定を使用
+
+  // 未保存（設定なし）の場合のみデフォルト設定を使用
   const defaultSettings = getDefaultNoteParamOutputSettings();
   return defaultSettings[key] ?? false;
 }
@@ -46,7 +48,7 @@ function generateColumnNote(column: Table['columns'][number], userSettings: Note
     data['Type'] = column.type;
   }
 
-  // IsKey (🔍 Untested)
+  // IsKey (✅ Verified)
   if (shouldOutputNoteParam('IsKey', userSettings) && !userHas(appSheet, 'IsKey') && column.isKey) {
     data['IsKey'] = true;
   }

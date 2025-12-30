@@ -86,6 +86,8 @@ AppSheet:{"Type":"データ型","IsRequired":true,"TypeAuxData":"..."}
 - 先頭は必ず `AppSheet:` で始める
 - 後続は **JSONオブジェクト**（`{...}`）
 - キー名は **大文字小文字を区別**（例: `DisplayName` と `Displayname` は別）
+- キー名を **すべて大文字（ALL CAPS）** にしない（例: 初期値は `Default` が正で、`DEFAULT` は誤り）
+- 関数名の表記は、AppSheet公式の「AppSheet 関数一覧」に掲載されている表記に合わせる（例: `UNIQUEID()` / `NOW()` / `USEREMAIL()` は公式一覧では大文字で記載）。Note Parameters（セルのメモ）経由では表記揺れで解釈されないことがあるため、特に公式表記どおりを推奨。※ただし、すべての関数に同じ大小文字ルールが適用されるとは限らないため、動作しない場合は個別に確認する
 - 文字列は **ダブルクォート**のみ（JSON準拠）
 - 真偽値（トグル系）は **`true/false`（小文字）で記載**する（AppSheet側でこちらが正しく認識される）
 - `TRUE/FALSE`（大文字）だと AppSheet が正しく認識しないケースがあるため、WaiwaiER Desktop の自動出力は `true/false` を使用
@@ -113,7 +115,7 @@ Note Parametersで使用できる主要な設定項目は以下の通りです�
 | `IsRequired` | Require? (toggle) | true/false | 必須項目フラグ（数式を使用する場合は `Required_If` を使用） |
 | `Required_If` | Required? (formula) | String | 必須条件を数式で指定（数式を使用する場合のみ） |
 | `AppFormula` | App formula | String | アプリ数式 |
-| `DEFAULT` | Initial value | String | 初期値 |
+| `Default` | Initial value | String | 初期値 |
 | `DisplayName` | Display name | String | 表示名 |
 | `Description` | Description | String | 説明文 |
 | `IsLabel` | Label | true/false | ラベルカラムとして設定 |
@@ -169,7 +171,7 @@ Note Parametersで使用できる主要な設定項目は以下の通りです�
 | `Show_If` | Show? (formula) | String | 表示条件を数式で指定（数式を使用する場合のみ） |
 | `DisplayName` | Display name | String | 表示名 |
 | `Description` | Description | String | 説明文 |
-| `DEFAULT` | Initial value | String | 初期値 |
+| `Default` | Initial value | String | 初期値 |
 | `AppFormula` | App formula | String | アプリ数式 |
 
 ### 識別・検索設定
@@ -510,7 +512,7 @@ AppSheet:{"Type":"Number","TypeAuxData":"{\"MinValue\":0,\"MaxValue\":100,\"Deci
 ### Date型（必須、初期値）
 
 ```json
-AppSheet:{"Type":"Date","IsRequired":true,"DEFAULT":"TODAY()"}
+AppSheet:{"Type":"Date","IsRequired":true,"Default":"TODAY()"}
 ```
 
 ### LongText型（Markdown形式）

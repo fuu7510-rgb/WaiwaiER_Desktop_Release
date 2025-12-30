@@ -2,6 +2,9 @@
 
 このドキュメントは、AppSheet Note Parametersの各キーについて、WaiwaiER Desktopからのエクスポート時の動作検証結果を記録します。
 
+> 重要: Note Parameters のキー名は大文字小文字を区別します。キー名を「すべて大文字（ALL CAPS）」にすると AppSheet が認識しないケースがあります。
+> 特に初期値は `Default` が正で、`DEFAULT` は誤りです（キー名の検証結果）。
+
 ## ステータス凡例
 
 | ステータス | 意味 |
@@ -22,14 +25,14 @@
 | `Show_If` | 🔍 未検証 | 表示条件（数式） |
 | `DisplayName` | 🔍 未検証 | 表示名 |
 | `Description` | 🔍 未検証 | 説明文 |
-| `DEFAULT` | 🔍 未検証 | 初期値 |
+| `Default` | 🔍 未検証 | 初期値（キー名は `Default`。`DEFAULT` は誤り） |
 | `AppFormula` | 🔍 未検証 | アプリ数式 |
 
 ## 識別・検索設定
 
 | キー名 | ステータス | 備考 |
 |--------|-----------|------|
-| `IsKey` | 🔍 未検証 | キーカラム設定 |
+| `IsKey` | ✅ 確認済み | キーカラム設定（ユーザー動作確認済み） |
 | `IsLabel` | ⚠️ 不安定 | ラベル設定。環境によって反映されないケースあり |
 | `IsScannable` | ❌ 未対応 | スキャン可能設定（メモ出力しても反映されず） |
 | `IsNfcScannable` | ❌ 未対応 | NFCスキャン設定（メモ出力しても反映されず） |
@@ -99,6 +102,7 @@
 
 ### 2025-12-30
 - 初版作成
+- `IsKey` を「確認済み」に更新（ユーザー動作確認）
 - `IsLabel` を「不安定」に設定（MEMO_SETUP.md の記載に基づく）
 - `IsScannable` / `IsNfcScannable` / `Searchable` / `IsSensitive` は「未対応」に設定（ユーザー検証: 反映されず）
 

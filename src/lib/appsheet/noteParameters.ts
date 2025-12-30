@@ -75,7 +75,7 @@ export const NOTE_PARAM_STATUS: NoteParamInfo[] = [
   { key: 'AppFormula', status: 'untested', category: 'basic', labelJa: 'アプリ数式', labelEn: 'App Formula', defaultEnabled: false },
 
   // 識別・検索設定
-  { key: 'IsKey', status: 'untested', category: 'identification', labelJa: 'キー', labelEn: 'Is Key', relatedField: 'isKey', defaultEnabled: false },
+  { key: 'IsKey', status: 'verified', category: 'identification', labelJa: 'キー', labelEn: 'Is Key', relatedField: 'isKey', defaultEnabled: true },
   { key: 'IsLabel', status: 'unstable', category: 'identification', labelJa: 'ラベル', labelEn: 'Is Label', relatedField: 'isLabel', defaultEnabled: true },
   { key: 'IsScannable', status: 'unsupported', category: 'identification', labelJa: 'スキャン可能', labelEn: 'Is Scannable', defaultEnabled: false },
   { key: 'IsNfcScannable', status: 'unsupported', category: 'identification', labelJa: 'NFCスキャン可能', labelEn: 'Is NFC Scannable', defaultEnabled: false },

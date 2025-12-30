@@ -129,7 +129,7 @@ fn get_note_param_status(key: &str) -> NoteParamStatus {
         "AppFormula" => NoteParamStatus::Untested,
         
         // 識別・検索設定
-        "IsKey" => NoteParamStatus::Untested,
+        "IsKey" => NoteParamStatus::Verified,
         "IsLabel" => NoteParamStatus::Unstable, // 環境によって反映されないケースあり
         "IsScannable" => NoteParamStatus::Unsupported,
         "IsNfcScannable" => NoteParamStatus::Unsupported,
@@ -196,9 +196,9 @@ fn is_export_whitelisted_note_param(_key: &str) -> bool {
 fn should_output_note_param(key: &str, user_settings: Option<&HashMap<String, bool>>) -> bool {
     // ユーザー設定がある場合はそれに従う
     if let Some(settings) = user_settings {
-        if let Some(&enabled) = settings.get(key) {
-            return enabled;
-        }
+        // 保存された設定を最優先する。
+        // 未定義キーは「未チェック（false）」として扱い、新しいデフォルトにフォールバックしない。
+        return settings.get(key).copied().unwrap_or(false);
     }
     // デフォルト: Verified のみ + ホワイトリスト
     matches!(get_note_param_status(key), NoteParamStatus::Verified)

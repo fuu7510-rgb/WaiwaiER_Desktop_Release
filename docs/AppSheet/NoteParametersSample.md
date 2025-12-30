@@ -19,7 +19,7 @@ WaiwaiER Desktop v0.1.x では、検証済み (Verified) のパラメーター�
 以下のパラメーターは検証が完了するまで出力されません：
 
 - `IsKey`, `IsLabel`, `IsRequired` - 基本フラグ
-- `DEFAULT`, `Description`, `DisplayName` - 基本設定
+- `Default`, `Description`, `DisplayName` - 基本設定
 - `EnumValues`, `BaseType` - Enum型設定
 - `ReferencedTableName`, `ReferencedKeyColumn`, `ReferencedType` - Ref型設定
 - その他多数（詳細は NOTE_PARAMETERS_SUPPORT_STATUS.md 参照）
@@ -52,8 +52,8 @@ AppSheet:{"Type":"Text","IsRequired":true}
 # IsKey の検証
 AppSheet:{"Type":"Text","IsKey":true}
 
-# DEFAULT の検証
-AppSheet:{"Type":"Text","DEFAULT":"デフォルト値"}
+# Default の検証
+AppSheet:{"Type":"Text","Default":"デフォルト値"}
 
 # Description の検証
 AppSheet:{"Type":"Text","Description":"説明文"}
