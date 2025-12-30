@@ -34,8 +34,19 @@ export function useAppSheetSanitizer() {
       let nextConstraints: ColumnConstraints = constraints;
       let nextAppSheet = appSheet;
 
+      // Migrate legacy IsRequired in AppSheet map to constraints.required (single source of truth).
+      // Keep IsRequired in AppSheet map (user-editable tri-state); only mirror to constraints for UI/validation.
+      if (nextConstraints.required === undefined) {
+        const legacyIsRequired = nextAppSheet?.IsRequired;
+        if (legacyIsRequired === true) {
+          nextConstraints = { ...nextConstraints, required: true };
+        } else if (legacyIsRequired === false) {
+          nextConstraints = { ...nextConstraints, required: false };
+        }
+      }
+
       // These keys are generated from the settings above (single source of truth).
-      nextAppSheet = pruneAppSheet(nextAppSheet, ['Type', 'IsKey', 'IsLabel', 'IsRequired', 'DEFAULT', 'EnumValues']);
+      nextAppSheet = pruneAppSheet(nextAppSheet, ['Type', 'IsKey', 'IsLabel', 'DEFAULT', 'EnumValues']);
 
       // Not an AppSheet column setting (keep data clean / avoid exporting).
       nextAppSheet = pruneAppSheet(nextAppSheet, ['Category', 'Content']);

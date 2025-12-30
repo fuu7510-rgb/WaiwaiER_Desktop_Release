@@ -31,10 +31,10 @@
 |--------|-----------|------|
 | `IsKey` | 🔍 未検証 | キーカラム設定 |
 | `IsLabel` | ⚠️ 不安定 | ラベル設定。環境によって反映されないケースあり |
-| `IsScannable` | 🔍 未検証 | スキャン可能設定 |
-| `IsNfcScannable` | 🔍 未検証 | NFCスキャン設定 |
-| `Searchable` | 🔍 未検証 | 検索可能設定 |
-| `IsSensitive` | 🔍 未検証 | 機密データ設定 |
+| `IsScannable` | ❌ 未対応 | スキャン可能設定（メモ出力しても反映されず） |
+| `IsNfcScannable` | ❌ 未対応 | NFCスキャン設定（メモ出力しても反映されず） |
+| `Searchable` | ❌ 未対応 | 検索可能設定（メモ出力しても反映されず） |
+| `IsSensitive` | ❌ 未対応 | 機密データ設定（メモ出力しても反映されず） |
 
 ## バリデーション設定
 
@@ -100,6 +100,7 @@
 ### 2025-12-30
 - 初版作成
 - `IsLabel` を「不安定」に設定（MEMO_SETUP.md の記載に基づく）
+- `IsScannable` / `IsNfcScannable` / `Searchable` / `IsSensitive` は「未対応」に設定（ユーザー検証: 反映されず）
 
 ---
 

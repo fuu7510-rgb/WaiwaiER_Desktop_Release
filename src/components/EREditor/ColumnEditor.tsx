@@ -27,7 +27,7 @@ export function ColumnEditor() {
     setSampleRowsForTable,
   } = useERStore();
 
-  const { selectedColumn } = useSelectedTableColumn({ tables, selectedTableId, selectedColumnId });
+  const { selectedTable, selectedColumn } = useSelectedTableColumn({ tables, selectedTableId, selectedColumnId });
 
   const { labelEnJa, labelEnJaNoSpace, helpText, tEn, tJa, labelKey } = useColumnEditorLabels(i18n);
 
@@ -94,6 +94,8 @@ export function ColumnEditor() {
 
       <AppSheetNoteParametersSection
         selectedColumn={selectedColumn}
+        selectedTable={selectedTable}
+        tables={tables}
         handleUpdate={handleUpdate}
         handleConstraintUpdate={handleConstraintUpdate}
         labels={{ labelEnJa, helpText, labelKey }}

@@ -1,6 +1,7 @@
 use rust_xlsxwriter::{Format, Note, Workbook, XlsxError};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
 
 // フロントエンドから受け取るカラム制約の型
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -59,6 +60,41 @@ pub struct ExportRequest {
     pub tables: Vec<Table>,
     pub sample_data: std::collections::HashMap<String, Vec<SampleRow>>,
     pub include_data: bool,
+    /// ユーザー設定: Note Parameters 出力設定（キー名: 出力するか）
+    #[serde(default)]
+    pub note_param_output_settings: Option<HashMap<String, bool>>,
+}
+
+// Excelのヘッダーセルに書き込む予定のNote（AppSheet Note Parameters）をプレビュー用に返す。
+// export_to_excel() と同じロジック（Labelの正規化 + generate_column_note）を使用して一致させる。
+// 戻り値: tableId -> (columnId -> noteText)
+pub fn preview_column_notes(request: &ExportRequest) -> HashMap<String, HashMap<String, String>> {
+    let mut by_table: HashMap<String, HashMap<String, String>> = HashMap::new();
+    let user_settings = request.note_param_output_settings.as_ref();
+
+    for table in &request.tables {
+        let effective_label_column_id = pick_effective_label_column_id(table);
+
+        let mut by_column: HashMap<String, String> = HashMap::new();
+        for column in &table.columns {
+            let mut column_for_note = column.clone();
+            column_for_note.is_label = effective_label_column_id
+                .is_some_and(|id| id == column_for_note.id);
+
+            let note_text = generate_column_note(&column_for_note, &request.tables, user_settings);
+
+            // export_to_excel と同様に、実際に書き込まれる場合のみ返す（空は ""）
+            if note_text != "AppSheet:{}" {
+                by_column.insert(column.id.clone(), note_text);
+            } else {
+                by_column.insert(column.id.clone(), String::new());
+            }
+        }
+
+        by_table.insert(table.id.clone(), by_column);
+    }
+
+    by_table
 }
 
 // Note Parametersのサポート状況
@@ -67,11 +103,13 @@ pub struct ExportRequest {
 // ステータス:
 // - Verified: AppSheetで正しく認識されることを確認済み
 // - Unstable: 環境によって動作したりしなかったりする
+// - Unsupported: AppSheetで認識されない、または動作しない
 // - Untested: まだテストしていない
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum NoteParamStatus {
     Verified,  // ✅ 確認済み
     Unstable,  // ⚠️ 不安定
+    Unsupported, // ❌ 未対応
     Untested,  // 🔍 未検証
 }
 
@@ -93,10 +131,10 @@ fn get_note_param_status(key: &str) -> NoteParamStatus {
         // 識別・検索設定
         "IsKey" => NoteParamStatus::Untested,
         "IsLabel" => NoteParamStatus::Unstable, // 環境によって反映されないケースあり
-        "IsScannable" => NoteParamStatus::Untested,
-        "IsNfcScannable" => NoteParamStatus::Untested,
-        "Searchable" => NoteParamStatus::Untested,
-        "IsSensitive" => NoteParamStatus::Untested,
+        "IsScannable" => NoteParamStatus::Unsupported,
+        "IsNfcScannable" => NoteParamStatus::Unsupported,
+        "Searchable" => NoteParamStatus::Unsupported,
+        "IsSensitive" => NoteParamStatus::Unsupported,
         
         // バリデーション設定
         "Valid_If" => NoteParamStatus::Untested,
@@ -146,10 +184,25 @@ fn get_note_param_status(key: &str) -> NoteParamStatus {
     }
 }
 
+// 検証目的でエクスポートを許可するNote Parameterキー。
+// NOTE: サポート状況（get_note_param_status）は Untested のまま維持し、
+//       “出力できるかどうか” とは分離して扱う。
+fn is_export_whitelisted_note_param(_key: &str) -> bool {
+    false
+}
+
 // 指定されたキーを出力すべきかどうかを判定
-// 現時点では Verified のみ出力する
-fn should_output_note_param(key: &str) -> bool {
+// ユーザー設定がある場合はそれに従う。ない場合はデフォルト動作（Verified のみ）。
+fn should_output_note_param(key: &str, user_settings: Option<&HashMap<String, bool>>) -> bool {
+    // ユーザー設定がある場合はそれに従う
+    if let Some(settings) = user_settings {
+        if let Some(&enabled) = settings.get(key) {
+            return enabled;
+        }
+    }
+    // デフォルト: Verified のみ + ホワイトリスト
     matches!(get_note_param_status(key), NoteParamStatus::Verified)
+        || is_export_whitelisted_note_param(key)
 }
 
 // AppSheetのLabel列はテーブルにつき1つが基本。
@@ -164,41 +217,47 @@ fn pick_effective_label_column_id(table: &Table) -> Option<&str> {
 }
 
 // カラム設定のメモ内容を生成
-fn generate_column_note(column: &Column, tables: &[Table]) -> String {
+fn generate_column_note(column: &Column, tables: &[Table], user_settings: Option<&HashMap<String, bool>>) -> String {
     // docs/AppSheet/MEMO_SETUP.md に従い、AppSheet Note Parameters の形式で出力する
     // 例: AppSheet:{"Type":"Ref","IsRequired":true,"ReferencedTableName":"顧客"}
     //
-    // NOTE: should_output_note_param() で Verified と判定されたキーのみ出力する
-    // 検証が進んだら get_note_param_status() を更新すること
+    // NOTE: should_output_note_param() でユーザー設定またはデフォルト（Verified）に従って出力する
     
     let mut data = serde_json::Map::<String, Value>::new();
     let user = column.app_sheet.as_ref();
 
     let user_has = |k: &str| -> bool { user.map(|m| m.contains_key(k)).unwrap_or(false) };
 
+    // Spec: If Required_If is present (non-empty), Require? (IsRequired) should not be output.
+    let user_required_if_non_empty = user
+        .and_then(|m| m.get("Required_If"))
+        .and_then(|v| v.as_str())
+        .map(|s| !s.trim().is_empty())
+        .unwrap_or(false);
+
     // Type (✅ Verified)
     // user側で Type が指定されている場合は自動付与しない（userを優先）
     // AppSheet側の型推論の揺れを減らすため、Textも含めて明示する。
-    if should_output_note_param("Type") && !user_has("Type") {
+    if should_output_note_param("Type", user_settings) && !user_has("Type") {
         data.insert("Type".to_string(), Value::String(column.column_type.clone()));
     }
 
     // 基本フラグ
     // user側で IsKey/IsLabel/IsRequired が指定されている場合は自動付与しない（userを優先）
-    if should_output_note_param("IsKey") && !user_has("IsKey") && column.is_key {
+    if should_output_note_param("IsKey", user_settings) && !user_has("IsKey") && column.is_key {
         data.insert("IsKey".to_string(), Value::Bool(true));
     }
-    // IsLabel は不安定なので現時点では出力しない（should_output_note_param が false を返す）
-    if should_output_note_param("IsLabel") && !user_has("IsLabel") && column.is_label {
+    // IsLabel は不安定なので現時点ではデフォルトでは出力しない（ユーザー設定で有効にできる）
+    if should_output_note_param("IsLabel", user_settings) && !user_has("IsLabel") && column.is_label {
         data.insert("IsLabel".to_string(), Value::Bool(true));
     }
     // Required_If がある場合は IsRequired を出さない（docs/AppSheet/MEMO_SETUP.md の推奨）
-    if should_output_note_param("IsRequired") && !user_has("IsRequired") && !user_has("Required_If") && column.constraints.required == Some(true) {
+    if should_output_note_param("IsRequired", user_settings) && !user_has("IsRequired") && !user_has("Required_If") && column.constraints.required == Some(true) {
         data.insert("IsRequired".to_string(), Value::Bool(true));
     }
 
     // 初期値 (🔍 Untested)
-    if should_output_note_param("DEFAULT") && !user_has("DEFAULT") {
+    if should_output_note_param("DEFAULT", user_settings) && !user_has("DEFAULT") {
         if let Some(ref default_value) = column.constraints.default_value {
             if !default_value.is_empty() {
                 data.insert("DEFAULT".to_string(), Value::String(default_value.clone()));
@@ -207,7 +266,7 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
     }
 
     // 説明 (🔍 Untested)
-    if should_output_note_param("Description") && !user_has("Description") {
+    if should_output_note_param("Description", user_settings) && !user_has("Description") {
         if let Some(ref desc) = column.description {
             if !desc.is_empty() {
                 data.insert("Description".to_string(), Value::String(desc.clone()));
@@ -216,7 +275,7 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
     }
 
     // Valid_If（正規表現） (🔍 Untested)
-    if should_output_note_param("Valid_If") && !user_has("Valid_If") {
+    if should_output_note_param("Valid_If", user_settings) && !user_has("Valid_If") {
         if let Some(ref pattern) = column.constraints.pattern {
             if !pattern.is_empty() {
                 // AppSheetの式で [_THIS] を参照し、MATCHES を使う
@@ -236,7 +295,7 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
     }
 
     // 数値型: Min/Max (🔍 Untested)
-    if should_output_note_param("MinValue") && !user_has("MinValue") {
+    if should_output_note_param("MinValue", user_settings) && !user_has("MinValue") {
         if let Some(min) = column.constraints.min_value {
             data.insert(
                 "MinValue".to_string(),
@@ -247,7 +306,7 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
             );
         }
     }
-    if should_output_note_param("MaxValue") && !user_has("MaxValue") {
+    if should_output_note_param("MaxValue", user_settings) && !user_has("MaxValue") {
         if let Some(max) = column.constraints.max_value {
             data.insert(
                 "MaxValue".to_string(),
@@ -261,14 +320,14 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
 
     // Enum/EnumList: EnumValues + BaseType（選択肢がある場合のみ） (🔍 Untested)
     if column.column_type == "Enum" || column.column_type == "EnumList" {
-        if should_output_note_param("EnumValues") && !user_has("EnumValues") {
+        if should_output_note_param("EnumValues", user_settings) && !user_has("EnumValues") {
             if let Some(ref enum_values) = column.constraints.enum_values {
                 if !enum_values.is_empty() {
                     data.insert(
                         "EnumValues".to_string(),
                         Value::Array(enum_values.iter().cloned().map(Value::String).collect()),
                     );
-                    if should_output_note_param("BaseType") && !user_has("BaseType") {
+                    if should_output_note_param("BaseType", user_settings) && !user_has("BaseType") {
                         let max_len = enum_values.iter().map(|v| v.chars().count()).max().unwrap_or(0);
                         let base_type = if max_len > 20 { "LongText" } else { "Text" };
                         data.insert("BaseType".to_string(), Value::String(base_type.to_string()));
@@ -283,7 +342,7 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
         if let Some(ref ref_table_id) = column.constraints.ref_table_id {
             if let Some(ref_table) = tables.iter().find(|t| t.id == *ref_table_id) {
                 // Note Parameter Workshop のキー名に合わせて ReferencedTableName / ReferencedKeyColumn / ReferencedType を使う
-                if should_output_note_param("ReferencedTableName") && !user_has("ReferencedTableName") {
+                if should_output_note_param("ReferencedTableName", user_settings) && !user_has("ReferencedTableName") {
                     data.insert(
                         "ReferencedTableName".to_string(),
                         Value::String(ref_table.name.clone()),
@@ -300,13 +359,13 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
                     .or_else(|| ref_table.columns.first());
 
                 if let Some(rc) = ref_col {
-                    if should_output_note_param("ReferencedKeyColumn") && !user_has("ReferencedKeyColumn") {
+                    if should_output_note_param("ReferencedKeyColumn", user_settings) && !user_has("ReferencedKeyColumn") {
                         data.insert(
                             "ReferencedKeyColumn".to_string(),
                             Value::String(rc.name.clone()),
                         );
                     }
-                    if should_output_note_param("ReferencedType") && !user_has("ReferencedType") {
+                    if should_output_note_param("ReferencedType", user_settings) && !user_has("ReferencedType") {
                         data.insert(
                             "ReferencedType".to_string(),
                             Value::String(rc.column_type.clone()),
@@ -318,16 +377,19 @@ fn generate_column_note(column: &Column, tables: &[Table]) -> String {
     }
 
     // user指定を最後にマージ（上書き/追加）
-    // ただし、Verified でないキーはフィルタリングする（ユーザーが明示的に指定した場合も除外）
+    // ただし、ユーザー設定で無効化されたキーはフィルタリングする
     if let Some(user_map) = user {
         for (k, v) in user_map {
+            if k == "IsRequired" && user_required_if_non_empty {
+                // Required_If takes precedence; do not output IsRequired even if explicitly set.
+                continue;
+            }
             if v.is_null() {
                 data.remove(k);
-            } else if should_output_note_param(k) {
-                // Verified のキーのみマージ
+            } else if should_output_note_param(k, user_settings) {
+                // ユーザー設定で有効なキーのみマージ
                 data.insert(k.clone(), v.clone());
             }
-            // Untested/Unstable のキーはユーザー指定でもスキップ（現時点では）
         }
     }
 
@@ -426,7 +488,7 @@ pub fn export_to_excel(request: &ExportRequest, file_path: &str) -> Result<(), X
             column_for_note.is_label = effective_label_column_id
                 .is_some_and(|id| id == column_for_note.id);
 
-            let note_text = generate_column_note(&column_for_note, &request.tables);
+            let note_text = generate_column_note(&column_for_note, &request.tables, request.note_param_output_settings.as_ref());
             if note_text != "AppSheet:{}" {
                 // AppSheet は Note Parameters の先頭 `AppSheet:` をトリガーに解釈する。
                 // rust_xlsxwriter の Note は既定で著者名プレフィックス（例: "Author:\n"）を付与するため、
@@ -465,7 +527,7 @@ mod tests {
     
     #[test]
     fn test_generate_column_note_verified_only() {
-        // 現時点では Type のみが Verified なので、他のキーは出力されない
+        // appSheet未設定の場合は、自動生成される Verified キー（現状 Type）のみが出力される
         let column = Column {
             id: "col1".to_string(),
             name: "Name".to_string(),
@@ -490,7 +552,7 @@ mod tests {
             order: 0,
         };
         
-        let note = generate_column_note(&column, &[]);
+        let note = generate_column_note(&column, &[], None);
         assert!(note.starts_with("AppSheet:"));
         // Type は Verified なので出力される
         assert!(note.contains("\"Type\":\"Text\""));
@@ -499,6 +561,86 @@ mod tests {
         assert!(!note.contains("\"IsLabel\""));
         assert!(!note.contains("\"IsRequired\""));
         assert!(!note.contains("\"Description\""));
+    }
+
+    #[test]
+    fn test_generate_column_note_export_whitelisted_user_keys() {
+        // userが明示的に設定しても、未対応キーは出力しない（誤解を防ぐ）
+        let mut app_sheet = serde_json::Map::<String, Value>::new();
+        app_sheet.insert("IsScannable".to_string(), Value::Bool(true));
+        app_sheet.insert("IsNfcScannable".to_string(), Value::Bool(true));
+        app_sheet.insert("Searchable".to_string(), Value::Bool(false));
+        app_sheet.insert("IsSensitive".to_string(), Value::Bool(true));
+
+        let column = Column {
+            id: "col1".to_string(),
+            name: "Name".to_string(),
+            column_type: "Text".to_string(),
+            is_key: false,
+            is_label: false,
+            description: None,
+            app_sheet: Some(app_sheet),
+            constraints: ColumnConstraints {
+                required: None,
+                unique: None,
+                default_value: None,
+                min_value: None,
+                max_value: None,
+                min_length: None,
+                max_length: None,
+                pattern: None,
+                enum_values: None,
+                ref_table_id: None,
+                ref_column_id: None,
+            },
+            order: 0,
+        };
+
+        let note = generate_column_note(&column, &[], None);
+        assert!(note.contains("\"Type\":\"Text\""));
+        assert!(!note.contains("\"IsScannable\":true"));
+        assert!(!note.contains("\"IsNfcScannable\":true"));
+        assert!(!note.contains("\"Searchable\":false"));
+        assert!(!note.contains("\"IsSensitive\":true"));
+    }
+
+    #[test]
+    fn test_generate_column_note_with_user_settings() {
+        // ユーザー設定でIsKeyを有効にした場合
+        let column = Column {
+            id: "col1".to_string(),
+            name: "Name".to_string(),
+            column_type: "Text".to_string(),
+            is_key: true,
+            is_label: false,
+            description: None,
+            app_sheet: None,
+            constraints: ColumnConstraints {
+                required: None,
+                unique: None,
+                default_value: None,
+                min_value: None,
+                max_value: None,
+                min_length: None,
+                max_length: None,
+                pattern: None,
+                enum_values: None,
+                ref_table_id: None,
+                ref_column_id: None,
+            },
+            order: 0,
+        };
+
+        // デフォルト設定（IsKey無効）
+        let note_default = generate_column_note(&column, &[], None);
+        assert!(!note_default.contains("\"IsKey\""));
+
+        // ユーザー設定でIsKeyを有効に
+        let mut user_settings = HashMap::new();
+        user_settings.insert("Type".to_string(), true);
+        user_settings.insert("IsKey".to_string(), true);
+        let note_with_key = generate_column_note(&column, &[], Some(&user_settings));
+        assert!(note_with_key.contains("\"IsKey\":true"));
     }
 
     #[test]
@@ -513,11 +655,22 @@ mod tests {
 
     #[test]
     fn test_should_output_note_param() {
-        // Verified のみ true
-        assert!(should_output_note_param("Type"));
-        // Unstable は false
-        assert!(!should_output_note_param("IsLabel"));
+        // Verified は true (デフォルト設定の場合)
+        assert!(should_output_note_param("Type", None));
+        // Unstable は false (デフォルト設定の場合)
+        assert!(!should_output_note_param("IsLabel", None));
+        // Unsupported は false
+        assert!(!should_output_note_param("IsScannable", None));
         // Untested は false
-        assert!(!should_output_note_param("IsKey"));
+        assert!(!should_output_note_param("IsKey", None));
+
+        // ユーザー設定で有効にした場合
+        let mut user_settings = HashMap::new();
+        user_settings.insert("IsKey".to_string(), true);
+        assert!(should_output_note_param("IsKey", Some(&user_settings)));
+
+        // ユーザー設定で無効にした場合（Verifiedでも無効化できる）
+        user_settings.insert("Type".to_string(), false);
+        assert!(!should_output_note_param("Type", Some(&user_settings)));
     }
 }

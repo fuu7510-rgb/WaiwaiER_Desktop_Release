@@ -46,6 +46,12 @@ export function useAppSheetConflictResolution({
     if (requiredIf.length > 0 && nextConstraints.required) {
       nextConstraints = { ...nextConstraints, required: false };
     }
+    if (requiredIf.length > 0) {
+      const isRequiredVal = nextAppSheet?.IsRequired;
+      if (isRequiredVal === true || isRequiredVal === false) {
+        nextAppSheet = pruneAppSheet(nextAppSheet, ['IsRequired']);
+      }
+    }
 
     // Hide: Show_If and IsHidden should not both be set.
     const showIf = typeof nextAppSheet?.Show_If === 'string' ? nextAppSheet.Show_If.trim() : '';

@@ -174,6 +174,9 @@ Note Parametersで使用できる主要な設定項目は以下の通りです�
 
 ### 識別・検索設定
 
+> 注意: `IsScannable` / `IsNfcScannable` / `Searchable` / `IsSensitive` は、現状 WaiwaiER Desktop のエクスポート（ヘッダーセルのメモ）経由では AppSheet 側に反映されないことを確認しています。
+> 最新状況は [docs/AppSheet/NOTE_PARAMETERS_SUPPORT_STATUS.md](docs/AppSheet/NOTE_PARAMETERS_SUPPORT_STATUS.md) を参照してください。
+
 | キー名 | AppSheetエディタでの名称 | データ型 | 説明 |
 |--------|-------------------------|----------|------|
 | `IsKey` | Key | true/false | キーカラムとして設定 |

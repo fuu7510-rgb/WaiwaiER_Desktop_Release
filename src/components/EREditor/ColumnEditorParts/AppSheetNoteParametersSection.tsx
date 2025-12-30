@@ -1,7 +1,11 @@
+import { useMemo, useState, useEffect } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import { CollapsibleSection, InfoTooltip, Input, Select } from '../../common';
 
-import type { Column, ColumnConstraints } from '../../../types';
+import type { Column, ColumnConstraints, Table } from '../../../types';
 import { ArrayLinesTextarea } from './ArrayLinesTextarea';
+import { previewExcelColumnNotesLocal } from '../../../lib/appsheet/excelNotePreview';
+import { useUIStore } from '../../../stores';
 
 import { AutoComputeSection } from './noteParameters/AutoComputeSection';
 import { DataValiditySection } from './noteParameters/DataValiditySection';
@@ -19,6 +23,8 @@ type Labels = {
 
 type Props = {
   selectedColumn: Column;
+  selectedTable: Table | undefined;
+  tables: Table[];
   handleUpdate: (updates: Partial<Column>) => void;
   handleConstraintUpdate: (updates: Partial<ColumnConstraints>) => void;
 
@@ -42,6 +48,8 @@ type Props = {
 
 export function AppSheetNoteParametersSection({
   selectedColumn,
+  selectedTable,
+  tables,
   handleUpdate,
   handleConstraintUpdate,
   labels,
@@ -60,6 +68,55 @@ export function AppSheetNoteParametersSection({
   updateModeOptions,
 }: Props) {
   const { labelEnJa, helpText } = labels;
+  const { settings } = useUIStore();
+  const noteParamOutputSettings = settings.noteParamOutputSettings;
+
+  // ノートパラメーターのプレビュー
+  const [notePreviewText, setNotePreviewText] = useState<string>('');
+
+  // tablesやselectedColumnが変わったらノートプレビューを更新
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      if (!selectedTable) {
+        setNotePreviewText('');
+        return;
+      }
+
+      try {
+        // Rustコマンドを試す
+        const result = await invoke<Record<string, Record<string, string>>>(
+          'preview_excel_column_notes',
+          {
+            request: {
+              tables,
+              sampleData: {},
+              includeData: false,
+              noteParamOutputSettings: noteParamOutputSettings,
+            },
+          }
+        );
+        if (!cancelled) {
+          const tableNotes = result?.[selectedTable.id] ?? {};
+          setNotePreviewText(tableNotes[selectedColumn.id] ?? '');
+        }
+      } catch {
+        // Rustコマンドが失敗した場合はローカル計算
+        if (!cancelled) {
+          const local = previewExcelColumnNotesLocal(tables, noteParamOutputSettings);
+          const tableNotes = local?.[selectedTable.id] ?? {};
+          setNotePreviewText(tableNotes[selectedColumn.id] ?? '');
+        }
+      }
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tables, selectedTable, selectedColumn, noteParamOutputSettings]);
 
   return (
     <div className="border-t border-zinc-100 pt-3">
@@ -83,8 +140,8 @@ export function AppSheetNoteParametersSection({
               </p>
               <p>
                 {helpText(
-                  'Type / IsKey / IsLabel / IsRequired / DEFAULT / EnumValues are generated from the settings above.',
-                  'Type / IsKey / IsLabel / IsRequired / DEFAULT / EnumValues は上の設定から自動生成されます。'
+                  'Type / IsKey / IsLabel / DEFAULT / EnumValues are generated from the settings above.',
+                  'Type / IsKey / IsLabel / DEFAULT / EnumValues は上の設定から自動生成されます。'
                 )}
               </p>
             </div>
@@ -149,6 +206,9 @@ export function AppSheetNoteParametersSection({
           setAppSheetValue={setAppSheetValue}
           setAppSheetValues={setAppSheetValues}
           getAppSheetString={getAppSheetString}
+          getTriState={getTriState}
+          setTriState={setTriState}
+          appSheetTriStateOptions={appSheetTriStateOptions}
         />
 
         <AutoComputeSection
@@ -396,6 +456,28 @@ export function AppSheetNoteParametersSection({
             value={getAppSheetString('BaseTypeQualifier')}
             onChange={(e) => setAppSheetValue('BaseTypeQualifier', e.target.value)}
           />
+        </div>
+
+        {/* Note Parameters Preview */}
+        <div className="mt-4 pt-3 border-t border-zinc-200">
+          <div className="flex items-center gap-1.5 mb-2">
+            <div className="text-[11px] font-medium text-zinc-600">
+              {labelEnJa('Note Parameters Preview', 'ノートパラメータープレビュー')}
+            </div>
+            <InfoTooltip
+              content={helpText(
+                'Preview of the AppSheet Note that will be written to the Excel header cell. This is the actual value exported.',
+                'Excelヘッダーセルに書き込まれるAppSheetメモのプレビューです。実際にエクスポートされる値です。'
+              )}
+            />
+          </div>
+          <div className="bg-zinc-50 border border-zinc-200 rounded p-2 font-mono text-[10px] text-zinc-700 break-all whitespace-pre-wrap min-h-[32px]">
+            {notePreviewText || (
+              <span className="text-zinc-400 italic">
+                {labelEnJa('(No note parameters)', '(ノートパラメーターなし)')}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

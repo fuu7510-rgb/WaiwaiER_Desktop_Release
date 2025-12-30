@@ -1,8 +1,10 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { invoke } from '@tauri-apps/api/core';
 import type { Table } from '../../types';
 import { getRefDisplayLabel } from './recordLabel';
-import { useERStore } from '../../stores';
+import { useERStore, useUIStore } from '../../stores';
+import { previewExcelColumnNotesLocal } from '../../lib/appsheet/excelNotePreview';
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -35,7 +37,45 @@ export function TableView({
 }: TableViewProps) {
   const { t } = useTranslation();
   const { reorderColumn } = useERStore();
+  const { settings } = useUIStore();
+  const noteParamOutputSettings = settings.noteParamOutputSettings;
   const rows = useMemo(() => data ?? sampleDataByTableId[table.id] ?? [], [data, sampleDataByTableId, table.id]);
+
+  const [notePreviewByColumnId, setNotePreviewByColumnId] = useState<Record<string, string> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        const result = await invoke<Record<string, Record<string, string>>>(
+          'preview_excel_column_notes',
+          {
+            request: {
+              tables,
+              sampleData: {},
+              includeData: false,
+              noteParamOutputSettings: noteParamOutputSettings,
+            },
+          }
+        );
+
+        if (cancelled) return;
+        setNotePreviewByColumnId(result?.[table.id] ?? {});
+      } catch {
+        // invokeが失敗するケース（ブラウザdev / capabilities設定 / 起動直後など）では
+        // フロント側で同等の最小ロジックでプレビューを生成して表示する。
+        if (cancelled) return;
+        const local = previewExcelColumnNotesLocal(tables, noteParamOutputSettings);
+        setNotePreviewByColumnId(local?.[table.id] ?? {});
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [table.id, tables, noteParamOutputSettings]);
 
   const keyColumnId = useMemo(() => {
     return table.columns.find((c) => c.isKey)?.id ?? table.columns[0]?.id;
@@ -132,6 +172,25 @@ export function TableView({
                     ))}
                   </SortableContext>
                 </tr>
+
+                {/* Excelに書き込む予定のNoteParameters（ヘッダーセルのメモ）プレビュー */}
+                {notePreviewByColumnId && (
+                  <tr className="bg-white border-t border-zinc-200">
+                    {table.columns.map((column) => {
+                      const noteText = notePreviewByColumnId[column.id] ?? '';
+                      const display = noteText.length > 60 ? `${noteText.slice(0, 60)}…` : (noteText || '—');
+                      return (
+                        <th
+                          key={column.id}
+                          className="px-3 py-1 text-left text-[9px] font-normal text-zinc-400 whitespace-nowrap"
+                          title={noteText || undefined}
+                        >
+                          {display}
+                        </th>
+                      );
+                    })}
+                  </tr>
+                )}
               </thead>
               <SortableContext items={filteredData.map(({ index }) => String(index))} strategy={verticalListSortingStrategy}>
                 <tbody className="bg-white">
