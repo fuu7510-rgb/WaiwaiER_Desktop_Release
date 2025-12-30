@@ -42,6 +42,8 @@
   - 各セクションを折りたたみ可能に（CollapsibleSection）
   - Key/Label/Editable/Reset on edit などの設定にヘルプツールチップを追加
   - 不要なキー（Category/Content/ResetOnEdit）をappSheetから自動除去するクリーンアップ処理を追加
+  - Show/Required/Editable などの競合しやすいキーを自動調整（`Show_If` と `IsHidden`、`Required_If` と `IsRequired`、`Editable_If` と `Editable` の両立を避ける）
+- ドキュメント: AppSheet Note Parameters（メモ）ガイドとキー一覧を更新（不要キー `Category`/`Content` を削除）
 
 ### 修正
 - Simulator: DOMネストエラーを修正（`<button>` 内に `<button>` がネストされていた問題）
