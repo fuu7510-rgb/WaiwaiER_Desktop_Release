@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ViewMode, Language, Theme, FontSize, AppSettings, NoteParamOutputSettings } from '../types';
+import type { ViewMode, Language, Theme, FontSize, AppSettings } from '../types';
 import { getDefaultNoteParamOutputSettings } from '../lib/appsheet/noteParameters';
 
 interface UIState {

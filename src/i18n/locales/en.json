@@ -275,6 +275,9 @@
       "unnamed": "(Unnamed)",
       "namePlaceholder": "e.g. CreatedAt",
       "enumHint": "One per line",
+      "rawNoteLabel": "Raw Note text",
+      "rawNotePlaceholder": "e.g. {\"Type\":\"Text\"}\n(leave empty to disable)",
+      "rawNoteHint": "This text is written to the header cell Note as-is during Excel export (overrides auto-generated Note Parameters).",
       "note": "Columns with an empty name are not applied."
     },
     "transfer": {

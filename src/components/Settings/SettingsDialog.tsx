@@ -49,6 +49,8 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
   const [appVersion, setAppVersion] = useState<string>('');
   const [transferMessage, setTransferMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  const RAW_NOTE_OVERRIDE_KEY = '__AppSheetNoteOverride';
+
   const settingsFileBaseName = useMemo(() => {
     const date = new Date();
     const yyyy = date.getFullYear();
@@ -146,6 +148,20 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     const target = commonColumns.find((c) => c.id === id);
     if (!target) return;
     updateCommonColumn(id, { constraints: { ...(target.constraints ?? {}), ...updates } });
+  };
+
+  const setCommonColumnAppSheetString = (id: string, key: string, value: string) => {
+    const target = commonColumns.find((c) => c.id === id);
+    if (!target) return;
+    const prev = (target.appSheet ?? {}) as Record<string, unknown>;
+    const next: Record<string, unknown> = { ...prev };
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+      delete next[key];
+    } else {
+      next[key] = value;
+    }
+    updateCommonColumn(id, { appSheet: Object.keys(next).length > 0 ? next : undefined });
   };
 
   const deleteCommonColumn = (id: string) => {
@@ -701,6 +717,28 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                           <p className="mt-1 text-[10px] text-zinc-400">{t('settings.commonColumns.enumHint')}</p>
                         </div>
                       )}
+
+                      <div>
+                        <label
+                          htmlFor={`common-raw-note-${selectedCommonColumn.id}`}
+                          className="block text-xs font-medium text-zinc-600 mb-1"
+                        >
+                          {t('settings.commonColumns.rawNoteLabel')}
+                        </label>
+                        <textarea
+                          id={`common-raw-note-${selectedCommonColumn.id}`}
+                          className="w-full px-2 py-1.5 text-xs border rounded bg-white border-zinc-200 hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          rows={4}
+                          placeholder={t('settings.commonColumns.rawNotePlaceholder')}
+                          value={
+                            typeof (selectedCommonColumn.appSheet as Record<string, unknown> | undefined)?.[RAW_NOTE_OVERRIDE_KEY] === 'string'
+                              ? String((selectedCommonColumn.appSheet as Record<string, unknown> | undefined)?.[RAW_NOTE_OVERRIDE_KEY] ?? '')
+                              : ''
+                          }
+                          onChange={(e) => setCommonColumnAppSheetString(selectedCommonColumn.id, RAW_NOTE_OVERRIDE_KEY, e.target.value)}
+                        />
+                        <p className="mt-1 text-[10px] text-zinc-400">{t('settings.commonColumns.rawNoteHint')}</p>
+                      </div>
 
                       <p className="text-[10px] text-zinc-400">{t('settings.commonColumns.note')}</p>
                     </div>

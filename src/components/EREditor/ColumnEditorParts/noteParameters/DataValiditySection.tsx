@@ -22,7 +22,6 @@ export function DataValiditySection({
   handleConstraintUpdate,
   labelEnJa,
   setAppSheetValue,
-  setAppSheetValues,
   getAppSheetString,
   getTriState,
   setTriState,

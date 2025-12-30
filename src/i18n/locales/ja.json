@@ -257,6 +257,9 @@
       "unnamed": "(無名)",
       "namePlaceholder": "例: CreatedAt",
       "enumHint": "1行に1つ入力",
+      "rawNoteLabel": "Raw Note text",
+      "rawNotePlaceholder": "例: {\"Type\":\"Text\"}\n（空にすると無効化）",
+      "rawNoteHint": "ここに入力した文字列は、Excelエクスポート時にヘッダーセルのNoteとしてそのまま出力します（Note Parametersの自動生成を上書き）。",
       "note": "空の名前のカラムは適用されません。"
     },
     "transfer": {
