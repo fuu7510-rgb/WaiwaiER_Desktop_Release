@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
+const RAW_NOTE_OVERRIDE_KEY: &str = "__AppSheetNoteOverride";
+
 // フロントエンドから受け取るカラム制約の型
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -82,9 +84,10 @@ pub fn preview_column_notes(request: &ExportRequest) -> HashMap<String, HashMap<
                 .is_some_and(|id| id == column_for_note.id);
 
             let note_text = generate_column_note(&column_for_note, &request.tables, user_settings);
+            let has_override = has_user_note_override(&column_for_note);
 
             // export_to_excel と同様に、実際に書き込まれる場合のみ返す（空は ""）
-            if note_text != "AppSheet:{}" {
+            if has_override || note_text != "AppSheet:{}" {
                 by_column.insert(column.id.clone(), note_text);
             } else {
                 by_column.insert(column.id.clone(), String::new());
@@ -216,6 +219,15 @@ fn pick_effective_label_column_id(table: &Table) -> Option<&str> {
         .map(|c| c.id.as_str())
 }
 
+fn has_user_note_override(column: &Column) -> bool {
+    column
+        .app_sheet
+        .as_ref()
+        .and_then(|m| m.get(RAW_NOTE_OVERRIDE_KEY))
+        .and_then(|v| v.as_str())
+        .is_some_and(|s| !s.trim().is_empty())
+}
+
 // カラム設定のメモ内容を生成
 fn generate_column_note(column: &Column, tables: &[Table], user_settings: Option<&HashMap<String, bool>>) -> String {
     // docs/AppSheet/MEMO_SETUP.md に従い、AppSheet Note Parameters の形式で出力する
@@ -223,8 +235,18 @@ fn generate_column_note(column: &Column, tables: &[Table], user_settings: Option
     //
     // NOTE: should_output_note_param() でユーザー設定またはデフォルト（Verified）に従って出力する
     
-    let mut data = serde_json::Map::<String, Value>::new();
     let user = column.app_sheet.as_ref();
+
+    // Raw override: if present, it fully overrides generated Note.
+    if let Some(user_map) = user {
+        if let Some(Value::String(raw)) = user_map.get(RAW_NOTE_OVERRIDE_KEY) {
+            if !raw.trim().is_empty() {
+                return raw.clone();
+            }
+        }
+    }
+
+    let mut data = serde_json::Map::<String, Value>::new();
 
     let user_has = |k: &str| -> bool { user.map(|m| m.contains_key(k)).unwrap_or(false) };
 
@@ -489,7 +511,8 @@ pub fn export_to_excel(request: &ExportRequest, file_path: &str) -> Result<(), X
                 .is_some_and(|id| id == column_for_note.id);
 
             let note_text = generate_column_note(&column_for_note, &request.tables, request.note_param_output_settings.as_ref());
-            if note_text != "AppSheet:{}" {
+            let has_override = has_user_note_override(&column_for_note);
+            if !note_text.trim().is_empty() && (has_override || note_text != "AppSheet:{}") {
                 // AppSheet は Note Parameters の先頭 `AppSheet:` をトリガーに解釈する。
                 // rust_xlsxwriter の Note は既定で著者名プレフィックス（例: "Author:\n"）を付与するため、
                 // 先頭一致が崩れて AppSheet に読まれないことがある。必ず無効化して `AppSheet:` を先頭に置く。
@@ -561,6 +584,42 @@ mod tests {
         assert!(!note.contains("\"IsLabel\""));
         assert!(!note.contains("\"IsRequired\""));
         assert!(!note.contains("\"Description\""));
+    }
+
+    #[test]
+    fn test_generate_column_note_raw_override() {
+        let mut app_sheet = serde_json::Map::<String, Value>::new();
+        app_sheet.insert(
+            RAW_NOTE_OVERRIDE_KEY.to_string(),
+            Value::String("AppSheet:{\"Type\":\"Text\"}".to_string()),
+        );
+
+        let column = Column {
+            id: "col1".to_string(),
+            name: "Name".to_string(),
+            column_type: "Text".to_string(),
+            is_key: true,
+            is_label: true,
+            description: Some("Test description".to_string()),
+            app_sheet: Some(app_sheet),
+            constraints: ColumnConstraints {
+                required: Some(true),
+                unique: None,
+                default_value: None,
+                min_value: None,
+                max_value: None,
+                min_length: None,
+                max_length: None,
+                pattern: None,
+                enum_values: None,
+                ref_table_id: None,
+                ref_column_id: None,
+            },
+            order: 0,
+        };
+
+        let note = generate_column_note(&column, &[], None);
+        assert_eq!(note, "AppSheet:{\"Type\":\"Text\"}");
     }
 
     #[test]

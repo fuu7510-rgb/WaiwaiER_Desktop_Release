@@ -2,8 +2,6 @@ import { CollapsibleSection, InfoTooltip, Input } from '../../../common';
 
 import type { Column } from '../../../../types';
 
-import { NoteParamBadge } from '../NoteParamBadge';
-
 type Props = {
   selectedColumn: Column;
   handleUpdate: (updates: Partial<Column>) => void;
@@ -35,7 +33,6 @@ export function DisplaySection({
           />
           <span className="text-xs text-zinc-600">
             {labelEnJa('Label', 'ラベル')}
-            <NoteParamBadge field="isLabel" />
           </span>
           <InfoTooltip
             content={helpText(

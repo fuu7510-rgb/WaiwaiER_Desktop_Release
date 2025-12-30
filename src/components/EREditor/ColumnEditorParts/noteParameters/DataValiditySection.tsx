@@ -2,8 +2,6 @@ import { CollapsibleSection, Input, Select } from '../../../common';
 
 import type { Column, ColumnConstraints } from '../../../../types';
 
-import { NoteParamBadge } from '../NoteParamBadge';
-
 type Props = {
   selectedColumn: Column;
   handleConstraintUpdate: (updates: Partial<ColumnConstraints>) => void;
@@ -55,7 +53,6 @@ export function DataValiditySection({
           label={
             <span className="inline-flex items-center">
               {labelEnJa('Require? (toggle)', '必須（トグル）')}
-              <NoteParamBadge field="required" />
             </span>
           }
           value={isRequiredTriState}

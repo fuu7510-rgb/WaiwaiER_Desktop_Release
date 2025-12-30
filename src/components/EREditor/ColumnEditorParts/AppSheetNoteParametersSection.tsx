@@ -71,6 +71,8 @@ export function AppSheetNoteParametersSection({
   const { settings } = useUIStore();
   const noteParamOutputSettings = settings.noteParamOutputSettings;
 
+  const RAW_NOTE_OVERRIDE_KEY = '__AppSheetNoteOverride';
+
   // ノートパラメーターのプレビュー
   const [notePreviewText, setNotePreviewText] = useState<string>('');
 
@@ -444,17 +446,39 @@ export function AppSheetNoteParametersSection({
 
         {/* メタキー */}
         <div className="space-y-2">
-          <div className="text-[11px] font-medium text-zinc-600">{labelEnJa('Meta keys (only if needed)', 'メタキー（必要な場合のみ）')}</div>
+          <div className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-600">
+            <span>{labelEnJa('Note override (only if needed)', 'ノート上書き（必要な場合のみ）')}</span>
+            <InfoTooltip
+              content={
+                <div>
+                  <div className="font-medium mb-1">{helpText('Caution', '注意')}</div>
+                  <p className="mb-2">
+                    {helpText(
+                      'If you set this, it overrides the generated Note Parameters completely.',
+                      'ここに入力すると、生成されるノートパラメーター（AppSheet:...）を完全に上書きします。'
+                    )}
+                  </p>
+                  <p className="mb-2">
+                    {helpText(
+                      'Enter the full Note text, including the prefix (e.g. AppSheet:{...}).',
+                      '先頭のプレフィックスも含め、Note全文を入力してください（例: AppSheet:{...}）。'
+                    )}
+                  </p>
+                  <p>
+                    {helpText(
+                      'Tip: If you are unsure, leave it blank and use the settings above.',
+                      '迷ったら空欄のままで、上の設定を使ってください。'
+                    )}
+                  </p>
+                </div>
+              }
+            />
+          </div>
           <Input
-            label={labelEnJa('TypeAuxData - JSON string', 'TypeAuxData（JSON文字列）')}
-            value={getAppSheetString('TypeAuxData')}
-            onChange={(e) => setAppSheetValue('TypeAuxData', e.target.value)}
-            placeholder={labelEnJa('Example: {"RefTable":"Customers"}', '例: {"RefTable":"顧客"}')}
-          />
-          <Input
-            label={labelEnJa('BaseTypeQualifier', '基本型修飾子')}
-            value={getAppSheetString('BaseTypeQualifier')}
-            onChange={(e) => setAppSheetValue('BaseTypeQualifier', e.target.value)}
+            label={labelEnJa('Raw Note text', 'ノート文字列（そのまま）')}
+            value={getAppSheetString(RAW_NOTE_OVERRIDE_KEY)}
+            onChange={(e) => setAppSheetValue(RAW_NOTE_OVERRIDE_KEY, e.target.value)}
+            placeholder={labelEnJa('Example: AppSheet:{"Type":"Text"}', '例: AppSheet:{"Type":"Text"}')}
           />
         </div>
 

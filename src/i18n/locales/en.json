@@ -1,5 +1,6 @@
 {
   "common": {
+    "help": "Help",
     "Address": "Address",
     "App": "App",
     "ChangeCounter": "ChangeCounter",

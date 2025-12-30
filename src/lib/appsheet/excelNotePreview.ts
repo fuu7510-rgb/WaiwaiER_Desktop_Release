@@ -10,6 +10,8 @@ import { getDefaultNoteParamOutputSettings } from './noteParameters';
 
 type AppSheetRecord = Record<string, unknown>;
 
+const RAW_NOTE_OVERRIDE_KEY = '__AppSheetNoteOverride';
+
 function shouldOutputNoteParam(key: string, userSettings: NoteParamOutputSettings | undefined): boolean {
   // 保存された設定を最優先する。
   // userSettings が存在する場合、未定義キーは false として扱い、最新デフォルトにフォールバックしない。
@@ -36,6 +38,12 @@ function pickEffectiveLabelColumnId(table: Table): string | null {
 function generateColumnNote(column: Table['columns'][number], userSettings: NoteParamOutputSettings | undefined): string {
   // docs/AppSheet/MEMO_SETUP.md の形式: AppSheet:{...}
   const appSheet = (column.appSheet ?? undefined) as AppSheetRecord | undefined;
+
+  const rawOverride = appSheet?.[RAW_NOTE_OVERRIDE_KEY];
+  if (typeof rawOverride === 'string' && rawOverride.trim().length > 0) {
+    // 完全上書き（文字列はそのまま保持）
+    return rawOverride;
+  }
 
   const requiredIf = appSheet?.['Required_If'];
   const userRequiredIfNonEmpty =
@@ -142,7 +150,11 @@ export function previewExcelColumnNotesLocal(
       };
 
       const noteText = generateColumnNote(columnForNote, userSettings);
-      byColumn[column.id] = noteText === 'AppSheet:{}' ? '' : noteText;
+      const hasRawOverride =
+        typeof (columnForNote.appSheet as AppSheetRecord | undefined)?.[RAW_NOTE_OVERRIDE_KEY] === 'string' &&
+        String((columnForNote.appSheet as AppSheetRecord | undefined)?.[RAW_NOTE_OVERRIDE_KEY] ?? '').trim().length > 0;
+
+      byColumn[column.id] = !hasRawOverride && noteText === 'AppSheet:{}' ? '' : noteText;
     }
 
     byTable[table.id] = byColumn;

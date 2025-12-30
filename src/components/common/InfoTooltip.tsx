@@ -1,14 +1,45 @@
 import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface InfoTooltipProps {
   content: ReactNode;
   className?: string;
+  ariaLabel?: string;
 }
 
-export function InfoTooltip({ content, className = '' }: InfoTooltipProps) {
+export function InfoTooltip({ content, className = '', ariaLabel }: InfoTooltipProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const updatePosition = () => {
+      const tooltipEl = tooltipRef.current;
+      const buttonEl = buttonRef.current;
+      if (!tooltipEl || !buttonEl) return;
+
+      const rect = buttonEl.getBoundingClientRect();
+      const top = rect.bottom + 8;
+      const left = Math.min(rect.left, window.innerWidth - 300);
+
+      tooltipEl.style.top = `${top}px`;
+      tooltipEl.style.left = `${left}px`;
+      tooltipEl.classList.remove('invisible');
+    };
+
+    const rafId = window.requestAnimationFrame(updatePosition);
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -38,7 +69,7 @@ export function InfoTooltip({ content, className = '' }: InfoTooltipProps) {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="ml-1.5 text-zinc-400 hover:text-zinc-600 focus:outline-none focus:text-indigo-500 transition-colors"
-        aria-label="ヘルプを表示"
+        aria-label={ariaLabel ?? t('common.help')}
       >
         <svg
           className="w-3.5 h-3.5"
@@ -58,16 +89,7 @@ export function InfoTooltip({ content, className = '' }: InfoTooltipProps) {
       {isOpen && (
         <div
           ref={tooltipRef}
-          className="fixed z-[9999] w-72 p-3 bg-white border border-zinc-200 rounded-lg shadow-xl text-xs text-zinc-600 leading-relaxed"
-          style={{
-            top: buttonRef.current
-              ? buttonRef.current.getBoundingClientRect().bottom + 8
-              : 0,
-            left: Math.min(
-              buttonRef.current?.getBoundingClientRect().left ?? 0,
-              window.innerWidth - 300
-            ),
-          }}
+          className="fixed z-[9999] w-72 p-3 bg-white border border-zinc-200 rounded-lg shadow-xl text-xs text-zinc-600 leading-relaxed invisible"
         >
           {content}
         </div>
