@@ -37,6 +37,11 @@
 - 設定: 「テーブル名」「キーカラム名」「線ラベル」の見出しを太字化
 - ERエディタ/設定: カラム型の選択肢をAppSheetのTypeドロップダウン（34種）に準拠
 - ERエディタ/設定: 日本語表示時の型ラベルを `English(日本語)` 形式に統一
+- ERエディタ: カラム設定パネルをAppSheetエディタの構成に近づけてリニューアル
+  - 「Data Validity」「Auto Compute」「Update Behavior」「Display」「Other Properties」等のセクションに整理
+  - 各セクションを折りたたみ可能に（CollapsibleSection）
+  - Key/Label/Editable/Reset on edit などの設定にヘルプツールチップを追加
+  - 不要なキー（Category/Content/ResetOnEdit）をappSheetから自動除去するクリーンアップ処理を追加
 
 ### 修正
 - Simulator: DOMネストエラーを修正（`<button>` 内に `<button>` がネストされていた問題）

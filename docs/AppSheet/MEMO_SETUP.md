@@ -122,8 +122,6 @@ Note Parametersで使用できる主要な設定項目は以下の通りです�
 | `IsNfcScannable` | NFC Scannable | TRUE/FALSE | NFCスキャン可能に設定 |
 | `Searchable` | Searchable | TRUE/FALSE | 検索可能に設定 |
 | `IsSensitive` | Sensitive data | TRUE/FALSE | 機密データとして設定 |
-| `Category` | Show (Category) | String | カテゴリ表示（ドロップダウンから選択した値そのまま） |
-| `Content` | Show (Content) | String | コンテンツ表示 |
 | `Valid_If` | Valid If | String | 有効性チェックの数式 |
 | `Error_Message_If_Invalid` | Invalid value error | String | 無効値エラーメッセージ |
 | `Suggested_Values` | Suggested values | String | 推奨値 |
@@ -189,8 +187,6 @@ Note Parametersで使用できる主要な設定項目は以下の通りです�
 
 | キー名 | AppSheetエディタでの名称 | データ型 | 説明 |
 |--------|-------------------------|----------|------|
-| `Category` | Show (Category) | String | カテゴリ表示（ドロップダウンから選択した値そのまま） |
-| `Content` | Show (Content) | String | コンテンツ表示 |
 | `Editable_If` | Editable? (formula) | String | 編集可能条件を数式で指定 |
 | `Reset_If` | Reset on edit? | String | 編集時にリセットする条件 |
 

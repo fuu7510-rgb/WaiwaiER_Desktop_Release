@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useERStore } from '../../stores';
-import { Button, Dialog, Input, Select, InfoTooltip } from '../common';
+import { Button, Dialog, Input, Select, InfoTooltip, CollapsibleSection } from '../common';
 import type { Column, ColumnType, ColumnConstraints } from '../../types';
 import { APPSHEET_COLUMN_TYPES } from '../../types';
 
@@ -84,6 +84,12 @@ export function ColumnEditor() {
 
       // These keys are generated from the settings above (single source of truth).
       nextAppSheet = pruneAppSheet(nextAppSheet, ['Type', 'IsKey', 'IsLabel', 'IsRequired', 'DEFAULT', 'EnumValues']);
+
+      // Not an AppSheet column setting (keep data clean / avoid exporting).
+      nextAppSheet = pruneAppSheet(nextAppSheet, ['Category', 'Content']);
+
+      // Legacy internal key (AppSheet Note Parameters does not use this).
+      nextAppSheet = pruneAppSheet(nextAppSheet, ['ResetOnEdit']);
 
       const isEnum = type === 'Enum' || type === 'EnumList';
       const isRef = type === 'Ref';
@@ -232,6 +238,31 @@ export function ColumnEditor() {
     [handleUpdate, selectedColumn]
   );
 
+  const setAppSheetValues = useCallback(
+    (values: Record<string, unknown>) => {
+      if (!selectedColumn) return;
+      const current = (selectedColumn.appSheet ?? {}) as Record<string, unknown>;
+      const next: Record<string, unknown> = { ...current };
+
+      for (const [key, value] of Object.entries(values)) {
+        const shouldDelete =
+          value === undefined ||
+          value === null ||
+          (typeof value === 'string' && value.trim().length === 0) ||
+          (Array.isArray(value) && value.length === 0);
+
+        if (shouldDelete) {
+          delete next[key];
+        } else {
+          next[key] = value;
+        }
+      }
+
+      handleUpdate({ appSheet: Object.keys(next).length > 0 ? next : undefined });
+    },
+    [handleUpdate, selectedColumn]
+  );
+
   // Best-effort conflict resolution to match AppSheet behavior.
   useEffect(() => {
     if (!selectedColumn) return;
@@ -257,6 +288,13 @@ export function ColumnEditor() {
     const isHiddenVal = nextAppSheet?.IsHidden;
     if (showIf.length > 0 && (isHiddenVal === true || isHiddenVal === false)) {
       nextAppSheet = pruneAppSheet(nextAppSheet, ['IsHidden']);
+    }
+
+    // Editable: Editable_If and Editable (toggle) should not both be set.
+    const editableIf = typeof nextAppSheet?.Editable_If === 'string' ? nextAppSheet.Editable_If.trim() : '';
+    const editableVal = nextAppSheet?.Editable;
+    if (editableIf.length > 0 && (editableVal === true || editableVal === false)) {
+      nextAppSheet = pruneAppSheet(nextAppSheet, ['Editable']);
     }
 
     // AppFormula and Default are mutually confusing: prefer AppFormula.
@@ -441,28 +479,6 @@ export function ColumnEditor() {
         }}
       />
       
-      {/* キー設定 */}
-      <div className="flex items-center gap-3">
-        <label className="flex items-center gap-1.5 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={selectedColumn.isKey}
-            onChange={(e) => handleUpdate({ isKey: e.target.checked })}
-            className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
-          />
-          <span className="text-xs text-zinc-600">{labelKey('table.isKey')}</span>
-        </label>
-        
-        <label className="flex items-center gap-1.5 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={selectedColumn.isLabel}
-            onChange={(e) => handleUpdate({ isLabel: e.target.checked })}
-            className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
-          />
-          <span className="text-xs text-zinc-600">{labelKey('table.isLabel')}</span>
-        </label>
-      </div>
       
       {/* 制約設定 */}
       <div className="border-t border-zinc-100 pt-3">
@@ -485,37 +501,12 @@ export function ColumnEditor() {
           <label className="flex items-center gap-1.5 cursor-pointer">
             <input
               type="checkbox"
-              checked={!!selectedColumn.constraints.required}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                if (checked) {
-                  // Prefer unconditional Required -> clear conditional formula.
-                  setAppSheetValue('Required_If', undefined);
-                  setAppSheetValue('IsRequired', undefined);
-                }
-                handleConstraintUpdate({ required: checked });
-              }}
-              className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
-            />
-            <span className="text-xs text-zinc-600">{labelKey('column.constraints.required')}</span>
-          </label>
-          
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <input
-              type="checkbox"
               checked={!!selectedColumn.constraints.unique}
               onChange={(e) => handleConstraintUpdate({ unique: e.target.checked })}
               className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
             />
             <span className="text-xs text-zinc-600">{labelKey('column.constraints.unique')}</span>
           </label>
-          
-          <Input
-            label={labelKey('column.constraints.defaultValue')}
-            value={selectedColumn.constraints.defaultValue || ''}
-            disabled={getAppSheetString('AppFormula').trim().length > 0}
-            onChange={(e) => handleConstraintUpdate({ defaultValue: e.target.value })}
-          />
           
           {/* Enum選択肢（Enum/EnumListの場合） */}
           {(selectedColumn.type === 'Enum' || selectedColumn.type === 'EnumList') && (
@@ -565,116 +556,49 @@ export function ColumnEditor() {
         </div>
 
         <div className="space-y-3">
-          {/* 基本 */}
           <div className="space-y-2">
-            <div className="text-[11px] font-medium text-zinc-600">{labelEnJa('Basic', '基本')}</div>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={getAppSheetString('Show_If').trim().length > 0}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+
+                  if (checked) {
+                    const current = getAppSheetString('Show_If').trim();
+                    // Hide: Show_If and IsHidden should not both be set.
+                    setAppSheetValues({ Show_If: current.length > 0 ? current : 'TRUE', IsHidden: undefined });
+                    return;
+                  }
+
+                  // Unset (same pattern as Required_If toggle).
+                  setAppSheetValues({ Show_If: undefined, IsHidden: undefined });
+                }}
+                className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+              />
+              <span className="text-xs text-zinc-600">
+                {labelEnJa('Show?', '表示?')}
+              </span>
+              <InfoTooltip
+                content={helpText(
+                  "Is this column visible in the app? You can also provide a 'Show_If' expression to decide.",
+                  'このカラムはアプリ上で表示されますか？Show_If の式で表示条件を指定することもできます。'
+                )}
+              />
+            </label>
 
             <Input
-              label={labelEnJa('DisplayName', '表示名')}
-              value={getAppSheetString('DisplayName')}
-              onChange={(e) => setAppSheetValue('DisplayName', e.target.value)}
-            />
-
-            <Input
-              label={labelEnJa('Description', '説明')}
-              value={getAppSheetString('Description')}
-              onChange={(e) => setAppSheetValue('Description', e.target.value)}
-            />
-
-            <Select
-              label={labelEnJa('IsHidden / Show_If - toggle', '非表示 / 表示条件 - トグル')}
-              value={getTriState('IsHidden')}
-              options={appSheetTriStateOptions}
-              onChange={(e) => setTriState('IsHidden', e.target.value)}
-            />
-
-            <Input
-              label={labelEnJa('Show_If - expression', '表示条件 - 数式')}
+              label={labelEnJa('Show_If', '表示条件（Show_If）')}
               value={getAppSheetString('Show_If')}
               onChange={(e) => {
                 const v = e.target.value;
+                if (v.trim().length > 0) {
+                  // Hide: Show_If and IsHidden should not both be set.
+                  setAppSheetValues({ Show_If: v, IsHidden: undefined });
+                  return;
+                }
                 setAppSheetValue('Show_If', v);
-                if (v.trim().length > 0) {
-                  setAppSheetValue('IsHidden', undefined);
-                }
               }}
-            />
-
-            <Input
-              label={labelEnJa('Required_If - expression', '必須条件 - 数式')}
-              value={getAppSheetString('Required_If')}
-              onChange={(e) => {
-                const v = e.target.value;
-                setAppSheetValue('Required_If', v);
-                if (v.trim().length > 0) {
-                  handleConstraintUpdate({ required: false });
-                  setAppSheetValue('IsRequired', undefined);
-                }
-              }}
-            />
-
-            <Input
-              label={labelEnJa('AppFormula', 'アプリ数式')}
-              labelSuffix={
-                <InfoTooltip
-                  content={
-                    <div className="max-w-xs">
-                      <div className="font-medium mb-1">{helpText('AppFormula Simulator', 'アプリ数式シミュレーター')}</div>
-                      <p className="mb-2">{helpText(
-                        'Supported: [Column], [Ref].[Column], operators (+, -, *, /, &, =, <>, <, >, <=, >=), IF, AND, OR, NOT, ISBLANK, CONCATENATE, TEXT, TODAY, NOW, LOOKUP, FILTER, SELECT, ANY.',
-                        '対応: [列名], [Ref].[列名], 演算子 (+, -, *, /, &, =, <>, <, >, <=, >=), IF, AND, OR, NOT, ISBLANK, CONCATENATE, TEXT, TODAY, NOW, LOOKUP, FILTER, SELECT, ANY'
-                      )}</p>
-                      <p className="mb-2">{helpText(
-                        'Not supported: COUNT, SUM, MAX, MIN, SWITCH, IFS, CONTAINS, IN, SPLIT, LEN, LEFT, RIGHT, USEREMAIL, CONTEXT, etc.',
-                        '未対応: COUNT, SUM, MAX, MIN, SWITCH, IFS, CONTAINS, IN, SPLIT, LEN, LEFT, RIGHT, USEREMAIL, CONTEXT など'
-                      )}</p>
-                      <p>{helpText(
-                        'Compatibility: leading "=" is ignored; full-width operators are normalized; "-" is treated as blank; numbers like "1,234" are supported.',
-                        '互換注意: 先頭の「=」は無視 / 全角演算子は正規化 / 「-」は空欄扱い / 「1,234」のようなカンマ付き数値に対応'
-                      )}</p>
-                    </div>
-                  }
-                />
-              }
-              value={getAppSheetString('AppFormula')}
-              onChange={(e) => {
-                const v = e.target.value;
-                setAppSheetValue('AppFormula', v);
-                if (v.trim().length > 0) {
-                  handleConstraintUpdate({ defaultValue: undefined });
-                }
-              }}
-            />
-          </div>
-
-          {/* 識別・検索 */}
-          <div className="space-y-2">
-            <div className="text-[11px] font-medium text-zinc-600">
-              {labelEnJa('Identification / Search', '識別・検索')}
-            </div>
-            <Select
-              label={labelEnJa('IsScannable', 'スキャン可')}
-              value={getTriState('IsScannable')}
-              options={appSheetTriStateOptions}
-              onChange={(e) => setTriState('IsScannable', e.target.value)}
-            />
-            <Select
-              label={labelEnJa('IsNfcScannable', 'NFCスキャン可')}
-              value={getTriState('IsNfcScannable')}
-              options={appSheetTriStateOptions}
-              onChange={(e) => setTriState('IsNfcScannable', e.target.value)}
-            />
-            <Select
-              label={labelEnJa('Searchable', '検索対象')}
-              value={getTriState('Searchable')}
-              options={appSheetTriStateOptions}
-              onChange={(e) => setTriState('Searchable', e.target.value)}
-            />
-            <Select
-              label={labelEnJa('IsSensitive', '機密')}
-              value={getTriState('IsSensitive')}
-              options={appSheetTriStateOptions}
-              onChange={(e) => setTriState('IsSensitive', e.target.value)}
             />
           </div>
 
@@ -683,49 +607,343 @@ export function ColumnEditor() {
             <div className="text-[11px] font-medium text-zinc-600">
               {labelEnJa('Display / Edit', '表示・編集')}
             </div>
-            <Input
-              label={labelEnJa('Category', 'カテゴリ')}
-              value={getAppSheetString('Category')}
-              onChange={(e) => setAppSheetValue('Category', e.target.value)}
-            />
-            <Input
-              label={labelEnJa('Content', 'コンテンツ')}
-              value={getAppSheetString('Content')}
-              onChange={(e) => setAppSheetValue('Content', e.target.value)}
-            />
-            <Input
-              label={labelEnJa('Editable_If', '編集可能条件')}
-              value={getAppSheetString('Editable_If')}
-              onChange={(e) => setAppSheetValue('Editable_If', e.target.value)}
-            />
-            <Input
-              label={labelEnJa('Reset_If', 'リセット条件')}
-              value={getAppSheetString('Reset_If')}
-              onChange={(e) => setAppSheetValue('Reset_If', e.target.value)}
-            />
           </div>
 
-          {/* バリデーション */}
-          <div className="space-y-2">
-            <div className="text-[11px] font-medium text-zinc-600">
-              {labelEnJa('Validation', 'バリデーション')}
+          {/* Data Validity */}
+          <CollapsibleSection
+            title={labelEnJa('Data Validity', 'データ検証')}
+            storageKey="column-editor-data-validity"
+            defaultOpen={true}
+          >
+            <div className="space-y-2">
+              <Input
+                label={labelEnJa('Valid If', '有効条件')}
+                value={getAppSheetString('Valid_If')}
+                onChange={(e) => setAppSheetValue('Valid_If', e.target.value)}
+              />
+              <Input
+                label={labelEnJa('Invalid value error', '無効時エラーメッセージ')}
+                value={getAppSheetString('Error_Message_If_Invalid')}
+                onChange={(e) => setAppSheetValue('Error_Message_If_Invalid', e.target.value)}
+              />
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={
+                    !!selectedColumn.constraints.required ||
+                    getAppSheetString('Required_If').trim().length > 0
+                  }
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    if (checked) {
+                      const current = getAppSheetString('Required_If').trim();
+                      setAppSheetValues({
+                        Required_If: current.length > 0 ? current : 'TRUE',
+                        IsRequired: undefined,
+                      });
+                      handleConstraintUpdate({ required: false });
+                      return;
+                    }
+
+                    setAppSheetValues({ Required_If: undefined, IsRequired: undefined });
+                    handleConstraintUpdate({ required: false });
+                  }}
+                  className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+                />
+                <span className="text-xs text-zinc-600">{labelEnJa('Require?', '必須')}</span>
+              </label>
+              <Input
+                label={labelEnJa('Required_If', '必須条件（数式）')}
+                value={getAppSheetString('Required_If')}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setAppSheetValue('Required_If', v);
+                  if (v.trim().length > 0) {
+                    handleConstraintUpdate({ required: false });
+                    setAppSheetValue('IsRequired', undefined);
+                  }
+                }}
+              />
             </div>
-            <Input
-              label={labelEnJa('Valid_If', '有効条件')}
-              value={getAppSheetString('Valid_If')}
-              onChange={(e) => setAppSheetValue('Valid_If', e.target.value)}
-            />
-            <Input
-              label={labelEnJa('Error_Message_If_Invalid', '無効時メッセージ')}
-              value={getAppSheetString('Error_Message_If_Invalid')}
-              onChange={(e) => setAppSheetValue('Error_Message_If_Invalid', e.target.value)}
-            />
-            <Input
-              label={labelEnJa('Suggested_Values', '候補値')}
-              value={getAppSheetString('Suggested_Values')}
-              onChange={(e) => setAppSheetValue('Suggested_Values', e.target.value)}
-            />
-          </div>
+          </CollapsibleSection>
+
+          {/* Auto Compute */}
+          <CollapsibleSection
+            title={labelEnJa('Auto Compute', '自動計算')}
+            storageKey="column-editor-auto-compute"
+            defaultOpen={true}
+          >
+            <div className="space-y-2">
+              <Input
+                label={labelEnJa('App formula', 'アプリ数式')}
+                labelSuffix={
+                  <InfoTooltip
+                    content={
+                      <div className="max-w-xs">
+                        <div className="font-medium mb-1">{helpText('AppFormula Simulator', 'アプリ数式シミュレーター')}</div>
+                        <p className="mb-2">{helpText(
+                          'Supported: [Column], [Ref].[Column], operators (+, -, *, /, &, =, <>, <, >, <=, >=), IF, AND, OR, NOT, ISBLANK, CONCATENATE, TEXT, TODAY, NOW, LOOKUP, FILTER, SELECT, ANY.',
+                          '対応: [列名], [Ref].[列名], 演算子 (+, -, *, /, &, =, <>, <, >, <=, >=), IF, AND, OR, NOT, ISBLANK, CONCATENATE, TEXT, TODAY, NOW, LOOKUP, FILTER, SELECT, ANY'
+                        )}</p>
+                        <p className="mb-2">{helpText(
+                          'Not supported: COUNT, SUM, MAX, MIN, SWITCH, IFS, CONTAINS, IN, SPLIT, LEN, LEFT, RIGHT, USEREMAIL, CONTEXT, etc.',
+                          '未対応: COUNT, SUM, MAX, MIN, SWITCH, IFS, CONTAINS, IN, SPLIT, LEN, LEFT, RIGHT, USEREMAIL, CONTEXT など'
+                        )}</p>
+                        <p>{helpText(
+                          'Compatibility: leading "=" is ignored; full-width operators are normalized; "-" is treated as blank; numbers like "1,234" are supported.',
+                          '互換注意: 先頭の「=」は無視 / 全角演算子は正規化 / 「-」は空欄扱い / 「1,234」のようなカンマ付き数値に対応'
+                        )}</p>
+                      </div>
+                    }
+                  />
+                }
+                value={getAppSheetString('AppFormula')}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setAppSheetValue('AppFormula', v);
+                  if (v.trim().length > 0) {
+                    handleConstraintUpdate({ defaultValue: undefined });
+                  }
+                }}
+              />
+              <Input
+                label={labelEnJa('Initial value', '初期値')}
+                value={selectedColumn.constraints.defaultValue || ''}
+                disabled={getAppSheetString('AppFormula').trim().length > 0}
+                onChange={(e) => handleConstraintUpdate({ defaultValue: e.target.value })}
+              />
+              <Input
+                label={labelEnJa('Suggested values', '候補値')}
+                value={getAppSheetString('Suggested_Values')}
+                onChange={(e) => setAppSheetValue('Suggested_Values', e.target.value)}
+              />
+              <Input
+                label={labelEnJa('Spreadsheet formula', 'スプレッドシート数式')}
+                value={getAppSheetString('SpreadsheetFormula')}
+                onChange={(e) => setAppSheetValue('SpreadsheetFormula', e.target.value)}
+                disabled
+                placeholder={helpText('Generated from spreadsheet (read-only)', 'スプレッドシートから生成（読み取り専用）')}
+              />
+            </div>
+          </CollapsibleSection>
+
+          {/* Update Behavior */}
+          <CollapsibleSection
+            title={labelEnJa('Update Behavior', '更新動作')}
+            storageKey="column-editor-update-behavior"
+            defaultOpen={true}
+          >
+            <div className="space-y-2">
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedColumn.isKey}
+                  onChange={(e) => handleUpdate({ isKey: e.target.checked })}
+                  className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+                />
+                <span className="text-xs text-zinc-600">{labelEnJa('Key', 'キー')}</span>
+                <InfoTooltip
+                  content={helpText(
+                    'This column uniquely identifies rows from this table.',
+                    'このカラムはテーブルの行を一意に識別します。'
+                  )}
+                />
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={getTriState('Editable') !== 'false'}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+
+                    if (!checked) {
+                      setAppSheetValues({ Editable_If: undefined, Editable: false });
+                      return;
+                    }
+
+                    const current = getAppSheetString('Editable_If').trim();
+                    setAppSheetValues({ Editable_If: current.length > 0 ? current : 'TRUE', Editable: undefined });
+                  }}
+                  className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+                />
+                <span className="text-xs text-zinc-600">{labelEnJa('Editable?', '編集可能')}</span>
+                <InfoTooltip
+                  content={helpText(
+                    'Can users (or automatic app formulas) modify data in this column? You can also provide an Editable_If expression to decide.',
+                    'ユーザー（または自動アプリ数式）がこのカラムのデータを変更できますか？Editable_If式で条件を指定することもできます。'
+                  )}
+                />
+              </label>
+              <Input
+                label={labelEnJa('Editable_If', '編集可能条件（数式）')}
+                value={getAppSheetString('Editable_If')}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v.trim().length > 0) {
+                    setAppSheetValues({ Editable_If: v, Editable: undefined });
+                    return;
+                  }
+                  setAppSheetValues({ Editable_If: undefined });
+                }}
+              />
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={getAppSheetString('Reset_If').trim().length > 0}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    if (!checked) {
+                      setAppSheetValue('Reset_If', undefined);
+                      return;
+                    }
+                    const current = getAppSheetString('Reset_If').trim();
+                    setAppSheetValue('Reset_If', current.length > 0 ? current : 'TRUE');
+                  }}
+                  className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+                />
+                <span className="text-xs text-zinc-600">{labelEnJa('Reset on edit?', '編集時リセット')}</span>
+                <InfoTooltip
+                  content={helpText(
+                    'Should this column be reset to its initial value when the row is edited?',
+                    '行が編集されたときにこのカラムを初期値にリセットしますか？'
+                  )}
+                />
+              </label>
+
+              <Input
+                label={labelEnJa('Reset_If', 'リセット条件')}
+                value={getAppSheetString('Reset_If')}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setAppSheetValue('Reset_If', v);
+                }}
+              />
+            </div>
+          </CollapsibleSection>
+
+          {/* Display */}
+          <CollapsibleSection
+            title={labelEnJa('Display', '表示')}
+            storageKey="column-editor-display"
+            defaultOpen={true}
+          >
+            <div className="space-y-2">
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedColumn.isLabel}
+                  onChange={(e) => handleUpdate({ isLabel: e.target.checked })}
+                  className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+                />
+                <span className="text-xs text-zinc-600">{labelEnJa('Label', 'ラベル')}</span>
+                <InfoTooltip
+                  content={helpText(
+                    'This column represents rows from this table in lists and refs.',
+                    'このカラムは一覧や参照で、このテーブルの行を代表表示します。'
+                  )}
+                />
+              </label>
+              <Input
+                label={labelEnJa('Display name', '表示名')}
+                labelSuffix={
+                  <InfoTooltip
+                    content={helpText(
+                      'The user-visible name for this column. Defaults to column name.',
+                      'このカラムの表示名です。未設定の場合はカラム名が使われます。'
+                    )}
+                  />
+                }
+                value={getAppSheetString('DisplayName')}
+                onChange={(e) => setAppSheetValue('DisplayName', e.target.value)}
+              />
+              <Input
+                label={labelEnJa('Description', '説明')}
+                labelSuffix={
+                  <InfoTooltip
+                    content={helpText(
+                      'Text description for this column.',
+                      'このカラムの説明文です。'
+                    )}
+                  />
+                }
+                value={getAppSheetString('Description')}
+                onChange={(e) => setAppSheetValue('Description', e.target.value)}
+              />
+            </div>
+          </CollapsibleSection>
+
+          {/* Other Properties */}
+          <CollapsibleSection
+            title={labelEnJa('Other Properties', 'その他のプロパティ')}
+            storageKey="column-editor-other-properties"
+            defaultOpen={true}
+          >
+            <div className="space-y-2">
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={getTriState('Searchable') !== 'false'}
+                  onChange={(e) => setTriState('Searchable', e.target.checked ? '' : 'false')}
+                  className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+                />
+                <span className="text-xs text-zinc-600">{labelEnJa('Searchable', '検索対象')}</span>
+                <InfoTooltip
+                  content={helpText(
+                    'Include data from this column when searching.',
+                    '検索時にこのカラムのデータを対象に含めます。'
+                  )}
+                />
+              </label>
+
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={getTriState('IsScannable') === 'true'}
+                  onChange={(e) => setTriState('IsScannable', e.target.checked ? 'true' : '')}
+                  className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+                />
+                <span className="text-xs text-zinc-600">{labelEnJa('Scannable', 'スキャン可')}</span>
+                <InfoTooltip
+                  content={helpText(
+                    'Use a barcode scanner to fill in this column.',
+                    'バーコードスキャナーでこのカラムを入力できます。'
+                  )}
+                />
+              </label>
+
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={getTriState('IsNfcScannable') === 'true'}
+                  onChange={(e) => setTriState('IsNfcScannable', e.target.checked ? 'true' : '')}
+                  className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+                />
+                <span className="text-xs text-zinc-600">{labelEnJa('NFC Scannable', 'NFCスキャン可')}</span>
+                <InfoTooltip
+                  content={helpText(
+                    'Use NFC to fill in this column.',
+                    'NFCでこのカラムを入力できます。'
+                  )}
+                />
+              </label>
+
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={getTriState('IsSensitive') === 'true'}
+                  onChange={(e) => setTriState('IsSensitive', e.target.checked ? 'true' : '')}
+                  className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+                />
+                <span className="text-xs text-zinc-600">{labelEnJa('Sensitive data', '機密データ')}</span>
+                <InfoTooltip
+                  content={helpText(
+                    'This column holds personally identifiable information (PII).',
+                    'このカラムは個人を特定できる情報（PII）を含みます。'
+                  )}
+                />
+              </label>
+            </div>
+          </CollapsibleSection>
 
           {/* テキスト */}
           {(selectedColumn.type === 'LongText' || selectedColumn.type === 'EnumList') && (
@@ -823,59 +1041,64 @@ export function ColumnEditor() {
             </div>
           )}
 
-          {/* 数値 */}
-          {(selectedColumn.type === 'Number' || selectedColumn.type === 'Decimal' || selectedColumn.type === 'Progress') && (
-            <div className="space-y-2">
-              <div className="text-[11px] font-medium text-zinc-600">{labelEnJa('Number', '数値')}</div>
-              <Input
-                label={labelEnJa('NumericDigits', '桁数')}
-                type="number"
-                value={getAppSheetNumberString('NumericDigits')}
-                onChange={(e) => setAppSheetValue('NumericDigits', e.target.value === '' ? undefined : Number(e.target.value))}
-              />
-              <Select
-                label={labelEnJa('ShowThousandsSeparator', '3桁区切り')}
-                value={getTriState('ShowThousandsSeparator')}
-                options={appSheetTriStateOptions}
-                onChange={(e) => setTriState('ShowThousandsSeparator', e.target.value)}
-              />
-              <Select
-                label={labelEnJa('NumberDisplayMode', '表示モード')}
-                value={getAppSheetString('NumberDisplayMode')}
-                options={numberDisplayModeOptions}
-                onChange={(e) => setAppSheetValue('NumberDisplayMode', e.target.value)}
-              />
-              <Input
-                label={labelEnJa('MaxValue', '最大値')}
-                type="number"
-                value={getAppSheetNumberString('MaxValue')}
-                onChange={(e) => setAppSheetValue('MaxValue', e.target.value === '' ? undefined : Number(e.target.value))}
-              />
-              <Input
-                label={labelEnJa('MinValue', '最小値')}
-                type="number"
-                value={getAppSheetNumberString('MinValue')}
-                onChange={(e) => setAppSheetValue('MinValue', e.target.value === '' ? undefined : Number(e.target.value))}
-              />
-              <Input
-                label={labelEnJa('StepValue', '刻み')}
-                type="number"
-                value={getAppSheetNumberString('StepValue')}
-                onChange={(e) => setAppSheetValue('StepValue', e.target.value === '' ? undefined : Number(e.target.value))}
-              />
-              <Input
-                label={labelEnJa('DecimalDigits', '小数桁')}
-                type="number"
-                value={getAppSheetNumberString('DecimalDigits')}
-                onChange={(e) => setAppSheetValue('DecimalDigits', e.target.value === '' ? undefined : Number(e.target.value))}
-              />
-              <Select
-                label={labelEnJa('UpdateMode', '更新モード')}
-                value={getAppSheetString('UpdateMode')}
-                options={updateModeOptions}
-                onChange={(e) => setAppSheetValue('UpdateMode', e.target.value)}
-              />
-            </div>
+          {/* Type Details: 数値 */}
+          {(selectedColumn.type === 'Number' || selectedColumn.type === 'Decimal' || selectedColumn.type === 'Percent' || selectedColumn.type === 'Price' || selectedColumn.type === 'Progress') && (
+            <CollapsibleSection
+              title={labelEnJa('Type Details', '型の詳細')}
+              storageKey={`column-editor-type-details-${selectedColumn.type}`}
+              defaultOpen={true}
+            >
+              <div className="space-y-2">
+                <Input
+                  label={labelEnJa('Numeric digits', '桁数')}
+                  type="number"
+                  value={getAppSheetNumberString('NumericDigits')}
+                  onChange={(e) => setAppSheetValue('NumericDigits', e.target.value === '' ? undefined : Number(e.target.value))}
+                />
+                <Select
+                  label={labelEnJa('Show thousands separator', '3桁区切り')}
+                  value={getTriState('ShowThousandsSeparator')}
+                  options={appSheetTriStateOptions}
+                  onChange={(e) => setTriState('ShowThousandsSeparator', e.target.value)}
+                />
+                <Select
+                  label={labelEnJa('Display mode', '表示モード')}
+                  value={getAppSheetString('NumberDisplayMode')}
+                  options={numberDisplayModeOptions}
+                  onChange={(e) => setAppSheetValue('NumberDisplayMode', e.target.value)}
+                />
+                <Input
+                  label={labelEnJa('Maximum value', '最大値')}
+                  type="number"
+                  value={getAppSheetNumberString('MaxValue')}
+                  onChange={(e) => setAppSheetValue('MaxValue', e.target.value === '' ? undefined : Number(e.target.value))}
+                />
+                <Input
+                  label={labelEnJa('Minimum value', '最小値')}
+                  type="number"
+                  value={getAppSheetNumberString('MinValue')}
+                  onChange={(e) => setAppSheetValue('MinValue', e.target.value === '' ? undefined : Number(e.target.value))}
+                />
+                <Input
+                  label={labelEnJa('Increase/decrease step', '刻み')}
+                  type="number"
+                  value={getAppSheetNumberString('StepValue')}
+                  onChange={(e) => setAppSheetValue('StepValue', e.target.value === '' ? undefined : Number(e.target.value))}
+                />
+                <Input
+                  label={labelEnJa('Decimal digits', '小数桁')}
+                  type="number"
+                  value={getAppSheetNumberString('DecimalDigits')}
+                  onChange={(e) => setAppSheetValue('DecimalDigits', e.target.value === '' ? undefined : Number(e.target.value))}
+                />
+                <Select
+                  label={labelEnJa('Update mode', '更新モード')}
+                  value={getAppSheetString('UpdateMode')}
+                  options={updateModeOptions}
+                  onChange={(e) => setAppSheetValue('UpdateMode', e.target.value)}
+                />
+              </div>
+            </CollapsibleSection>
           )}
 
           {/* Change系 */}

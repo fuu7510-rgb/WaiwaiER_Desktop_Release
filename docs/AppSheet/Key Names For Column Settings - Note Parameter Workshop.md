@@ -43,8 +43,6 @@ The various column settings are called different things when using Note Paramete
 | IsNfcScannable | NFC Scannable | TRUE/FALSE |  |
 | Searchable | Searchable | TRUE/FALSE |  |
 | IsSensitive | Sensitive data | TRUE/FALSE |  |
-| Category | Show (Category) | String | Exact copy from the value in the drop down when picking the sub-type for the show column. |
-| Content | Show (Content) | String |  |
 | Valid\_If | Valid If | String |  |
 | Error\_Message\_If\_Invalid | Invalid value error | String |  |
 | Suggested\_Values | Suggested values | String |  |
