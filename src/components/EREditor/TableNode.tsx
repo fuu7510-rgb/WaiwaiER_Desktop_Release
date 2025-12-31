@@ -7,7 +7,7 @@ import type { NodeProps } from 'reactflow';
 import { useTranslation } from 'react-i18next';
 import { useERStore } from '../../stores';
 import type { Table, Column, ColumnType } from '../../types';
-import { TABLE_NODE_COLOR_CLASSES, DEFAULT_TABLE_COLOR } from '../../lib/constants';
+import { TABLE_NODE_STYLE_CLASSES, DEFAULT_TABLE_COLOR } from '../../lib/constants';
 
 interface TableNodeData {
   table: Table;
@@ -104,7 +104,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
   const isUpstream = highlight?.isUpstream ?? false;
   const isDownstream = highlight?.isDownstream ?? false;
   const isRelated = highlight?.isRelated ?? false;
-  const colorClasses = TABLE_NODE_COLOR_CLASSES[table.color?.toLowerCase() || DEFAULT_TABLE_COLOR] || TABLE_NODE_COLOR_CLASSES[DEFAULT_TABLE_COLOR];
+  const colorClasses = TABLE_NODE_STYLE_CLASSES[table.color?.toLowerCase() || DEFAULT_TABLE_COLOR] || TABLE_NODE_STYLE_CLASSES[DEFAULT_TABLE_COLOR];
 
   return (
     <div

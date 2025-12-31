@@ -1,7 +1,7 @@
 /**
  * トースト通知コンポーネント
  */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useToastStore, type Toast } from '../../stores/toastStore';
 
 const ToastItem = ({ toast, onRemove }: { toast: Toast; onRemove: () => void }) => {

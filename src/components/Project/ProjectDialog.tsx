@@ -401,12 +401,12 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
                         )}
                         {currentProjectId === project.id && (
                           <span className="text-[9px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium">
-                            現在
+                            {t('project.current')}
                           </span>
                         )}
                       </div>
                       <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                        更新日: {new Date(project.updatedAt).toLocaleString()}
+                        {t('project.updatedAt')}: {new Date(project.updatedAt).toLocaleString()}
                       </p>
                     </div>
 

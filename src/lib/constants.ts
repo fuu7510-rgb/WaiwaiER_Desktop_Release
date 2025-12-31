@@ -1,9 +1,20 @@
-export const TABLE_COLORS = [
+/**
+ * テーブルカラーパレット
+ * テーブルノードの色として選択可能な色の配列
+ */
+export const TABLE_COLOR_PALETTE = [
   '#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316',
   '#f59e0b', '#84cc16', '#22c55e', '#14b8a6', '#06b6d4',
-];
+] as const;
 
-export const TABLE_COLOR_CLASSES: Record<string, string> = {
+/** デフォルトのテーブルカラー */
+export const DEFAULT_TABLE_COLOR = '#6366f1';
+
+/**
+ * テーブルカラー選択ボタン用のCSSクラス
+ * TableEditor のカラーピッカーで使用
+ */
+export const TABLE_COLOR_PICKER_CLASSES: Record<string, string> = {
   '#6366f1': 'bg-[#6366f1] border-[#6366f1]',
   '#8b5cf6': 'bg-[#8b5cf6] border-[#8b5cf6]',
   '#ec4899': 'bg-[#ec4899] border-[#ec4899]',
@@ -16,7 +27,11 @@ export const TABLE_COLOR_CLASSES: Record<string, string> = {
   '#06b6d4': 'bg-[#06b6d4] border-[#06b6d4]',
 };
 
-export const TABLE_BG_COLOR_CLASSES: Record<string, string> = {
+/**
+ * テーブル背景色のCSSクラス
+ * シミュレーター等のUI要素で使用
+ */
+export const TABLE_BG_CLASSES: Record<string, string> = {
   '#6366f1': 'bg-[#6366f1]',
   '#8b5cf6': 'bg-[#8b5cf6]',
   '#ec4899': 'bg-[#ec4899]',
@@ -29,8 +44,12 @@ export const TABLE_BG_COLOR_CLASSES: Record<string, string> = {
   '#06b6d4': 'bg-[#06b6d4]',
 };
 
-/** TableNode用: border/bg を分離した形式 */
-export const TABLE_NODE_COLOR_CLASSES: Record<string, { border: string; bg: string }> = {
+/**
+ * TableNode用のCSSクラス
+ * ER図キャンバス上のテーブルノードで使用
+ * border と bg を分離して適用できる形式
+ */
+export const TABLE_NODE_STYLE_CLASSES: Record<string, { border: string; bg: string }> = {
   '#6366f1': { border: 'border-indigo-500', bg: 'bg-indigo-500' },
   '#8b5cf6': { border: 'border-violet-500', bg: 'bg-violet-500' },
   '#ec4899': { border: 'border-pink-500', bg: 'bg-pink-500' },
@@ -43,4 +62,12 @@ export const TABLE_NODE_COLOR_CLASSES: Record<string, { border: string; bg: stri
   '#06b6d4': { border: 'border-cyan-500', bg: 'bg-cyan-500' },
 };
 
-export const DEFAULT_TABLE_COLOR = '#6366f1';
+// 後方互換性のためのエイリアス（非推奨、将来削除予定）
+/** @deprecated TABLE_COLOR_PALETTE を使用してください */
+export const TABLE_COLORS = TABLE_COLOR_PALETTE;
+/** @deprecated TABLE_COLOR_PICKER_CLASSES を使用してください */
+export const TABLE_COLOR_CLASSES = TABLE_COLOR_PICKER_CLASSES;
+/** @deprecated TABLE_BG_CLASSES を使用してください */
+export const TABLE_BG_COLOR_CLASSES = TABLE_BG_CLASSES;
+/** @deprecated TABLE_NODE_STYLE_CLASSES を使用してください */
+export const TABLE_NODE_COLOR_CLASSES = TABLE_NODE_STYLE_CLASSES;

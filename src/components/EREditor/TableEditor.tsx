@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useERStore, useProjectStore, useUIStore } from '../../stores';
 import { Button, Input, ConfirmDialog } from '../common';
-import { TABLE_COLORS, TABLE_COLOR_CLASSES } from '../../lib/constants';
+import { TABLE_COLOR_PALETTE, TABLE_COLOR_PICKER_CLASSES } from '../../lib/constants';
 import type { Table } from '../../types';
 
 export function TableEditor() {
@@ -66,11 +66,11 @@ export function TableEditor() {
           {t('table.color')}
         </label>
         <div className="flex flex-wrap gap-1.5">
-          {TABLE_COLORS.map((color) => (
+          {TABLE_COLOR_PALETTE.map((color) => (
             <button
               key={color}
               type="button"
-              className={`w-5 h-5 rounded-full border transition-all ${TABLE_COLOR_CLASSES[color]} ${
+              className={`w-5 h-5 rounded-full border transition-all ${TABLE_COLOR_PICKER_CLASSES[color]} ${
                 selectedTable.color === color ? 'ring-2 ring-offset-1 ring-indigo-400 scale-110' : 'hover:scale-110'
               }`}
               onClick={() => handleUpdate({ color })}
@@ -88,8 +88,8 @@ export function TableEditor() {
       >
         <div className="text-[10px] space-y-0.5" style={{ color: 'var(--text-muted)' }}>
           <p>{t('column.columns')}: <span style={{ color: 'var(--text-secondary)' }} className="font-medium">{selectedTable.columns.length}</span></p>
-          <p>作成日: <span style={{ color: 'var(--text-secondary)' }}>{new Date(selectedTable.createdAt).toLocaleString()}</span></p>
-          <p>更新日: <span style={{ color: 'var(--text-secondary)' }}>{new Date(selectedTable.updatedAt).toLocaleString()}</span></p>
+          <p>{t('table.createdAt')}: <span style={{ color: 'var(--text-secondary)' }}>{new Date(selectedTable.createdAt).toLocaleString()}</span></p>
+          <p>{t('table.updatedAt')}: <span style={{ color: 'var(--text-secondary)' }}>{new Date(selectedTable.updatedAt).toLocaleString()}</span></p>
         </div>
       </div>
       

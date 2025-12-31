@@ -5,10 +5,44 @@ import type { Token, Expr } from './types';
 import { tokenize, normalizeExpressionInput } from './tokenizer';
 
 /**
- * パース結果のキャッシュ
+ * パース結果のLRUキャッシュ
  * パフォーマンス最適化のため、同じ式を繰り返しパースしないようにする
+ * 最大1000件まで保持し、古いエントリから削除される
  */
+const PARSE_CACHE_MAX_SIZE = 1000;
 const parseCache = new Map<string, Expr>();
+
+/**
+ * LRUキャッシュにエントリを追加/更新
+ */
+function parseCacheSet(key: string, value: Expr): void {
+  // 既存エントリを削除して末尾に追加（LRUの順序維持）
+  if (parseCache.has(key)) {
+    parseCache.delete(key);
+  }
+  parseCache.set(key, value);
+  
+  // サイズ超過時は最古のエントリを削除
+  if (parseCache.size > PARSE_CACHE_MAX_SIZE) {
+    const firstKey = parseCache.keys().next().value;
+    if (firstKey !== undefined) {
+      parseCache.delete(firstKey);
+    }
+  }
+}
+
+/**
+ * LRUキャッシュからエントリを取得（アクセス時に末尾に移動）
+ */
+function parseCacheGet(key: string): Expr | undefined {
+  const value = parseCache.get(key);
+  if (value !== undefined) {
+    // アクセスされたエントリを末尾に移動（LRU更新）
+    parseCache.delete(key);
+    parseCache.set(key, value);
+  }
+  return value;
+}
 
 /**
  * 再帰下降パーサークラス
@@ -201,19 +235,19 @@ class Parser {
 }
 
 /**
- * 式をパースしてASTを返す（キャッシュ付き）
+ * 式をパースしてASTを返す（LRUキャッシュ付き）
  */
 export function parseExpressionCached(input: string): Expr {
   const key = normalizeExpressionInput(input).trim();
   if (!key) return { kind: 'blank' };
   
-  const cached = parseCache.get(key);
+  const cached = parseCacheGet(key);
   if (cached) return cached;
   
   const tokens = tokenize(key);
   const parser = new Parser(tokens);
   const ast = parser.parseExpression();
-  parseCache.set(key, ast);
+  parseCacheSet(key, ast);
   
   return ast;
 }

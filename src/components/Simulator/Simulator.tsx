@@ -313,7 +313,7 @@ export function Simulator() {
     setSelectedRowIndex(null);
     setIsEditing(false);
     setDraftRow(null);
-  }, [deleteSampleRow, selectedRowIndex, selectedTable?.id]);
+  }, [deleteSampleRow, selectedRowIndex, selectedTable]);
 
   const handleClose = useCallback(() => {
     setSelectedRow(null);
