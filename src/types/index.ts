@@ -200,8 +200,20 @@ export interface Project {
 export interface ProjectData {
   project: Project;
   diagram: ERDiagram;
-  sampleData: Record<string, Record<string, unknown>[]>;
+  sampleData: SampleDataByTableId;
 }
+
+/**
+ * サンプルデータの1行を表す型。
+ * キーはカラムID、値はカラム型に応じた値。
+ */
+export type SampleRowValue = string | number | boolean | null | undefined;
+export type SampleRow = Record<string, SampleRowValue>;
+
+/**
+ * テーブルIDをキーとするサンプルデータのマップ。
+ */
+export type SampleDataByTableId = Record<string, SampleRow[]>;
 
 // ライセンス関連の型定義
 

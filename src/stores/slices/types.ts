@@ -1,7 +1,7 @@
 /**
  * erStoreのスライス間で共有される型定義
  */
-import type { Table, Column, Relation, Memo, ERDiagram, HistoryEntry, CommonColumnDefinition } from '../../types';
+import type { Table, Column, Relation, Memo, ERDiagram, HistoryEntry, CommonColumnDefinition, SampleRow, SampleDataByTableId } from '../../types';
 
 export const DEFAULT_SAMPLE_ROWS = 5;
 export const MAX_SAMPLE_ROWS = 100;
@@ -21,11 +21,11 @@ export interface MemoState {
 }
 
 export interface SampleDataState {
-  sampleDataByTableId: Record<string, Record<string, unknown>[]>;
+  sampleDataByTableId: SampleDataByTableId;
   deletedSampleRowStack: {
     tableId: string;
     rowIndex: number;
-    row: Record<string, unknown>;
+    row: SampleRow;
   }[];
 }
 
@@ -76,8 +76,8 @@ export interface SampleDataActions {
   ensureSampleData: () => void;
   regenerateSampleData: () => void;
   regenerateSampleDataForTable: (tableId: string) => void;
-  setSampleRowsForTable: (tableId: string, rows: Record<string, unknown>[]) => void;
-  updateSampleRow: (tableId: string, rowIndex: number, updates: Record<string, unknown>) => void;
+  setSampleRowsForTable: (tableId: string, rows: SampleRow[]) => void;
+  updateSampleRow: (tableId: string, rowIndex: number, updates: Partial<SampleRow>) => void;
   appendSampleRow: (tableId: string) => void;
   deleteSampleRow: (tableId: string, rowIndex: number) => void;
   undoDeleteSampleRow: () => void;
