@@ -447,7 +447,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
 
                   <div className="w-full">
                     <div className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>&nbsp;</div>
-                    <div className="px-1.5 py-[3px] text-sm whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>入力したテーブル名</div>
+                    <div className="px-1.5 py-[3px] text-sm whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>{t('settings.tableName.inputPlaceholder')}</div>
                   </div>
 
                   <Input
@@ -473,7 +473,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
 
                     <div className="w-full">
                       <div className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>&nbsp;</div>
-                      <div className="px-1.5 py-[3px] text-sm whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>入力したキーカラム名</div>
+                      <div className="px-1.5 py-[3px] text-sm whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>{t('settings.keyColumn.inputPlaceholder')}</div>
                     </div>
 
                     <Input

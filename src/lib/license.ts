@@ -3,7 +3,18 @@
  * オフラインライセンス検証（署名付きJWT方式）
  */
 
-// LemonSqueezy用の公開鍵（本番環境では環境変数から読み込む）
+/**
+ * LemonSqueezy用の公開鍵
+ * 
+ * ⚠️ 重要: 本番ビルドの前に実際の公開鍵に置き換えること
+ * 
+ * 手順:
+ * 1. LemonSqueezy管理画面から公開鍵を取得
+ * 2. 以下のプレースホルダー行を実際の鍵データに置換
+ * 3. 環境変数やビルド時注入を検討する場合は別途実装が必要
+ * 
+ * @see docs/RELEASE_CHECKLIST_*.md
+ */
 const PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0Z3VS5JJcds3xfn/ygWe
 REPLACE_WITH_ACTUAL_KEY_ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890

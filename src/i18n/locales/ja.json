@@ -74,6 +74,8 @@
     "newProject": "新規プロジェクト",
     "projectName": "プロジェクト名",
     "createProject": "プロジェクトを作成",
+    "current": "現在",
+    "updatedAt": "更新日",
     "saveStatus": {
       "saved": "保存済み",
       "savedTitle": "保存済み",
@@ -141,7 +143,9 @@
     "deleteTable": "テーブルを削除",
     "deleteTableConfirm": "テーブル「{{name}}」を削除しますか？",
     "duplicateTable": "テーブルを複製",
-    "color": "色"
+    "color": "色",
+    "createdAt": "作成日",
+    "updatedAt": "更新日"
   },
   "column": {
     "column": "カラム",
@@ -298,7 +302,8 @@
       "prefix": "プレフィックス",
       "suffix": "サフィックス",
       "prefixPlaceholder": "例: T",
-      "suffixPlaceholder": "例: _master"
+      "suffixPlaceholder": "例: _master",
+      "inputPlaceholder": "入力したテーブル名"
     },
     "keyColumn": {
       "title": "キーカラム名",
@@ -308,7 +313,8 @@
       "suffixPlaceholder": "例: _key",
       "defaultKeyColumnName": "固定キーカラム名",
       "defaultKeyColumnNamePlaceholder": "例: _RowID",
-      "description": "テーブル追加時、キーカラム名は「プレフィックス + テーブル名（入力値） + サフィックス」で自動生成されます。固定キーカラム名が設定されている場合は、そちらが優先されます。"
+      "description": "テーブル追加時、キーカラム名は「プレフィックス + テーブル名（入力値） + サフィックス」で自動生成されます。固定キーカラム名が設定されている場合は、そちらが優先されます。",
+      "inputPlaceholder": "入力したキーカラム名"
     },
     "relationLabel": {
       "title": "線ラベル",

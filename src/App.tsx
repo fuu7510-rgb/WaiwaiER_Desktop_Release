@@ -3,6 +3,7 @@ import { useUIStore } from './stores';
 import { MainLayout } from './components/Layout';
 import { EREditor } from './components/EREditor';
 import { Simulator } from './components/Simulator';
+import { ToastContainer } from './components/common';
 
 function App() {
   const { viewMode, settings } = useUIStore();
@@ -39,9 +40,12 @@ function App() {
   }, [settings.theme]);
 
   return (
-    <MainLayout>
-      {viewMode === 'editor' ? <EREditor /> : <Simulator />}
-    </MainLayout>
+    <>
+      <MainLayout>
+        {viewMode === 'editor' ? <EREditor /> : <Simulator />}
+      </MainLayout>
+      <ToastContainer />
+    </>
   );
 }
 

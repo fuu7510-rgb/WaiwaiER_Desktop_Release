@@ -3,3 +3,8 @@ export { TableView } from './TableView';
 export { DeckView } from './DeckView';
 export { DetailView } from './DetailView';
 export { FormView } from './FormView';
+export { SimulatorNavPanel } from './SimulatorNavPanel';
+export { SimulatorDetailPanel } from './SimulatorDetailPanel';
+export { SimulatorRowForm } from './SimulatorRowForm';
+export { SimulatorRelatedRecords } from './SimulatorRelatedRecords';
+export type { RelatedSection } from './SimulatorRelatedRecords';

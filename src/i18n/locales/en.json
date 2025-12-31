@@ -92,6 +92,8 @@
     "newProject": "New Project",
     "projectName": "Project Name",
     "createProject": "Create Project",
+    "current": "Current",
+    "updatedAt": "Updated",
     "saveStatus": {
       "saved": "Saved",
       "savedTitle": "Saved",
@@ -159,7 +161,9 @@
     "deleteTable": "Delete Table",
     "deleteTableConfirm": "Are you sure you want to delete table \"{{name}}\"?",
     "duplicateTable": "Duplicate Table",
-    "color": "Color"
+    "color": "Color",
+    "createdAt": "Created",
+    "updatedAt": "Updated"
   },
   "column": {
     "column": "Column",
@@ -316,7 +320,8 @@
       "prefix": "Prefix",
       "suffix": "Suffix",
       "prefixPlaceholder": "e.g. T",
-      "suffixPlaceholder": "e.g. _master"
+      "suffixPlaceholder": "e.g. _master",
+      "inputPlaceholder": "Your table name"
     },
     "keyColumn": {
       "title": "Key Column Name",
@@ -326,7 +331,8 @@
       "suffixPlaceholder": "e.g. _key",
       "defaultKeyColumnName": "Fixed Key Column Name",
       "defaultKeyColumnNamePlaceholder": "e.g. _RowID",
-      "description": "When adding a table, the key column name is auto-generated as 'Prefix + Table Name (input) + Suffix'. If a fixed key column name is set, it takes priority."
+      "description": "When adding a table, the key column name is auto-generated as 'Prefix + Table Name (input) + Suffix'. If a fixed key column name is set, it takes priority.",
+      "inputPlaceholder": "Your key column name"
     },
     "relationLabel": {
       "title": "Edge Label",

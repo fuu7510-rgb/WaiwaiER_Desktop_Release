@@ -6,3 +6,4 @@ export { ConfirmDialog } from './ConfirmDialog';
 export { InfoTooltip } from './InfoTooltip';
 export { ResizableSplitter } from './ResizableSplitter';
 export { CollapsibleSection } from './CollapsibleSection';
+export { ToastContainer } from './ToastContainer';
