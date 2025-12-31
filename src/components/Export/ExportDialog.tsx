@@ -21,7 +21,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
   const { t } = useTranslation();
   const { exportDiagram, tables, ensureSampleData } = useERStore();
   const { currentProjectId, projects } = useProjectStore();
-  const { openProjectDialog } = useUIStore();
+  const { openProjectDialog, settings } = useUIStore();
   const [format, setFormat] = useState<ExportFormat>('json');
   const [includeData, setIncludeData] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -114,6 +114,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
           tables: tables,
           sampleData: sampleData,
           includeData: includeData,
+          noteParamOutputSettings: settings.noteParamOutputSettings,
         },
         filePath: filePath,
       });
@@ -231,7 +232,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
               </label>
 
               {/* Note Parameters サポート状況パネル */}
-              <NoteParamsInfoPanel />
+              {settings.showNoteParamsSupportPanel && <NoteParamsInfoPanel />}
             </div>
           )}
 
@@ -268,6 +269,7 @@ function NoteParamsInfoPanel() {
   const verified = getVerifiedParams();
   const unstable = getNoteParamsByStatus('unstable');
   const untested = getNoteParamsByStatus('untested');
+  const unsupported = getNoteParamsByStatus('unsupported');
 
   const getLabel = (p: NoteParamInfo) => (isJa ? p.labelJa : p.labelEn);
 
@@ -296,6 +298,20 @@ function NoteParamsInfoPanel() {
             .map((p) => getLabel(p))
             .join(', ')}
           {unstable.length + untested.length > 5 && ` (+${unstable.length + untested.length - 5})`}
+        </span>
+      </div>
+
+      {/* Unsupported */}
+      <div className="mt-1.5 text-zinc-400">
+        <span>❌ {t('export.noteParams.unsupported')}:</span>{' '}
+        <span>
+          {unsupported.length > 0
+            ? unsupported
+              .slice(0, 5)
+              .map((p) => getLabel(p))
+              .join(', ')
+            : t('export.noteParams.none')}
+          {unsupported.length > 5 && ` (+${unsupported.length - 5})`}
         </span>
       </div>
 

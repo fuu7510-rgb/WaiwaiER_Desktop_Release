@@ -1,5 +1,6 @@
 {
   "common": {
+    "help": "Help",
     "Address": "Address",
     "App": "App",
     "ChangeCounter": "ChangeCounter",
@@ -250,6 +251,17 @@
     "appearance": "Appearance",
     "backup": "Backup",
     "license": "License",
+    "export": {
+      "title": "Export",
+      "showNoteParamsSupportPanel": "Show Note Parameters support status",
+      "showNoteParamsSupportPanelHint": "Shows AppSheet-side support status (✅/⚠️/🔍/❌) in the Excel export dialog."
+    },
+    "noteParams": {
+      "title": "Note Parameters Output Settings",
+      "description": "Select which parameters to output in the header cell Notes when exporting to Excel. It is recommended to output only parameters that have been verified to work on the AppSheet side.",
+      "resetToDefault": "Reset to Default",
+      "hint": "✅Verified and ⚠️Unstable parameters are relatively safe to output. 🔍Untested and ❌Unsupported parameters may not be recognized correctly by AppSheet."
+    },
     "tableCreationRules": {
       "title": "Table creation rules"
     },
@@ -263,6 +275,9 @@
       "unnamed": "(Unnamed)",
       "namePlaceholder": "e.g. CreatedAt",
       "enumHint": "One per line",
+      "rawNoteLabel": "Raw Note text",
+      "rawNotePlaceholder": "e.g. {\"Type\":\"Text\"}\n(leave empty to disable)",
+      "rawNoteHint": "This text is written to the header cell Note as-is during Excel export (overrides auto-generated Note Parameters).",
       "note": "Columns with an empty name are not applied."
     },
     "transfer": {
@@ -391,6 +406,7 @@
       "title": "Note Parameters Output Status",
       "verified": "Output",
       "pending": "Pending verification",
+      "unsupported": "Unsupported",
       "none": "None",
       "hint": "Only verified parameters are exported to Excel"
     },

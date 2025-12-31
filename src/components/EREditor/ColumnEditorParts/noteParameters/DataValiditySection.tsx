@@ -1,8 +1,6 @@
-import { CollapsibleSection, Input } from '../../../common';
+import { CollapsibleSection, Input, Select } from '../../../common';
 
 import type { Column, ColumnConstraints } from '../../../../types';
-
-import { NoteParamBadge } from '../NoteParamBadge';
 
 type Props = {
   selectedColumn: Column;
@@ -13,6 +11,10 @@ type Props = {
   setAppSheetValue: (key: string, value: unknown) => void;
   setAppSheetValues: (values: Record<string, unknown>) => void;
   getAppSheetString: (key: string) => string;
+
+  getTriState: (key: string) => '' | 'true' | 'false';
+  setTriState: (key: string, raw: string) => void;
+  appSheetTriStateOptions: { value: string; label: string }[];
 };
 
 export function DataValiditySection({
@@ -20,9 +22,19 @@ export function DataValiditySection({
   handleConstraintUpdate,
   labelEnJa,
   setAppSheetValue,
-  setAppSheetValues,
   getAppSheetString,
+  getTriState,
+  setTriState,
+  appSheetTriStateOptions,
 }: Props) {
+  const requiredIf = getAppSheetString('Required_If');
+  const requiredIfNonEmpty = requiredIf.trim().length > 0;
+
+  // Prefer explicit Note Parameters value; fallback to derived constraints for legacy data.
+  const isRequiredTriState = requiredIfNonEmpty
+    ? ''
+    : (getTriState('IsRequired') !== '' ? getTriState('IsRequired') : (selectedColumn.constraints.required ? 'true' : ''));
+
   return (
     <CollapsibleSection title={labelEnJa('Data Validity', 'データ検証')} storageKey="column-editor-data-validity" defaultOpen={true}>
       <div className="space-y-2">
@@ -36,41 +48,37 @@ export function DataValiditySection({
           value={getAppSheetString('Error_Message_If_Invalid')}
           onChange={(e) => setAppSheetValue('Error_Message_If_Invalid', e.target.value)}
         />
-        <label className="flex items-center gap-1.5 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={!!selectedColumn.constraints.required || getAppSheetString('Required_If').trim().length > 0}
-            onChange={(e) => {
-              const checked = e.target.checked;
-              if (checked) {
-                const current = getAppSheetString('Required_If').trim();
-                setAppSheetValues({
-                  Required_If: current.length > 0 ? current : 'TRUE',
-                  IsRequired: undefined,
-                });
-                handleConstraintUpdate({ required: false });
-                return;
-              }
+        <Select
+          label={
+            <span className="inline-flex items-center">
+              {labelEnJa('Require? (toggle)', '必須（トグル）')}
+            </span>
+          }
+          value={isRequiredTriState}
+          options={appSheetTriStateOptions}
+          disabled={requiredIfNonEmpty}
+          onChange={(e) => {
+            const raw = e.target.value;
 
-              setAppSheetValues({ Required_If: undefined, IsRequired: undefined });
-              handleConstraintUpdate({ required: false });
-            }}
-            className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
-          />
-          <span className="text-xs text-zinc-600">
-            {labelEnJa('Require?', '必須')}
-            <NoteParamBadge field="required" />
-          </span>
-        </label>
+            // Toggle and formula are mutually exclusive.
+            if (raw === 'true' || raw === 'false') {
+              setAppSheetValue('Required_If', undefined);
+            }
+
+            setTriState('IsRequired', raw);
+            handleConstraintUpdate({ required: raw === 'true' });
+          }}
+        />
         <Input
           label={labelEnJa('Required_If', '必須条件（数式）')}
-          value={getAppSheetString('Required_If')}
+          value={requiredIf}
           onChange={(e) => {
             const v = e.target.value;
             setAppSheetValue('Required_If', v);
             if (v.trim().length > 0) {
               handleConstraintUpdate({ required: false });
-              setAppSheetValue('IsRequired', undefined);
+              // Required_If is present => Require? must not be output.
+              setTriState('IsRequired', '');
             }
           }}
         />

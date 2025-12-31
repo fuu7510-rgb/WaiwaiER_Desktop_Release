@@ -240,10 +240,24 @@ export type FontSize = 'small' | 'medium' | 'large';
 
 export type RelationLabelInitialMode = 'auto' | 'hidden' | 'custom';
 
+/**
+ * Note Parameters 出力設定（キー名: 出力するか）
+ */
+export interface NoteParamOutputSettings {
+  [key: string]: boolean;
+}
+
 export interface AppSettings {
   language: Language;
   theme: Theme;
   fontSize: FontSize;
+
+  /** Excelエクスポート画面で Note Parameters の対応状況パネルを表示する */
+  showNoteParamsSupportPanel: boolean;
+
+  /** Note Parameters 出力設定（キー名: 出力するか） */
+  noteParamOutputSettings?: NoteParamOutputSettings;
+
   autoBackupEnabled: boolean;
   autoBackupIntervalMinutes: number;
   backupRetentionDays: number;

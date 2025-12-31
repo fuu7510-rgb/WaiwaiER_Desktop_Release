@@ -34,7 +34,7 @@ The various column settings are called different things when using Note Paramete
 | IsRequired | Require? (toggle) | true/false | Exclude if using a formula |
 | Required\_If | Required? (formula) | String | Only include if you’re using a formula. |
 | AppFormula | App formula | String |  |
-| DEFAULT | Initial value | String |  |
+| Default | Initial value | String |  |
 | DisplayName | Display name | String |  |
 | Description | Description | String |  |
 | IsLabel | Label | true/false |  |

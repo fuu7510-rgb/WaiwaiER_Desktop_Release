@@ -1,12 +1,19 @@
 mod excel;
 mod project_db;
 
-use excel::{export_to_excel, ExportRequest};
+use excel::{export_to_excel, preview_column_notes, ExportRequest};
 use project_db::{delete_project_db, load_kv, save_kv};
 
 #[tauri::command]
 fn export_excel(request: ExportRequest, file_path: String) -> Result<(), String> {
     export_to_excel(&request, &file_path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn preview_excel_column_notes(
+  request: ExportRequest,
+) -> Result<std::collections::HashMap<String, std::collections::HashMap<String, String>>, String> {
+  Ok(preview_column_notes(&request))
 }
 
 #[tauri::command]
@@ -49,6 +56,7 @@ pub fn run() {
     .plugin(tauri_plugin_sql::Builder::default().build())
     .invoke_handler(tauri::generate_handler![
       export_excel,
+      preview_excel_column_notes,
       project_db_save,
       project_db_load,
       project_db_delete

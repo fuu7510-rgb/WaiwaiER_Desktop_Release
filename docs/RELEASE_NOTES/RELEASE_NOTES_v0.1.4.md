@@ -5,6 +5,8 @@
 - チャネル: ALPHA
 - 対象OS: Windows
 - 配布形態: ストア不使用（手動アップデート）
+- 配布物（MSI）: WaiwaiER Desktop_0.1.4_x64_en-US.msi
+- 配布物（NSIS）: WaiwaiER Desktop_0.1.4_x64-setup.exe
 - 配布ZIP（MSI）: WaiwaiER-Desktop-0.1.4-alpha-win64-msi.zip
 - 配布ZIP（NSIS）: WaiwaiER-Desktop-0.1.4-alpha-win64-nsis.zip
 

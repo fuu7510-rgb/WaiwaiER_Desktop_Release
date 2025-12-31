@@ -2,8 +2,6 @@ import { CollapsibleSection, InfoTooltip, Input } from '../../../common';
 
 import type { Column } from '../../../../types';
 
-import { NoteParamBadge } from '../NoteParamBadge';
-
 type Props = {
   selectedColumn: Column;
   handleUpdate: (updates: Partial<Column>) => void;
@@ -39,7 +37,6 @@ export function UpdateBehaviorSection({
           />
           <span className="text-xs text-zinc-600">
             {labelEnJa('Key', 'キー')}
-            <NoteParamBadge field="isKey" />
           </span>
           <InfoTooltip
             content={helpText('This column uniquely identifies rows from this table.', 'このカラムはテーブルの行を一意に識別します。')}

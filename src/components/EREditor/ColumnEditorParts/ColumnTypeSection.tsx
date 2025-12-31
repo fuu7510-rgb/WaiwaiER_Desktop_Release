@@ -2,8 +2,6 @@ import { Select } from '../../common';
 
 import type { Column, ColumnConstraints, ColumnType } from '../../../types';
 
-import { NoteParamBadge } from './NoteParamBadge';
-
 type Option = { value: string; label: string };
 
 type Props = {
@@ -31,7 +29,6 @@ export function ColumnTypeSection({
     <div>
       <div className="flex items-center mb-1">
         <span className="text-xs font-medium text-zinc-600">{labelKey('table.columnType')}</span>
-        <NoteParamBadge field="type" />
       </div>
       <Select
         value={selectedColumn.type}

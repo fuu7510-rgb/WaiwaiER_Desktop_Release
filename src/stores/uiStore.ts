@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ViewMode, Language, Theme, FontSize, AppSettings } from '../types';
+import { getDefaultNoteParamOutputSettings } from '../lib/appsheet/noteParameters';
 
 interface UIState {
   // ビュー状態
@@ -25,6 +26,7 @@ interface UIState {
   isTableCreationRulesOpen: boolean;
   isCommonColumnsOpen: boolean;
   isBackupSettingsOpen: boolean;
+  isNoteParamsSettingsOpen: boolean;
 
   // ERエディタ表示
   isRelationHighlightEnabled: boolean;
@@ -59,6 +61,11 @@ interface UIState {
   toggleTableCreationRulesOpen: () => void;
   toggleCommonColumnsOpen: () => void;
   toggleBackupSettingsOpen: () => void;
+  toggleNoteParamsSettingsOpen: () => void;
+
+  // Note Parameters 出力設定操作
+  updateNoteParamOutputSetting: (key: string, enabled: boolean) => void;
+  resetNoteParamOutputSettings: () => void;
 
   // ERエディタ表示操作
   toggleRelationHighlight: () => void;
@@ -76,6 +83,8 @@ const defaultSettings: AppSettings = {
   language: 'ja',
   theme: 'system',
   fontSize: 'medium',
+  showNoteParamsSupportPanel: true,
+  noteParamOutputSettings: getDefaultNoteParamOutputSettings(),
   autoBackupEnabled: true,
   autoBackupIntervalMinutes: 5,
   backupRetentionDays: 7,
@@ -107,6 +116,7 @@ export const useUIStore = create<UIState>()(
       isTableCreationRulesOpen: true,
       isCommonColumnsOpen: true,
       isBackupSettingsOpen: true,
+      isNoteParamsSettingsOpen: false,
       isRelationHighlightEnabled: true,
       isGridVisible: true,
       isMemosVisible: true,
@@ -140,6 +150,27 @@ export const useUIStore = create<UIState>()(
         set((state) => ({ isCommonColumnsOpen: !state.isCommonColumnsOpen })),
       toggleBackupSettingsOpen: () =>
         set((state) => ({ isBackupSettingsOpen: !state.isBackupSettingsOpen })),
+      toggleNoteParamsSettingsOpen: () =>
+        set((state) => ({ isNoteParamsSettingsOpen: !state.isNoteParamsSettingsOpen })),
+
+      // Note Parameters 出力設定操作
+      updateNoteParamOutputSetting: (key: string, enabled: boolean) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            noteParamOutputSettings: {
+              ...(state.settings.noteParamOutputSettings ?? getDefaultNoteParamOutputSettings()),
+              [key]: enabled,
+            },
+          },
+        })),
+      resetNoteParamOutputSettings: () =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            noteParamOutputSettings: getDefaultNoteParamOutputSettings(),
+          },
+        })),
 
       // ERエディタ表示操作
       toggleRelationHighlight: () =>
@@ -176,6 +207,7 @@ export const useUIStore = create<UIState>()(
         isTableCreationRulesOpen: state.isTableCreationRulesOpen,
         isCommonColumnsOpen: state.isCommonColumnsOpen,
         isBackupSettingsOpen: state.isBackupSettingsOpen,
+        isNoteParamsSettingsOpen: state.isNoteParamsSettingsOpen,
         isRelationHighlightEnabled: state.isRelationHighlightEnabled,
         isGridVisible: state.isGridVisible,
         isMemosVisible: state.isMemosVisible,

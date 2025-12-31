@@ -812,7 +812,6 @@ export const useERStore = create<ERState>()(
       if (defs.length === 0) return;
 
       let changed = false;
-      const tables = get().tables;
       set((state) => {
         const table = state.tables.find((t) => t.id === tableId);
         if (!table) return;

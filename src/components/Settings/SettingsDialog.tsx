@@ -8,6 +8,14 @@ import { getAppInfo } from '../../lib/appInfo';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  NOTE_PARAM_STATUS,
+  NOTE_PARAM_CATEGORIES,
+  getNoteParamsGroupedByCategory,
+  getStatusBadgeInfo,
+  getDefaultNoteParamOutputSettings,
+  type NoteParamCategory,
+} from '../../lib/appsheet/noteParameters';
 
 interface SettingsDialogProps {
   isOpen: boolean;
@@ -29,6 +37,10 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     toggleCommonColumnsOpen,
     isBackupSettingsOpen,
     toggleBackupSettingsOpen,
+    isNoteParamsSettingsOpen,
+    toggleNoteParamsSettingsOpen,
+    updateNoteParamOutputSetting,
+    resetNoteParamOutputSettings,
   } = useUIStore();
   const { subscriptionPlan } = useProjectStore();
 
@@ -36,6 +48,8 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
 
   const [appVersion, setAppVersion] = useState<string>('');
   const [transferMessage, setTransferMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const RAW_NOTE_OVERRIDE_KEY = '__AppSheetNoteOverride';
 
   const settingsFileBaseName = useMemo(() => {
     const date = new Date();
@@ -136,6 +150,20 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     updateCommonColumn(id, { constraints: { ...(target.constraints ?? {}), ...updates } });
   };
 
+  const setCommonColumnAppSheetString = (id: string, key: string, value: string) => {
+    const target = commonColumns.find((c) => c.id === id);
+    if (!target) return;
+    const prev = (target.appSheet ?? {}) as Record<string, unknown>;
+    const next: Record<string, unknown> = { ...prev };
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+      delete next[key];
+    } else {
+      next[key] = value;
+    }
+    updateCommonColumn(id, { appSheet: Object.keys(next).length > 0 ? next : undefined });
+  };
+
   const deleteCommonColumn = (id: string) => {
     const next = commonColumns.filter((c) => c.id !== id);
     applyCommonColumnsSetting(next);
@@ -183,6 +211,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
 
     // boolean
     if (typeof obj.autoBackupEnabled === 'boolean') next.autoBackupEnabled = obj.autoBackupEnabled;
+    if (typeof obj.showNoteParamsSupportPanel === 'boolean') next.showNoteParamsSupportPanel = obj.showNoteParamsSupportPanel;
 
     // number
     const autoBackupIntervalMinutes = coerceNumber(obj.autoBackupIntervalMinutes);
@@ -240,6 +269,21 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
         nextCommon.push({ id, name, type, constraints, appSheet });
       }
       next.commonColumns = nextCommon;
+    }
+
+    // noteParamOutputSettings
+    if (typeof obj.noteParamOutputSettings === 'object' && obj.noteParamOutputSettings !== null) {
+      const raw = obj.noteParamOutputSettings as Record<string, unknown>;
+      const validKeys = NOTE_PARAM_STATUS.map((p) => p.key);
+      const nextSettings: Record<string, boolean> = {};
+      for (const key of validKeys) {
+        if (typeof raw[key] === 'boolean') {
+          nextSettings[key] = raw[key];
+        }
+      }
+      if (Object.keys(nextSettings).length > 0) {
+        next.noteParamOutputSettings = nextSettings;
+      }
     }
 
     return next;
@@ -674,6 +718,28 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                         </div>
                       )}
 
+                      <div>
+                        <label
+                          htmlFor={`common-raw-note-${selectedCommonColumn.id}`}
+                          className="block text-xs font-medium text-zinc-600 mb-1"
+                        >
+                          {t('settings.commonColumns.rawNoteLabel')}
+                        </label>
+                        <textarea
+                          id={`common-raw-note-${selectedCommonColumn.id}`}
+                          className="w-full px-2 py-1.5 text-xs border rounded bg-white border-zinc-200 hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          rows={4}
+                          placeholder={t('settings.commonColumns.rawNotePlaceholder')}
+                          value={
+                            typeof (selectedCommonColumn.appSheet as Record<string, unknown> | undefined)?.[RAW_NOTE_OVERRIDE_KEY] === 'string'
+                              ? String((selectedCommonColumn.appSheet as Record<string, unknown> | undefined)?.[RAW_NOTE_OVERRIDE_KEY] ?? '')
+                              : ''
+                          }
+                          onChange={(e) => setCommonColumnAppSheetString(selectedCommonColumn.id, RAW_NOTE_OVERRIDE_KEY, e.target.value)}
+                        />
+                        <p className="mt-1 text-[10px] text-zinc-400">{t('settings.commonColumns.rawNoteHint')}</p>
+                      </div>
+
                       <p className="text-[10px] text-zinc-400">{t('settings.commonColumns.note')}</p>
                     </div>
                   ) : (
@@ -745,6 +811,106 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                   />
                 </>
               )}
+            </div>
+          )}
+        </section>
+
+        {/* Note Parameters Settings (Collapsible) */}
+        <section>
+          <button
+            type="button"
+            onClick={toggleNoteParamsSettingsOpen}
+            className={
+              'w-full flex items-center justify-between text-left px-3 py-2 rounded border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ' +
+              (isNoteParamsSettingsOpen
+                ? 'border-indigo-300 bg-indigo-50'
+                : 'border-indigo-200 bg-indigo-50/40 hover:bg-indigo-50/70 hover:border-indigo-300')
+            }
+          >
+            <h3 className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">{t('settings.noteParams.title')}</h3>
+            <svg
+              className={
+                'w-4 h-4 transition-transform ' +
+                (isNoteParamsSettingsOpen ? 'rotate-180 text-indigo-600' : 'rotate-0 text-indigo-500/70')
+              }
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {isNoteParamsSettingsOpen && (
+            <div className="mt-2.5 space-y-3">
+              <p className="text-[10px] text-zinc-400">{t('settings.noteParams.description')}</p>
+
+              {/* Status Legend */}
+              <div className="flex flex-wrap gap-2 text-[10px]">
+                {(['verified', 'unstable', 'untested', 'unsupported'] as const).map((status) => {
+                  const badge = getStatusBadgeInfo(status);
+                  return (
+                    <span key={status} className={`px-1.5 py-0.5 rounded ${badge.colorClass}`}>
+                      {badge.emoji} {isJapanese ? badge.labelJa : badge.labelEn}
+                    </span>
+                  );
+                })}
+              </div>
+
+              {/* Reset Button */}
+              <div className="flex justify-end">
+                <Button variant="secondary" size="sm" onClick={resetNoteParamOutputSettings}>
+                  {t('settings.noteParams.resetToDefault')}
+                </Button>
+              </div>
+
+              {/* Parameters by Category */}
+              <div className="space-y-3 max-h-64 overflow-y-auto border border-zinc-200 rounded p-2 bg-white">
+                {(Object.keys(NOTE_PARAM_CATEGORIES) as NoteParamCategory[]).map((category) => {
+                  const params = getNoteParamsGroupedByCategory().get(category) ?? [];
+                  if (params.length === 0) return null;
+                  const categoryInfo = NOTE_PARAM_CATEGORIES[category];
+                  return (
+                    <div key={category}>
+                      <div className="text-[10px] font-semibold text-zinc-500 mb-1.5">
+                        {isJapanese ? categoryInfo.labelJa : categoryInfo.labelEn}
+                      </div>
+                      <div className="space-y-1">
+                        {params.map((param) => {
+                          const badge = getStatusBadgeInfo(param.status);
+                          const outputSettings = settings.noteParamOutputSettings ?? getDefaultNoteParamOutputSettings();
+                          const isEnabled = outputSettings[param.key] ?? false;
+                          return (
+                            <label
+                              key={param.key}
+                              className="flex items-center gap-2 cursor-pointer hover:bg-zinc-50 rounded px-1 py-0.5"
+                            >
+                              <span className={`px-1 py-0.5 rounded text-[9px] ${badge.colorClass}`} title={isJapanese ? badge.labelJa : badge.labelEn}>
+                                {badge.emoji}
+                              </span>
+                              <input
+                                type="checkbox"
+                                checked={isEnabled}
+                                onChange={(e) => updateNoteParamOutputSetting(param.key, e.target.checked)}
+                                className="w-3 h-3 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+                              />
+                              <span className="text-xs text-zinc-700 flex-1 truncate" title={param.key}>
+                                {param.key}
+                                <span className="text-zinc-400 ml-1">
+                                  ({isJapanese ? param.labelJa : param.labelEn})
+                                </span>
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p className="text-[10px] text-zinc-400">{t('settings.noteParams.hint')}</p>
             </div>
           )}
         </section>

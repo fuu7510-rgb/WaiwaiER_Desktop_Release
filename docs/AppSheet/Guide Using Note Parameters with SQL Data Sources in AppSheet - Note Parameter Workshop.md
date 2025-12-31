@@ -41,7 +41,7 @@ For example, in the first row of each column, you might add parameters like:
 AppSheet: {
   "IsRequired": true,
   "Type": "Text",
-  "DEFAULT": "uniqueid()",
+  "Default": "UNIQUEID()",
   "DisplayName": "Customer ID"
 }
 ```
