@@ -22,7 +22,7 @@ npm run release:zip
   - `release/WaiwaiER-Desktop-0.1.2-alpha-win64-nsis.zip`
 
 ## 4) リリースノート
-- `docs/RELEASE_NOTES_v0.1.2.md` を GitHub Releases の本文へ貼り付け
+- `docs/RELEASE_NOTES/RELEASE_NOTES_v0.1.2.md` を GitHub Releases の本文へ貼り付け
 
 ## 5) GitHub Releases（手動）
 - Tag: `v0.1.2`

@@ -59,7 +59,7 @@
   - Excelエクスポート
 
 ## リリースノート
-- 雛形: [docs/RELEASE_NOTES_TEMPLATE.md](docs/RELEASE_NOTES_TEMPLATE.md)
+- 雛形: [RELEASE_NOTES/RELEASE_NOTES_TEMPLATE.md](RELEASE_NOTES/RELEASE_NOTES_TEMPLATE.md)
 
 ## 公開前チェック（不足しがちなポイント）
 - バージョン表示: UI上で常に現在のアプリバージョンを確認できる

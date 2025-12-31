@@ -24,6 +24,9 @@
 1. 配布ZIP（MSI）を展開
 2. 展開したMSIを実行
 
+## 手動アップデート
+- 手順は [RELEASE_ALPHA_PLAN.md](../RELEASE_ALPHA_PLAN.md) を参照
+
 ## 変更点
 ### 改善
 - ERエディタ（React Flow）: `nodeTypes` / `edgeTypes` の参照を安定化し、開発時警告（React Flow error #002）の発生を抑止
