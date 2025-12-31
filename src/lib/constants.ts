@@ -28,3 +28,19 @@ export const TABLE_BG_COLOR_CLASSES: Record<string, string> = {
   '#14b8a6': 'bg-[#14b8a6]',
   '#06b6d4': 'bg-[#06b6d4]',
 };
+
+/** TableNode用: border/bg を分離した形式 */
+export const TABLE_NODE_COLOR_CLASSES: Record<string, { border: string; bg: string }> = {
+  '#6366f1': { border: 'border-indigo-500', bg: 'bg-indigo-500' },
+  '#8b5cf6': { border: 'border-violet-500', bg: 'bg-violet-500' },
+  '#ec4899': { border: 'border-pink-500', bg: 'bg-pink-500' },
+  '#ef4444': { border: 'border-red-500', bg: 'bg-red-500' },
+  '#f97316': { border: 'border-orange-500', bg: 'bg-orange-500' },
+  '#f59e0b': { border: 'border-amber-500', bg: 'bg-amber-500' },
+  '#84cc16': { border: 'border-lime-500', bg: 'bg-lime-500' },
+  '#22c55e': { border: 'border-green-500', bg: 'bg-green-500' },
+  '#14b8a6': { border: 'border-teal-500', bg: 'bg-teal-500' },
+  '#06b6d4': { border: 'border-cyan-500', bg: 'bg-cyan-500' },
+};
+
+export const DEFAULT_TABLE_COLOR = '#6366f1';

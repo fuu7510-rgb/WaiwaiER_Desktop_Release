@@ -7,6 +7,7 @@ import type { NodeProps } from 'reactflow';
 import { useTranslation } from 'react-i18next';
 import { useERStore } from '../../stores';
 import type { Table, Column, ColumnType } from '../../types';
+import { TABLE_NODE_COLOR_CLASSES, DEFAULT_TABLE_COLOR } from '../../lib/constants';
 
 interface TableNodeData {
   table: Table;
@@ -57,18 +58,7 @@ const columnTypeClasses: Record<ColumnType, string> = {
   UniqueID: 'bg-purple-500',
 };
 
-const tableColorClasses: Record<string, { border: string; bg: string }> = {
-  '#6366f1': { border: 'border-indigo-500', bg: 'bg-indigo-500' },
-  '#8b5cf6': { border: 'border-violet-500', bg: 'bg-violet-500' },
-  '#ec4899': { border: 'border-pink-500', bg: 'bg-pink-500' },
-  '#ef4444': { border: 'border-red-500', bg: 'bg-red-500' },
-  '#f97316': { border: 'border-orange-500', bg: 'bg-orange-500' },
-  '#f59e0b': { border: 'border-amber-500', bg: 'bg-amber-500' },
-  '#84cc16': { border: 'border-lime-500', bg: 'bg-lime-500' },
-  '#22c55e': { border: 'border-green-500', bg: 'bg-green-500' },
-  '#14b8a6': { border: 'border-teal-500', bg: 'bg-teal-500' },
-  '#06b6d4': { border: 'border-cyan-500', bg: 'bg-cyan-500' },
-};
+
 
 export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => {
   const { table } = data;
@@ -114,7 +104,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
   const isUpstream = highlight?.isUpstream ?? false;
   const isDownstream = highlight?.isDownstream ?? false;
   const isRelated = highlight?.isRelated ?? false;
-  const colorClasses = tableColorClasses[table.color?.toLowerCase() || '#6366f1'] || tableColorClasses['#6366f1'];
+  const colorClasses = TABLE_NODE_COLOR_CLASSES[table.color?.toLowerCase() || DEFAULT_TABLE_COLOR] || TABLE_NODE_COLOR_CLASSES[DEFAULT_TABLE_COLOR];
 
   return (
     <div

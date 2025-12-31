@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
 import type { Project, SubscriptionPlan } from '../types';
 import { saveProject as dbSaveProject, loadProjects as dbLoadProjects, deleteProject as dbDeleteProject } from '../lib/database';
+import { toast } from './toastStore';
 
 function normalizeProjectSortOrders(projects: Project[]): { projects: Project[]; changed: boolean } {
   let changed = false;
@@ -94,6 +95,7 @@ export const useProjectStore = create<ProjectState>()(
           }
         } catch (error) {
           console.error('Failed to load projects from DB:', error);
+          toast.error('プロジェクトの読み込みに失敗しました', error instanceof Error ? error.message : String(error));
         } finally {
           set({ isLoading: false });
         }
@@ -127,6 +129,7 @@ export const useProjectStore = create<ProjectState>()(
         // 非同期でDBに保存
         dbSaveProject(project).catch((error) => {
           console.error('Failed to save project to DB:', error);
+          toast.error('プロジェクトの保存に失敗しました', error instanceof Error ? error.message : String(error));
         });
         
         return project.id;
@@ -142,6 +145,7 @@ export const useProjectStore = create<ProjectState>()(
           // 非同期でDBに保存
           dbSaveProject(newProject).catch((error) => {
             console.error('Failed to update project in DB:', error);
+            toast.error('プロジェクトの更新に失敗しました', error instanceof Error ? error.message : String(error));
           });
         }
       },
@@ -154,6 +158,7 @@ export const useProjectStore = create<ProjectState>()(
         // 非同期でDBから削除
         dbDeleteProject(id).catch((error) => {
           console.error('Failed to delete project from DB:', error);
+          toast.error('プロジェクトの削除に失敗しました', error instanceof Error ? error.message : String(error));
         });
       },
       

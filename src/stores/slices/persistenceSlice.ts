@@ -4,6 +4,7 @@
 import type { ERDiagram } from '../../types';
 import type { PersistenceState, PersistenceActions, ImportExportActions, SliceCreator } from './types';
 import { saveDiagram, loadDiagram, loadSampleData, saveSampleData } from '../../lib/database';
+import { toast } from '../toastStore';
 import {
   syncSampleRowsToTableSchema,
   normalizeRefValues,
@@ -146,11 +147,14 @@ export const createPersistenceSlice: SliceCreator<PersistenceSlice> = (set, get)
         });
       } catch (error) {
         console.error('Failed to save diagram to DB:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
         set((state) => {
           state.isSaving = false;
           state.isDirty = true;
-          state.saveError = error instanceof Error ? error.message : String(error);
+          state.saveError = errorMessage;
         });
+        // ユーザーにエラー通知
+        toast.error('保存に失敗しました', errorMessage);
       }
     },
 
