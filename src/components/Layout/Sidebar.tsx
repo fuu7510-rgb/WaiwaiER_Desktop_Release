@@ -85,11 +85,17 @@ function SidebarInner() {
   };
 
   return (
-    <aside className="bg-white border-r border-zinc-200 flex flex-col h-full w-[280px]">
+    <aside 
+      className="flex flex-col h-full w-[280px] border-r"
+      style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+    >
       {/* Tables List Header */}
-      <div className="px-3 py-2 border-b border-zinc-100 flex items-center justify-between bg-white sticky top-0 z-10 flex-shrink-0">
-        <h2 className="text-sm font-bold text-zinc-600 uppercase tracking-wider align-bottom">
-          {t('table.tables')} <span className="text-zinc-400 ml-1">({tables.length})</span>
+      <div 
+        className="px-3 py-2 border-b flex items-center justify-between sticky top-0 z-10 flex-shrink-0"
+        style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+      >
+        <h2 className="text-sm font-bold uppercase tracking-wider align-bottom" style={{ color: 'var(--text-secondary)' }}>
+          {t('table.tables')} <span style={{ color: 'var(--text-muted)' }} className="ml-1">({tables.length})</span>
         </h2>
         <Button
           size="sm"
@@ -153,13 +159,16 @@ function SidebarInner() {
           <div className="flex-1 overflow-y-auto h-full">
             {tables.length === 0 ? (
               <div className="p-8 text-center">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-zinc-100 mb-3 text-zinc-400 align-middle">
+                <div 
+                  className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-3 align-middle"
+                  style={{ backgroundColor: 'var(--muted)', color: 'var(--text-muted)' }}
+                >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <p className="text-sm text-zinc-500 mb-1 font-medium align-middle">{t('editor.noTables')}</p>
-                <p className="text-xs text-zinc-400 align-middle">
+                <p className="text-sm mb-1 font-medium align-middle" style={{ color: 'var(--text-muted)' }}>{t('editor.noTables')}</p>
+                <p className="text-xs align-middle" style={{ color: 'var(--text-muted)' }}>
                   {t('editor.clickAddTable')}
                 </p>
               </div>
@@ -186,13 +195,19 @@ function SidebarInner() {
         }
         bottomPanel={
           /* Property Editor */
-          <div className="flex-1 min-h-0 overflow-y-auto bg-zinc-50/50">
+          <div 
+            className="flex-1 min-h-0 overflow-y-auto"
+            style={{ backgroundColor: 'var(--muted)' }}
+          >
             {selectedColumnId ? (
               <ColumnEditor />
             ) : selectedTableId ? (
               <TableEditor />
             ) : (
-              <div className="h-full flex flex-col items-center justify-center p-8 text-zinc-400">
+              <div 
+                className="h-full flex flex-col items-center justify-center p-8"
+                style={{ color: 'var(--text-muted)' }}
+              >
                 <svg className="w-8 h-8 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
@@ -240,16 +255,17 @@ function TableListItem({
   return (
     <li
       ref={setNodeRef}
-      style={style}
+      style={{
+        ...style,
+        backgroundColor: isSelected ? 'var(--section-bg-active)' : undefined,
+        borderColor: isSelected ? 'var(--primary)' : 'transparent',
+      }}
       onClick={() => selectTable(table.id)}
       {...attributes}
       {...listeners}
       className={`
         px-4 py-3 cursor-pointer transition-all duration-150
-        ${isSelected 
-          ? 'bg-indigo-50 border-l-4 border-indigo-500 pl-3' 
-          : 'hover:bg-zinc-50 border-l-4 border-transparent pl-3'
-        }
+        border-l-4 pl-3
         ${isOver ? 'ring-2 ring-indigo-200 ring-inset' : ''}
       `}
     >
@@ -257,7 +273,10 @@ function TableListItem({
         <div
           className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-sm ${TABLE_BG_COLOR_CLASSES[table.color || '#6366f1'] || 'bg-indigo-500'}`}
         />
-        <span className={`text-sm font-medium truncate ${isSelected ? 'text-indigo-700' : 'text-zinc-700'}`}>
+        <span 
+          className="text-sm font-medium truncate"
+          style={{ color: isSelected ? 'var(--primary)' : 'var(--text-secondary)' }}
+        >
           {table.name}
         </span>
         <span className="ml-auto flex items-center gap-1.5 shrink-0">
@@ -266,11 +285,15 @@ function TableListItem({
             data-reorder-button="true"
             className={`
               inline-flex items-center justify-center w-7 h-7 rounded-md border
-              bg-white text-zinc-500 transition-colors
-              hover:bg-zinc-50 hover:text-zinc-700
+              transition-colors
               focus:outline-none focus:ring-2 focus:ring-indigo-200
-              ${canMoveUp ? 'border-zinc-200' : 'border-zinc-100 opacity-30 cursor-not-allowed hover:bg-white hover:text-zinc-500'}
+              ${canMoveUp ? '' : 'opacity-30 cursor-not-allowed'}
             `}
+            style={{ 
+              backgroundColor: 'var(--card)', 
+              borderColor: 'var(--border)',
+              color: 'var(--text-muted)',
+            }}
             onClick={(e) => {
               e.stopPropagation();
               if (!canMoveUp) return;
@@ -292,11 +315,15 @@ function TableListItem({
             data-reorder-button="true"
             className={`
               inline-flex items-center justify-center w-7 h-7 rounded-md border
-              bg-white text-zinc-500 transition-colors
-              hover:bg-zinc-50 hover:text-zinc-700
+              transition-colors
               focus:outline-none focus:ring-2 focus:ring-indigo-200
-              ${canMoveDown ? 'border-zinc-200' : 'border-zinc-100 opacity-30 cursor-not-allowed hover:bg-white hover:text-zinc-500'}
+              ${canMoveDown ? '' : 'opacity-30 cursor-not-allowed'}
             `}
+            style={{ 
+              backgroundColor: 'var(--card)', 
+              borderColor: 'var(--border)',
+              color: 'var(--text-muted)',
+            }}
             onClick={(e) => {
               e.stopPropagation();
               if (!canMoveDown) return;

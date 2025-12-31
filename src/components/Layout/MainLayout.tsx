@@ -108,7 +108,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   }, [handleKeyDown]);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 min-h-screen">
+    <div className="h-screen flex flex-col min-h-screen" style={{ backgroundColor: 'var(--background)' }}>
       {/* ライセンス警告バナー */}
       {warning && (
         <div className="bg-yellow-100 border-b border-yellow-300 px-4 py-2 text-sm text-yellow-800 flex items-center justify-between">

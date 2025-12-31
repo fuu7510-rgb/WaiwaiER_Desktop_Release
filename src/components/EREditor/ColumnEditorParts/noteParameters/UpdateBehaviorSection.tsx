@@ -33,9 +33,10 @@ export function UpdateBehaviorSection({
             type="checkbox"
             checked={selectedColumn.isKey}
             onChange={(e) => handleUpdate({ isKey: e.target.checked })}
-            className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+            className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20"
+            style={{ borderColor: 'var(--input-border)' }}
           />
-          <span className="text-xs text-zinc-600">
+          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
             {labelEnJa('Key', 'キー')}
           </span>
           <InfoTooltip
@@ -57,9 +58,10 @@ export function UpdateBehaviorSection({
               const current = getAppSheetString('Editable_If').trim();
               setAppSheetValues({ Editable_If: current.length > 0 ? current : 'TRUE', Editable: undefined });
             }}
-            className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+            className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20"
+            style={{ borderColor: 'var(--input-border)' }}
           />
-          <span className="text-xs text-zinc-600">{labelEnJa('Editable?', '編集可能')}</span>
+          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{labelEnJa('Editable?', '編集可能')}</span>
           <InfoTooltip
             content={helpText(
               'Can users (or automatic app formulas) modify data in this column? You can also provide an Editable_If expression to decide.',
@@ -92,9 +94,10 @@ export function UpdateBehaviorSection({
               const current = getAppSheetString('Reset_If').trim();
               setAppSheetValue('Reset_If', current.length > 0 ? current : 'TRUE');
             }}
-            className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+            className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20"
+            style={{ borderColor: 'var(--input-border)' }}
           />
-          <span className="text-xs text-zinc-600">{labelEnJa('Reset on edit?', '編集時リセット')}</span>
+          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{labelEnJa('Reset on edit?', '編集時リセット')}</span>
           <InfoTooltip
             content={helpText(
               'Should this column be reset to its initial value when the row is edited?',

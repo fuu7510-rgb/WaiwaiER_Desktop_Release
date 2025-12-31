@@ -24,9 +24,54 @@
   --success: #22c55e;
   --warning: #f59e0b;
   
+  /* UI Colors */
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-muted: #71717a;
+  --text-placeholder: #a1a1aa;
+  --input-bg: #ffffff;
+  --input-border: #e4e4e7;
+  --input-border-hover: #d4d4d8;
+  --section-header: #71717a;
+  --section-bg: #f4f4f5;
+  --section-bg-active: #eef2ff;
+  --section-border: #c7d2fe;
+  --section-text: #4338ca;
+  
   /* Spacing */
   --header-height: 44px;
   --sidebar-width: 260px;
+}
+
+/* ダークテーマ */
+html[data-theme="dark"] {
+  --primary: #818cf8;
+  --primary-dark: #6366f1;
+  --primary-light: #a5b4fc;
+  --background: #09090b;
+  --foreground: #fafafa;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --border: #3f3f46;
+  --card: #18181b;
+  --accent: #27272a;
+  --destructive: #dc2626;
+  --success: #16a34a;
+  --warning: #d97706;
+  
+  /* UI Colors */
+  --text-primary: #fafafa;
+  --text-secondary: #d4d4d8;
+  --text-muted: #a1a1aa;
+  --text-placeholder: #71717a;
+  --input-bg: #27272a;
+  --input-border: #3f3f46;
+  --input-border-hover: #52525b;
+  --section-header: #a1a1aa;
+  --section-bg: #27272a;
+  --section-bg-active: #312e81;
+  --section-border: #4338ca;
+  --section-text: #a5b4fc;
 }
 
 /* フォントサイズ設定 */
@@ -81,14 +126,112 @@ body {
   background: #a1a1aa;
 }
 
+/* ダークテーマのスクロールバー */
+html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #52525b;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #71717a;
+}
+
 /* Focus styling */
 *:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
+/* Placeholder styling */
+::placeholder {
+  color: var(--text-placeholder);
+}
+
 /* Selection */
 ::selection {
   background: var(--primary-light);
   color: white;
+}
+
+/* ========================================
+   Theme-aware utility classes
+   ======================================== */
+
+/* Backgrounds */
+.theme-bg-base {
+  background-color: var(--background);
+}
+
+.theme-bg-card {
+  background-color: var(--card);
+}
+
+.theme-bg-muted {
+  background-color: var(--muted);
+}
+
+/* Text colors */
+.theme-text-primary {
+  color: var(--text-primary);
+}
+
+.theme-text-secondary {
+  color: var(--text-secondary);
+}
+
+.theme-text-muted {
+  color: var(--text-muted);
+}
+
+/* Borders */
+.theme-border {
+  border-color: var(--border);
+}
+
+/* React Flow overrides for dark theme */
+html[data-theme="dark"] .react-flow__background {
+  background-color: var(--background);
+}
+
+html[data-theme="dark"] .react-flow__controls {
+  background-color: var(--card);
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .react-flow__controls button {
+  background-color: var(--card);
+  border-color: var(--border);
+  fill: var(--text-primary);
+}
+
+html[data-theme="dark"] .react-flow__controls button:hover {
+  background-color: var(--muted);
+}
+
+html[data-theme="dark"] .react-flow__minimap {
+  background-color: var(--card);
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .react-flow__minimap-mask {
+  fill: rgba(255, 255, 255, 0.1);
+}
+
+/* Tailwind divide color override for dark theme */
+html[data-theme="dark"] .divide-zinc-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .divide-zinc-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border);
+}
+
+/* Checkbox styling for dark theme */
+html[data-theme="dark"] input[type="checkbox"] {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+}
+
+html[data-theme="dark"] input[type="checkbox"]:checked {
+  background-color: #6366f1;
+  border-color: #6366f1;
 }

@@ -79,10 +79,10 @@ export function SampleDataSection({
 
   return (
     <>
-      <div className="border-t border-zinc-100 pt-3">
+      <div className="border-t pt-3" style={{ borderColor: 'var(--border)' }}>
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center">
-            <h4 className="font-medium text-xs text-zinc-500">{labelKey('column.dummyData')}</h4>
+            <h4 className="font-medium text-xs" style={{ color: 'var(--text-muted)' }}>{labelKey('column.dummyData')}</h4>
             <InfoTooltip
               content={
                 <div>
@@ -103,10 +103,10 @@ export function SampleDataSection({
         </div>
 
         <div className="mb-2">
-          <div className="text-[10px] text-zinc-400 mb-1">{labelKey('column.dummyDataPreview')}</div>
-          <div className="text-xs text-zinc-700 bg-white border border-zinc-200 rounded px-2 py-1.5">
+          <div className="text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>{labelKey('column.dummyDataPreview')}</div>
+          <div className="text-xs border rounded px-2 py-1.5" style={{ color: 'var(--text-primary)', backgroundColor: 'var(--input-bg)', borderColor: 'var(--input-border)' }}>
             {previewValues.length === 0 ? (
-              <div className="text-zinc-400">-</div>
+              <div style={{ color: 'var(--text-muted)' }}>-</div>
             ) : (
               <div className="space-y-0.5">
                 {previewValues.map((v, i) => (
@@ -119,7 +119,7 @@ export function SampleDataSection({
           </div>
         </div>
 
-        <div className="text-[10px] text-zinc-400">{labelKey('column.dummyDataPlaceholder')}</div>
+        <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{labelKey('column.dummyDataPlaceholder')}</div>
       </div>
 
       <SampleDataDialog

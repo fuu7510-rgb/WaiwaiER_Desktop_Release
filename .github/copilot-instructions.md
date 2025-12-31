@@ -48,6 +48,25 @@
 - データ保存: SQLite (rusqlite)
 - 現時点では暗号化（SQLCipher）は未実装。将来的に対応予定。
 
+### D. テーマ対応 (ダークモード/ライトモード)
+- テーマは `src/stores/uiStore.ts` の `settings.theme` で管理（`'light' | 'dark' | 'system'`）
+- `src/App.tsx` で `html` 要素に `data-theme` 属性を設定
+- **CSS変数による実装**: `src/index.css` に定義された変数を使用すること
+
+#### 使用するCSS変数
+| 用途 | 変数名 |
+|------|--------|
+| 背景色 | `var(--background)`, `var(--card)`, `var(--muted)` |
+| テキスト色 | `var(--text-primary)`, `var(--text-secondary)`, `var(--text-muted)` |
+| ボーダー色 | `var(--border)` |
+| 入力フィールド | `var(--input-bg)`, `var(--input-border)` |
+
+#### 実装ルール
+- ❌ **禁止**: Tailwindのハードコード色クラス（`text-zinc-500`, `bg-white`, `border-zinc-200` など）
+- ✅ **推奨**: `style={{ color: 'var(--text-muted)', backgroundColor: 'var(--card)' }}` のようにインラインスタイルでCSS変数を使用
+- チェックボックス・入力フィールドは `src/index.css` のグローバルスタイルでダークモード対応済み
+- 新規コンポーネント作成時は、既存の `src/components/common/` コンポーネントを参考にすること
+
 ## 4. コンテキストのヒント
 - **シミュレーターの挙動**で迷った際は、「AppSheetではどう振る舞うか？」を基準に考え、`docs/AppSheet/` を確認してください。
 - **コードの実装**で迷った際は、`references/XppSheetSimulator/` の既存ロジックを確認してください。

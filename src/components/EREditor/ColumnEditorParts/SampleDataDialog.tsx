@@ -49,10 +49,10 @@ export function SampleDataDialog({
       }
     >
       <div className="space-y-2">
-        <div className="text-[10px] text-zinc-400">{previewLabel}</div>
-        <div className="text-xs text-zinc-700 bg-white border border-zinc-200 rounded px-2 py-1.5 max-h-32 overflow-y-auto">
+        <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{previewLabel}</div>
+        <div className="text-xs border rounded px-2 py-1.5 max-h-32 overflow-y-auto" style={{ color: 'var(--text-primary)', backgroundColor: 'var(--input-bg)', borderColor: 'var(--input-border)' }}>
           {previewValues.length === 0 ? (
-            <div className="text-zinc-400">-</div>
+            <div style={{ color: 'var(--text-muted)' }}>-</div>
           ) : (
             <div className="space-y-0.5">
               {previewValues.map((v, i) => (
@@ -65,14 +65,15 @@ export function SampleDataDialog({
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1">{dummyDataLabel}</label>
+          <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>{dummyDataLabel}</label>
           <textarea
             value={value}
             onChange={(e) => onChangeValue(e.target.value)}
-            className="w-full px-2.5 py-1.5 text-xs border border-zinc-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 min-h-[320px]"
+            className="w-full px-2.5 py-1.5 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 min-h-[320px]"
+            style={{ backgroundColor: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
             placeholder={placeholder}
           />
-          <div className="text-[10px] text-zinc-400 mt-1">{oneValuePerLineHint}</div>
+          <div className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>{oneValuePerLineHint}</div>
         </div>
       </div>
     </Dialog>

@@ -28,7 +28,7 @@ export function ColumnTypeSection({
   return (
     <div>
       <div className="flex items-center mb-1">
-        <span className="text-xs font-medium text-zinc-600">{labelKey('table.columnType')}</span>
+        <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{labelKey('table.columnType')}</span>
       </div>
       <Select
         value={selectedColumn.type}

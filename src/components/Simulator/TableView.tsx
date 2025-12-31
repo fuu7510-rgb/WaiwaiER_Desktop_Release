@@ -153,10 +153,16 @@ export function TableView({
   return (
     <DndContext sensors={sensors} onDragEnd={handleColumnDragEnd} accessibility={noAccessibility}>
       <DndContext sensors={rowSensors} onDragEnd={handleRowDragEnd} accessibility={noAccessibility}>
-        <div className="h-full bg-white border border-zinc-200 overflow-auto">
+        <div 
+          className="h-full border overflow-auto"
+          style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+        >
           <div className="min-w-full">
             <table className="min-w-full border-collapse">
-              <thead className="sticky top-0 z-10 bg-zinc-50 border-b border-zinc-200">
+              <thead 
+                className="sticky top-0 z-10 border-b"
+                style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}
+              >
                 <tr>
                   <SortableContext items={table.columns.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
                     {table.columns.map((column, columnIndex) => (
@@ -175,14 +181,15 @@ export function TableView({
 
                 {/* Excelに書き込む予定のNoteParameters（ヘッダーセルのメモ）プレビュー */}
                 {notePreviewByColumnId && (
-                  <tr className="bg-white border-t border-zinc-200">
+                  <tr style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }} className="border-t">
                     {table.columns.map((column) => {
                       const noteText = notePreviewByColumnId[column.id] ?? '';
                       const display = noteText.length > 60 ? `${noteText.slice(0, 60)}…` : (noteText || '—');
                       return (
                         <th
                           key={column.id}
-                          className="px-3 py-1 text-left text-[9px] font-normal text-zinc-400 whitespace-nowrap"
+                          className="px-3 py-1 text-left text-[9px] font-normal whitespace-nowrap"
+                          style={{ color: 'var(--text-muted)' }}
                           title={noteText || undefined}
                         >
                           {display}
@@ -193,10 +200,14 @@ export function TableView({
                 )}
               </thead>
               <SortableContext items={filteredData.map(({ index }) => String(index))} strategy={verticalListSortingStrategy}>
-                <tbody className="bg-white">
+                <tbody style={{ backgroundColor: 'var(--card)' }}>
                   {filteredData.length === 0 ? (
                     <tr>
-                      <td colSpan={table.columns.length} className="px-3 py-8 text-center text-zinc-400 text-xs">
+                      <td 
+                        colSpan={table.columns.length} 
+                        className="px-3 py-8 text-center text-xs"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
                         {t('simulator.noData')}
                       </td>
                     </tr>
@@ -255,16 +266,22 @@ function SortableTableRow(props: {
   return (
     <tr
       ref={setNodeRef}
-      style={style}
+      style={{
+        ...style,
+        borderColor: 'var(--border)',
+        backgroundColor: isSelected ? 'var(--muted)' : undefined,
+      }}
       onClick={onClick}
-      className={`border-b border-zinc-100 hover:bg-zinc-50 ${isSelected ? 'bg-zinc-100' : ''} ${
-        isClickable ? 'cursor-pointer' : ''
-      } ${isOver ? 'ring-2 ring-indigo-200 ring-inset' : ''}`}
+      className={`border-b ${isClickable ? 'cursor-pointer' : ''} ${isOver ? 'ring-2 ring-indigo-200 ring-inset' : ''}`}
       {...attributes}
       {...listeners}
     >
       {columns.map((column) => (
-        <td key={column.id} className="px-3 py-2 text-xs text-zinc-700 whitespace-nowrap">
+        <td 
+          key={column.id} 
+          className="px-3 py-2 text-xs whitespace-nowrap"
+          style={{ color: 'var(--text-secondary)' }}
+        >
           {column.type === 'Ref'
             ? getRefDisplayLabel({
                 tables,
@@ -303,13 +320,11 @@ function SortableTableHeaderCell(props: {
     <th
       ref={setNodeRef}
       style={style}
-      className={`px-3 py-2 text-left text-[10px] font-medium text-zinc-500 uppercase tracking-wider whitespace-nowrap ${
+      className={`px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wider whitespace-nowrap ${
         isOver ? 'ring-2 ring-indigo-200 ring-inset' : ''
       }`}
-      {...attributes}
-      {...listeners}
     >
-      <div className="flex items-center gap-1 group">
+      <div className="flex items-center gap-1 group" style={{ color: 'var(--text-muted)' }} {...attributes} {...listeners}>
         {column.isKey && (
           <svg className="w-3 h-3 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
             <path

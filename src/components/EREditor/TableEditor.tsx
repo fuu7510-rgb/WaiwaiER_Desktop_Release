@@ -43,7 +43,12 @@ export function TableEditor() {
 
   return (
     <div className="p-4 space-y-4">
-      <h3 className="font-bold text-xs text-zinc-500 uppercase tracking-wider mb-2">{t('table.settingsTitle')}</h3>
+      <h3 
+        className="font-bold text-xs uppercase tracking-wider mb-2"
+        style={{ color: 'var(--text-muted)' }}
+      >
+        {t('table.settingsTitle')}
+      </h3>
       
       {/* テーブル名 */}
       <Input
@@ -54,7 +59,10 @@ export function TableEditor() {
       
       {/* 色選択 */}
       <div>
-        <label className="block text-xs font-medium text-zinc-500 mb-1.5">
+        <label 
+          className="block text-xs font-medium mb-1.5"
+          style={{ color: 'var(--text-muted)' }}
+        >
           {t('table.color')}
         </label>
         <div className="flex flex-wrap gap-1.5">
@@ -74,16 +82,22 @@ export function TableEditor() {
       </div>
       
       {/* 統計情報 */}
-      <div className="bg-zinc-50 rounded p-2">
-        <div className="text-[10px] text-zinc-500 space-y-0.5">
-          <p>{t('column.columns')}: <span className="text-zinc-700 font-medium">{selectedTable.columns.length}</span></p>
-          <p>作成日: <span className="text-zinc-700">{new Date(selectedTable.createdAt).toLocaleString()}</span></p>
-          <p>更新日: <span className="text-zinc-700">{new Date(selectedTable.updatedAt).toLocaleString()}</span></p>
+      <div 
+        className="rounded p-2"
+        style={{ backgroundColor: 'var(--muted)' }}
+      >
+        <div className="text-[10px] space-y-0.5" style={{ color: 'var(--text-muted)' }}>
+          <p>{t('column.columns')}: <span style={{ color: 'var(--text-secondary)' }} className="font-medium">{selectedTable.columns.length}</span></p>
+          <p>作成日: <span style={{ color: 'var(--text-secondary)' }}>{new Date(selectedTable.createdAt).toLocaleString()}</span></p>
+          <p>更新日: <span style={{ color: 'var(--text-secondary)' }}>{new Date(selectedTable.updatedAt).toLocaleString()}</span></p>
         </div>
       </div>
       
       {/* アクションボタン */}
-      <div className="space-y-1.5 border-t border-zinc-100 pt-3">
+      <div 
+        className="space-y-1.5 border-t pt-3"
+        style={{ borderColor: 'var(--border)' }}
+      >
         <Button variant="secondary" size="sm" onClick={handleApplyCommonColumns} className="w-full" disabled={commonColumns.length === 0}>
           {t('table.addCommonColumns')}
         </Button>

@@ -48,13 +48,20 @@ export function Dialog({ isOpen, onClose, title, children, footer, size = 'md' }
       />
       
       {/* Dialog */}
-      <div className={`relative bg-white rounded-lg shadow-2xl w-full ${sizeStyles[size]} max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200`}>
+      <div 
+        className={`relative rounded-lg shadow-2xl w-full ${sizeStyles[size]} max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200`}
+        style={{ backgroundColor: 'var(--card)' }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100">
-          <h2 className="text-sm font-semibold text-zinc-800">{title}</h2>
+        <div 
+          className="flex items-center justify-between px-4 py-3 border-b"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h2>
           <button
             onClick={onClose}
-            className="p-1 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded transition-colors"
+            className="p-1 rounded transition-colors"
+            style={{ color: 'var(--text-muted)' }}
             title={t('common.close')}
             aria-label={t('common.close')}
           >
@@ -65,13 +72,16 @@ export function Dialog({ isOpen, onClose, title, children, footer, size = 'md' }
         </div>
         
         {/* Content */}
-        <div className="px-4 py-3 overflow-y-auto flex-1 text-xs">
+        <div className="px-4 py-3 overflow-y-auto flex-1 text-xs" style={{ color: 'var(--text-primary)' }}>
           {children}
         </div>
         
         {/* Footer */}
         {footer && (
-          <div className="px-4 py-3 border-t border-zinc-100 bg-zinc-50/50 rounded-b-lg">
+          <div 
+            className="px-4 py-3 border-t rounded-b-lg"
+            style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}
+          >
             {footer}
           </div>
         )}

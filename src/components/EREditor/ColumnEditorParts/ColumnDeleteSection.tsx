@@ -7,7 +7,7 @@ type Props = {
 
 export function ColumnDeleteSection({ labelKey, onDelete }: Props) {
   return (
-    <div className="border-t border-zinc-100 pt-3 pb-16">
+    <div className="border-t pt-3 pb-16" style={{ borderColor: 'var(--border)' }}>
       <Button variant="danger" size="sm" onClick={onDelete} className="w-full">
         {labelKey('column.deleteColumn')}
       </Button>

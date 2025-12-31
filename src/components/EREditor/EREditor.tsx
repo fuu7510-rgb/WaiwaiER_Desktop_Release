@@ -342,17 +342,16 @@ function EREditorInner() {
         snapToGrid
         snapGrid={[15, 15]}
         deleteKeyCode="Delete"
-        className="bg-zinc-50"
+        style={{ backgroundColor: 'var(--background)' }}
       >
         {isGridVisible && (
           <Background
-            color="currentColor"
-            className="text-zinc-400"
+            color="var(--text-muted)"
             gap={15}
             lineWidth={2}
           />
         )}
-        <Controls className="!bg-white !border-zinc-200 !shadow-sm [&>button]:!border-zinc-200 [&>button]:!bg-white [&>button:hover]:!bg-zinc-50" />
+        <Controls />
         <MiniMap
           nodeStrokeColor={(n) => {
             if (n.data?.table?.color) return n.data.table.color;
@@ -360,15 +359,16 @@ function EREditorInner() {
           }}
           nodeColor={(n) => {
             if (n.data?.table?.color) return n.data.table.color;
-            return '#fff';
+            return 'var(--card)';
           }}
-          className="!bg-white !border-zinc-200 !shadow-sm"
-          maskColor="rgba(0, 0, 0, 0.05)"
         />
       </ReactFlow>
 
       <div className="absolute left-16 bottom-3 z-10 flex flex-col gap-2">
-        <div className="select-none rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-700 shadow-sm">
+        <div 
+          className="select-none rounded-md border px-2 py-1 text-xs shadow-sm"
+          style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+        >
           {t('editor.zoomLevel', { percent: Math.round(zoom * 100) })}
         </div>
         <Button

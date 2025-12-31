@@ -121,9 +121,9 @@ export function AppSheetNoteParametersSection({
   }, [tables, selectedTable, selectedColumn, noteParamOutputSettings]);
 
   return (
-    <div className="border-t border-zinc-100 pt-3">
+    <div className="border-t pt-3" style={{ borderColor: 'var(--border)' }}>
       <div className="flex items-center mb-2">
-        <h4 className="font-medium text-xs text-zinc-500">{labelEnJa('AppSheet Note Parameters', 'AppSheetメモ設定')}</h4>
+        <h4 className="font-medium text-xs" style={{ color: 'var(--text-muted)' }}>{labelEnJa('AppSheet Note Parameters', 'AppSheetメモ設定')}</h4>
         <InfoTooltip
           content={
             <div>
@@ -170,9 +170,10 @@ export function AppSheetNoteParametersSection({
                 // Unset (same pattern as Required_If toggle).
                 setAppSheetValues({ Show_If: undefined, IsHidden: undefined });
               }}
-              className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+              className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20"
+              style={{ borderColor: 'var(--input-border)' }}
             />
-            <span className="text-xs text-zinc-600">{labelEnJa('Show?', '表示?')}</span>
+            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{labelEnJa('Show?', '表示?')}</span>
             <InfoTooltip
               content={helpText(
                 "Is this column visible in the app? You can also provide a 'Show_If' expression to decide.",
@@ -198,7 +199,7 @@ export function AppSheetNoteParametersSection({
 
         {/* 表示・編集 */}
         <div className="space-y-2">
-          <div className="text-[11px] font-medium text-zinc-600">{labelEnJa('Display / Edit', '表示・編集')}</div>
+          <div className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>{labelEnJa('Display / Edit', '表示・編集')}</div>
         </div>
 
         <DataValiditySection
@@ -252,7 +253,7 @@ export function AppSheetNoteParametersSection({
         {/* テキスト */}
         {(selectedColumn.type === 'LongText' || selectedColumn.type === 'EnumList') && (
           <div className="space-y-2">
-            <div className="text-[11px] font-medium text-zinc-600">{labelEnJa('Text', 'テキスト')}</div>
+            <div className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>{labelEnJa('Text', 'テキスト')}</div>
             {selectedColumn.type === 'LongText' && (
               <Select
                 label={labelEnJa('LongTextFormatting', '長文フォーマット')}
@@ -274,7 +275,7 @@ export function AppSheetNoteParametersSection({
         {/* Enum */}
         {(selectedColumn.type === 'Enum' || selectedColumn.type === 'EnumList') && (
           <div className="space-y-2">
-            <div className="text-[11px] font-medium text-zinc-600">{labelEnJa('Enum / EnumList', '列挙 / 列挙リスト')}</div>
+            <div className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>{labelEnJa('Enum / EnumList', '列挙 / 列挙リスト')}</div>
             <Input
               label={labelEnJa('BaseType', '基本型')}
               value={getAppSheetString('BaseType')}
@@ -312,7 +313,7 @@ export function AppSheetNoteParametersSection({
         {/* Ref */}
         {selectedColumn.type === 'Ref' && (
           <div className="space-y-2">
-            <div className="text-[11px] font-medium text-zinc-600">{labelEnJa('Ref', '参照')}</div>
+            <div className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>{labelEnJa('Ref', '参照')}</div>
             <Input
               label={labelEnJa('ReferencedTableName', '参照テーブル')}
               value={getAppSheetString('ReferencedTableName')}
@@ -412,7 +413,7 @@ export function AppSheetNoteParametersSection({
         {/* Change系 */}
         {selectedColumn.type.startsWith('Change') && (
           <div className="space-y-2">
-            <div className="text-[11px] font-medium text-zinc-600">{labelEnJa('Change (audit) types', 'Change系')}</div>
+            <div className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>{labelEnJa('Change (audit) types', 'Change系')}</div>
             <ArrayLinesTextarea
               label={labelEnJa('ChangeColumns - 1 line per item', 'ChangeColumns - 1行=1項目')}
               value={getAppSheetArrayLines('ChangeColumns')}
@@ -446,7 +447,7 @@ export function AppSheetNoteParametersSection({
 
         {/* メタキー */}
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-600">
+          <div className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>
             <span>{labelEnJa('Note override (only if needed)', 'ノート上書き（必要な場合のみ）')}</span>
             <InfoTooltip
               content={
@@ -483,9 +484,9 @@ export function AppSheetNoteParametersSection({
         </div>
 
         {/* Note Parameters Preview */}
-        <div className="mt-4 pt-3 border-t border-zinc-200">
+        <div className="mt-4 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
           <div className="flex items-center gap-1.5 mb-2">
-            <div className="text-[11px] font-medium text-zinc-600">
+            <div className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>
               {labelEnJa('Note Parameters Preview', 'ノートパラメータープレビュー')}
             </div>
             <InfoTooltip
@@ -495,9 +496,9 @@ export function AppSheetNoteParametersSection({
               )}
             />
           </div>
-          <div className="bg-zinc-50 border border-zinc-200 rounded p-2 font-mono text-[10px] text-zinc-700 break-all whitespace-pre-wrap min-h-[32px]">
+          <div className="border rounded p-2 font-mono text-[10px] break-all whitespace-pre-wrap min-h-[32px]" style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}>
             {notePreviewText || (
-              <span className="text-zinc-400 italic">
+              <span className="italic" style={{ color: 'var(--text-muted)' }}>
                 {labelEnJa('(No note parameters)', '(ノートパラメーターなし)')}
               </span>
             )}

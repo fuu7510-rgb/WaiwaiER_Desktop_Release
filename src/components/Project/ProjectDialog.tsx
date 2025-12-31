@@ -285,7 +285,7 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
       <div className="space-y-3">
         {/* Create New Project */}
         {isCreating ? (
-          <div className="bg-indigo-50 rounded-lg p-3 space-y-2.5">
+          <div className="rounded-lg p-3 space-y-2.5" style={{ backgroundColor: 'var(--muted)' }}>
             <Input
               label={t('project.projectName')}
               value={newProjectName}
@@ -299,9 +299,10 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
                 type="checkbox"
                 checked={isEncrypted}
                 onChange={(e) => setIsEncrypted(e.target.checked)}
-                className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+                className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20"
+                style={{ borderColor: 'var(--input-border)' }}
               />
-              <span className="text-xs text-zinc-600 flex items-center gap-1">
+              <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}>
                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                 </svg>
@@ -369,8 +370,8 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
 
         {/* Plan Info */}
         {subscriptionPlan === 'free' && (
-          <div className="bg-zinc-50 rounded p-2.5 text-[10px] text-zinc-500">
-            <p>Free版: <span className="font-medium text-zinc-700">{projects.length} / {getProjectLimit()}</span> プロジェクト</p>
+          <div className="rounded p-2.5 text-[10px]" style={{ backgroundColor: 'var(--muted)', color: 'var(--text-muted)' }}>
+            <p>Free版: <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{projects.length} / {getProjectLimit()}</span> プロジェクト</p>
             <button className="text-indigo-600 hover:underline mt-0.5">
               {t('project.limits.upgradeToPro')}
             </button>
@@ -378,9 +379,9 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
         )}
 
         {/* Project List */}
-        <div className="divide-y divide-zinc-100 max-h-[320px] overflow-y-auto">
+        <div className="divide-y max-h-[320px] overflow-y-auto" style={{ '--tw-divide-opacity': 1, borderColor: 'var(--border)' } as React.CSSProperties}>
           {projects.length === 0 ? (
-            <p className="text-center text-zinc-400 py-6 text-xs">{t('project.noProjects')}</p>
+            <p className="text-center py-6 text-xs" style={{ color: 'var(--text-muted)' }}>{t('project.noProjects')}</p>
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={projectIds} strategy={verticalListSortingStrategy}>
@@ -392,9 +393,9 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-1.5">
-                        <h3 className="font-medium text-xs text-zinc-700">{project.name}</h3>
+                        <h3 className="font-medium text-xs" style={{ color: 'var(--text-primary)' }}>{project.name}</h3>
                         {project.isEncrypted && (
-                          <svg className="w-3 h-3 text-zinc-400" fill="currentColor" viewBox="0 0 20 20">
+                          <svg className="w-3 h-3" style={{ color: 'var(--text-muted)' }} fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                           </svg>
                         )}
@@ -404,7 +405,7 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-zinc-400">
+                      <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
                         更新日: {new Date(project.updatedAt).toLocaleString()}
                       </p>
                     </div>
@@ -510,14 +511,14 @@ function SortableProjectRow({
   return (
     <div
       ref={setRefs}
-      className={`py-2 flex items-center justify-between gap-2 ${
-        isActive ? 'bg-indigo-50 -mx-4 px-4' : ''
-      } ${isDragging ? 'opacity-60' : ''}`}
+      className={`py-2 flex items-center justify-between gap-2 ${isDragging ? 'opacity-60' : ''}`}
+      style={isActive ? { backgroundColor: 'var(--muted)', margin: '0 -1rem', padding: '0.5rem 1rem' } : undefined}
     >
       <button
         type="button"
         aria-label="並び替え"
-        className="flex-shrink-0 p-1 rounded hover:bg-zinc-100 text-zinc-400"
+        className="flex-shrink-0 p-1 rounded"
+        style={{ color: 'var(--text-muted)' }}
         {...attributes}
         {...listeners}
       >

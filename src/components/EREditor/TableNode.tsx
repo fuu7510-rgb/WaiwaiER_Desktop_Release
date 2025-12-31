@@ -119,7 +119,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
   return (
     <div
       className={`
-        bg-white rounded-md shadow-lg min-w-[180px] max-w-[280px]
+        rounded-md shadow-lg min-w-[180px] max-w-[280px]
         border transition-all duration-200
         ${isSelected ? 'ring-2 ring-indigo-400/50 ring-offset-1' : isRelated ? 'ring-1 ring-indigo-300/40' : 'hover:shadow-xl'}
         ${isUpstream && !isDownstream ? 'border-dashed' : ''}
@@ -127,6 +127,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
         ${isDimmed ? 'opacity-30 saturate-50' : ''}
         ${colorClasses.border}
       `}
+      style={{ backgroundColor: 'var(--card)' }}
       onClick={handleClick}
     >
       {/* Header */}
@@ -167,7 +168,8 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
         />
         <button
           onClick={handleAddColumn}
-          className="w-full px-2.5 py-1 text-[10px] text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors rounded-b flex items-center justify-center gap-1"
+          className="w-full px-2.5 py-1 text-[10px] transition-colors rounded-b flex items-center justify-center gap-1"
+          style={{ color: 'var(--text-muted)' }}
         >
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -314,11 +316,13 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{
+        ...style,
+        backgroundColor: isSelected ? 'var(--section-bg-active)' : undefined,
+      }}
       className={`
         relative px-2 py-1 flex items-center gap-1.5 cursor-pointer
-        hover:bg-zinc-50 transition-colors group
-        ${isSelected ? 'bg-indigo-50' : ''}
+        transition-colors group
         ${isOver ? 'ring-2 ring-indigo-200 ring-inset' : ''}
         nodrag
       `}
@@ -335,13 +339,17 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
       />
 
       {/* Reorder buttons (visible on hover) */}
-      <div className="hidden group-hover:flex flex-col absolute -left-4 bg-white shadow-sm border border-zinc-200 rounded overflow-hidden z-10">
+      <div 
+        className="hidden group-hover:flex flex-col absolute -left-4 shadow-sm border rounded overflow-hidden z-10"
+        style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+      >
         <button
           onClick={handleMoveUp}
           disabled={isFirst}
           data-reorder-button="true"
           onPointerDown={(e) => e.stopPropagation()}
-          className={`p-0.5 hover:bg-zinc-100 ${isFirst ? 'opacity-20 cursor-not-allowed' : 'text-zinc-500'}`}
+          className={`p-0.5 ${isFirst ? 'opacity-20 cursor-not-allowed' : ''}`}
+          style={{ color: 'var(--text-muted)' }}
           title={t('common.moveUp')}
         >
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -353,7 +361,8 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
           disabled={isLast}
           data-reorder-button="true"
           onPointerDown={(e) => e.stopPropagation()}
-          className={`p-0.5 border-t border-zinc-100 hover:bg-zinc-100 ${isLast ? 'opacity-20 cursor-not-allowed' : 'text-zinc-500'}`}
+          className={`p-0.5 border-t ${isLast ? 'opacity-20 cursor-not-allowed' : ''}`}
+          style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}
           title={t('common.moveDown')}
         >
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -381,7 +390,11 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
       </div>
 
       {/* Column name */}
-      <span className="flex-1 min-w-0 text-[11px] text-zinc-700" onDoubleClick={handleNameDoubleClick}>
+      <span 
+        className="flex-1 min-w-0 text-[11px]" 
+        style={{ color: 'var(--text-secondary)' }}
+        onDoubleClick={handleNameDoubleClick}
+      >
         {isEditingName ? (
           <input
             ref={inputRef}
@@ -391,7 +404,12 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
             onBlur={handleNameSubmit}
             onKeyDown={handleNameKeyDown}
             onClick={(e) => e.stopPropagation()}
-            className="w-full bg-white border border-zinc-200 rounded px-1 py-0.5 text-[11px] text-zinc-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+            className="w-full rounded px-1 py-0.5 text-[11px] outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 border"
+            style={{ 
+              backgroundColor: 'var(--input-bg)', 
+              borderColor: 'var(--input-border)',
+              color: 'var(--text-primary)',
+            }}
             aria-label={t('table.columnName')}
           />
         ) : (

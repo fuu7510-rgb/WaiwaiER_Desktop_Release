@@ -29,9 +29,10 @@ export function DisplaySection({
             type="checkbox"
             checked={selectedColumn.isLabel}
             onChange={(e) => handleUpdate({ isLabel: e.target.checked })}
-            className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+            className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20"
+            style={{ borderColor: 'var(--input-border)' }}
           />
-          <span className="text-xs text-zinc-600">
+          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
             {labelEnJa('Label', 'ラベル')}
           </span>
           <InfoTooltip

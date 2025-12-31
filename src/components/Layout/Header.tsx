@@ -66,7 +66,10 @@ export function Header() {
 
 
   return (
-    <header className="h-11 bg-white border-b border-zinc-200 px-3 flex items-center justify-between shrink-0">
+    <header 
+      className="h-11 px-3 flex items-center justify-between shrink-0 border-b"
+      style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+    >
       {/* Left: Logo and Project */}
       <div className="flex items-center gap-3">
         {/* Sidebar Toggle (Editor only) */}
@@ -74,7 +77,8 @@ export function Header() {
           <button
             type="button"
             onClick={toggleSidebar}
-            className="p-1.5 text-zinc-500 hover:bg-zinc-100 rounded transition-colors"
+            className="p-1.5 rounded transition-colors"
+            style={{ color: 'var(--text-muted)' }}
             title={t(isSidebarOpen ? 'common.collapseSidebar' : 'common.expandSidebar')}
             aria-label={t(isSidebarOpen ? 'common.collapseSidebar' : 'common.expandSidebar')}
           >
@@ -103,7 +107,10 @@ export function Header() {
             <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" />
           </svg>
           <span className="text-[15px]">WaiwaiER</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-100 text-zinc-600 font-medium">
+          <span 
+            className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+            style={{ backgroundColor: 'var(--muted)', color: 'var(--text-secondary)' }}
+          >
             {channelLabel}
           </span>
         </h1>
@@ -111,22 +118,35 @@ export function Header() {
         <button
           type="button"
           onClick={openProjectDialog}
-          className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-zinc-200 bg-white text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          className="inline-flex items-center gap-1.5 px-2 py-1 rounded border text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          style={{ 
+            backgroundColor: 'var(--card)', 
+            borderColor: 'var(--border)', 
+            color: 'var(--text-secondary)' 
+          }}
           title={t('project.projects')}
           aria-label={t('project.projects')}
         >
-          <svg className="w-3.5 h-3.5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h10" />
           </svg>
           <span>{t('project.projects')}</span>
-          <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
 
         {currentProject && (
-          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-zinc-100 rounded text-xs">
-            <span className="font-medium text-zinc-700 max-w-32 truncate">{currentProject.name}</span>
+          <div 
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs"
+            style={{ backgroundColor: 'var(--muted)' }}
+          >
+            <span 
+              className="font-medium max-w-32 truncate"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {currentProject.name}
+            </span>
             {currentProject.isEncrypted && <span className="text-xs">🔒</span>}
             <span
               className={
@@ -181,24 +201,29 @@ export function Header() {
       </div>
 
       {/* Center: View Mode Toggle */}
-      <div className="flex bg-zinc-100 rounded-md p-0.5">
+      <div 
+        className="flex rounded-md p-0.5"
+        style={{ backgroundColor: 'var(--muted)' }}
+      >
         <button
           onClick={() => handleViewModeChange('editor')}
-          className={`px-3 py-1 text-xs font-medium rounded transition-all ${
-            viewMode === 'editor'
-              ? 'bg-white text-indigo-600 shadow-sm'
-              : 'text-zinc-500 hover:text-zinc-700'
-          }`}
+          className="px-3 py-1 text-xs font-medium rounded transition-all"
+          style={{
+            backgroundColor: viewMode === 'editor' ? 'var(--card)' : 'transparent',
+            color: viewMode === 'editor' ? 'var(--primary)' : 'var(--text-muted)',
+            boxShadow: viewMode === 'editor' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+          }}
         >
           {t('editor.title')}
         </button>
         <button
           onClick={() => handleViewModeChange('simulator')}
-          className={`px-3 py-1 text-xs font-medium rounded transition-all ${
-            viewMode === 'simulator'
-              ? 'bg-white text-indigo-600 shadow-sm'
-              : 'text-zinc-500 hover:text-zinc-700'
-          }`}
+          className="px-3 py-1 text-xs font-medium rounded transition-all"
+          style={{
+            backgroundColor: viewMode === 'simulator' ? 'var(--card)' : 'transparent',
+            color: viewMode === 'simulator' ? 'var(--primary)' : 'var(--text-muted)',
+            boxShadow: viewMode === 'simulator' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+          }}
         >
           {t('simulator.title')}
         </button>
@@ -207,10 +232,11 @@ export function Header() {
       {/* Right: Actions */}
       <div className="flex items-center gap-1">
         {/* Import/Export */}
-        <div className="flex border border-zinc-200 rounded">
+        <div className="flex border rounded" style={{ borderColor: 'var(--border)' }}>
           <button
             onClick={openImportDialog}
-            className="p-1 text-zinc-500 hover:bg-zinc-50 transition-colors"
+            className="p-1 transition-colors"
+            style={{ color: 'var(--text-muted)' }}
             title={t('common.import')}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -219,7 +245,8 @@ export function Header() {
           </button>
           <button
             onClick={openExportDialog}
-            className="p-1 text-zinc-500 hover:bg-zinc-50 border-l border-zinc-200 transition-colors"
+            className="p-1 border-l transition-colors"
+            style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}
             title={t('common.export')}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -229,11 +256,12 @@ export function Header() {
         </div>
 
         {/* Undo/Redo */}
-        <div className="flex border border-zinc-200 rounded">
+        <div className="flex border rounded" style={{ borderColor: 'var(--border)' }}>
           <button
             onClick={handleUndo}
             disabled={!canUndo}
-            className="p-1 text-zinc-500 hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="p-1 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            style={{ color: 'var(--text-muted)' }}
             title={`${t('common.undo')} (Ctrl+Z)`}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -243,7 +271,8 @@ export function Header() {
           <button
             onClick={handleRedo}
             disabled={!canRedo}
-            className="p-1 text-zinc-500 hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed border-l border-zinc-200 transition-colors"
+            className="p-1 disabled:opacity-40 disabled:cursor-not-allowed border-l transition-colors"
+            style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}
             title={`${t('common.redo')} (Ctrl+Y)`}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,7 +297,8 @@ export function Header() {
         {/* Language Toggle */}
         <button
           onClick={toggleLanguage}
-          className="p-1.5 text-xs text-zinc-500 hover:bg-zinc-100 rounded transition-colors"
+          className="p-1.5 text-xs rounded transition-colors"
+          style={{ color: 'var(--text-muted)' }}
         >
           {settings.language === 'ja' ? 'JA' : 'EN'}
         </button>
@@ -276,7 +306,8 @@ export function Header() {
         {/* Settings */}
         <button
           onClick={openSettings}
-          className="p-1.5 text-zinc-500 hover:bg-zinc-100 rounded transition-colors"
+          className="p-1.5 rounded transition-colors"
+          style={{ color: 'var(--text-muted)' }}
           title={t('common.settings')}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

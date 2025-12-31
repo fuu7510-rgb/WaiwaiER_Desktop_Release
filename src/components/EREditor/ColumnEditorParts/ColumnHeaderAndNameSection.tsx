@@ -22,7 +22,7 @@ export function ColumnHeaderAndNameSection({ selectedColumn, handleUpdate, label
   return (
     <>
       <div className="flex items-center">
-        <h3 className="font-bold text-xs text-zinc-500 uppercase tracking-wider">
+        <h3 className="font-bold text-xs uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
           {labelEnJa(
             `${String(tEn('column.column'))} ${String(tEn('common.settings'))}`,
             `${String(tJa('column.column'))}${String(tJa('common.settings'))}`

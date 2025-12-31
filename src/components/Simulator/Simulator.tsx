@@ -295,7 +295,7 @@ export function Simulator() {
 
   if (!selectedTable) {
     return (
-      <div className="flex-1 flex items-center justify-center text-zinc-400 text-xs">
+      <div className="flex-1 flex items-center justify-center text-xs" style={{ color: 'var(--text-muted)' }}>
         <p>{t('editor.noTables')}</p>
       </div>
     );
@@ -311,31 +311,34 @@ export function Simulator() {
   };
 
   return (
-    <div className="flex-1 flex h-full bg-zinc-50 overflow-hidden">
+    <div className="flex-1 flex h-full overflow-hidden" style={{ backgroundColor: 'var(--background)' }}>
       {/* AppSheet風: 左ナビ */}
-      <aside className="w-[280px] bg-white border-r border-zinc-200 flex flex-col overflow-hidden">
-        <div className="px-3 py-2 border-b border-zinc-100">
-          <div className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
+      <aside 
+        className="w-[280px] flex flex-col overflow-hidden border-r"
+        style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+      >
+        <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
+          <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
             {t('simulator.title')}
           </div>
         </div>
 
         {/* Views (1 table = 1 view) */}
         <div className="px-2 pb-2">
-          <div className="px-2 pb-1 text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
+          <div className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
             VIEWS
           </div>
         </div>
 
         <div className="flex-1 overflow-auto">
           {tables.length === 0 ? (
-            <div className="px-4 py-6 text-center text-xs text-zinc-400">
+            <div className="px-4 py-6 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
               {t('common.noResults', '該当なし')}
             </div>
           ) : (
             <DndContext sensors={sensors} onDragEnd={handleTableDragEnd}>
               <SortableContext items={tables.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                <ul className="divide-y divide-zinc-100">
+                <ul className="divide-y" style={{ '--tw-divide-opacity': 1, borderColor: 'var(--border)' } as React.CSSProperties}>
                   {tables.map((table, index) => {
                     const isSelected = table.id === selectedTable.id;
                     const canMoveUp = index > 0;
@@ -372,7 +375,10 @@ export function Simulator() {
 
       {/* AppSheet風: メイン */}
       <section className="flex-1 flex flex-col overflow-hidden">
-        <div className="bg-white border-b border-zinc-200 px-3 py-2 flex items-center gap-2">
+        <div 
+          className="border-b px-3 py-2 flex items-center gap-2"
+          style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+        >
           <Button
             variant="secondary"
             size="md"
@@ -388,17 +394,20 @@ export function Simulator() {
         </div>
 
         {/* タイトル行（AppSheetのサブヘッダ風） */}
-        <div className="bg-zinc-50 border-b border-zinc-200 px-3 py-2 flex items-center justify-between">
+        <div 
+          className="border-b px-3 py-2 flex items-center justify-between"
+          style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}
+        >
           <div className="min-w-0">
-            <h2 className="text-sm font-medium text-zinc-800 truncate">{selectedTable.name}</h2>
-            <p className="text-[10px] text-zinc-400">
+            <h2 className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{selectedTable.name}</h2>
+            <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
               {t('simulator.views.table')}
             </p>
           </div>
 
           {lastDeletedSampleRow && (
             <div className="shrink-0 flex items-center gap-2">
-              <span className="hidden sm:inline text-[10px] text-zinc-400">
+              <span className="hidden sm:inline text-[10px]" style={{ color: 'var(--text-muted)' }}>
                 削除しました
                 {(() => {
                   const tbl = tables.find((tb) => tb.id === lastDeletedSampleRow.tableId);
@@ -444,7 +453,10 @@ export function Simulator() {
           </div>
 
           {selectedRow && (
-            <div className="w-[380px] border-l border-zinc-200 bg-white overflow-auto">
+            <div 
+              className="w-[380px] border-l overflow-auto"
+              style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+            >
               <div
                 className={`px-4 py-3 text-white ${
                   TABLE_BG_COLOR_CLASSES[selectedTable.color || '#6366f1'] || 'bg-indigo-500'
@@ -903,9 +915,12 @@ function SortableSimulatorTableNavItem(props: {
     <li ref={setNodeRef} style={style}>
       <div
         className={`w-full flex items-center gap-2 px-4 py-2.5 text-xs transition-colors
-          ${isSelected ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-600 hover:bg-zinc-50'}
           ${isOver ? 'ring-2 ring-indigo-200 ring-inset' : ''}
         `}
+        style={{
+          backgroundColor: isSelected ? 'var(--muted)' : 'transparent',
+          color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
+        }}
       >
         {/* ドラッグハンドル */}
         <span
@@ -928,11 +943,14 @@ function SortableSimulatorTableNavItem(props: {
             type="button"
             data-reorder-button="true"
             className={`
-              inline-flex items-center justify-center w-7 h-7 rounded-md border
-              bg-white text-zinc-500 transition-colors
-              hover:bg-zinc-50 hover:text-zinc-700
-              ${canMoveUp ? 'border-zinc-200' : 'border-zinc-100 opacity-30 cursor-not-allowed hover:bg-white hover:text-zinc-500'}
+              inline-flex items-center justify-center w-7 h-7 rounded-md border transition-colors
+              ${canMoveUp ? '' : 'opacity-30 cursor-not-allowed'}
             `}
+            style={{
+              backgroundColor: 'var(--card)',
+              borderColor: canMoveUp ? 'var(--border)' : 'var(--muted)',
+              color: 'var(--text-muted)',
+            }}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
@@ -955,11 +973,14 @@ function SortableSimulatorTableNavItem(props: {
             type="button"
             data-reorder-button="true"
             className={`
-              inline-flex items-center justify-center w-7 h-7 rounded-md border
-              bg-white text-zinc-500 transition-colors
-              hover:bg-zinc-50 hover:text-zinc-700
-              ${canMoveDown ? 'border-zinc-200' : 'border-zinc-100 opacity-30 cursor-not-allowed hover:bg-white hover:text-zinc-500'}
+              inline-flex items-center justify-center w-7 h-7 rounded-md border transition-colors
+              ${canMoveDown ? '' : 'opacity-30 cursor-not-allowed'}
             `}
+            style={{
+              backgroundColor: 'var(--card)',
+              borderColor: canMoveDown ? 'var(--border)' : 'var(--muted)',
+              color: 'var(--text-muted)',
+            }}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();

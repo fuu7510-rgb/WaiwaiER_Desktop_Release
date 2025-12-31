@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import type { ButtonHTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, CSSProperties } from 'react';
 import { cn } from '../../lib';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -8,14 +8,29 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'primary', size = 'md', children, ...props }, ref) => {
+  ({ className, variant = 'primary', size = 'md', children, style, ...props }, ref) => {
     const baseStyles = 'inline-flex items-center justify-center font-medium rounded transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed';
     
     const variantStyles = {
       primary: 'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500 shadow-sm',
-      secondary: 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200 focus:ring-zinc-400',
+      secondary: 'focus:ring-zinc-400',
       danger: 'bg-red-500 text-white hover:bg-red-600 focus:ring-red-400 shadow-sm',
-      ghost: 'bg-transparent text-zinc-600 hover:bg-zinc-100 focus:ring-zinc-400',
+      ghost: 'bg-transparent focus:ring-zinc-400',
+    };
+
+    // CSS変数を使用するスタイル
+    const variantCSSStyles: Record<string, CSSProperties> = {
+      primary: {},
+      secondary: {
+        backgroundColor: 'var(--muted)',
+        color: 'var(--text-secondary)',
+        borderWidth: '1px',
+        borderColor: 'var(--border)',
+      },
+      danger: {},
+      ghost: {
+        color: 'var(--text-secondary)',
+      },
     };
     
     const sizeStyles = {
@@ -45,6 +60,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           sizeStyles[size],
           className
         )}
+        style={{ ...variantCSSStyles[variant], ...style }}
         {...props}
       >
         {children}

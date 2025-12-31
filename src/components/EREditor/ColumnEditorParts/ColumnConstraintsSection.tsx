@@ -18,9 +18,9 @@ export function ColumnConstraintsSection({ selectedColumn, handleConstraintUpdat
   const { labelEnJa, helpText, labelKey } = labels;
 
   return (
-    <div className="border-t border-zinc-100 pt-3">
+    <div className="border-t pt-3" style={{ borderColor: 'var(--border)' }}>
       <div className="flex items-center mb-2">
-        <h4 className="font-medium text-xs text-zinc-500">{labelKey('table.constraints')}</h4>
+        <h4 className="font-medium text-xs" style={{ color: 'var(--text-muted)' }}>{labelKey('table.constraints')}</h4>
         <InfoTooltip
           content={
             <div>
@@ -42,14 +42,15 @@ export function ColumnConstraintsSection({ selectedColumn, handleConstraintUpdat
             type="checkbox"
             checked={!!selectedColumn.constraints.unique}
             onChange={(e) => handleConstraintUpdate({ unique: e.target.checked })}
-            className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500/20"
+            className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20"
+            style={{ borderColor: 'var(--input-border)' }}
           />
-          <span className="text-xs text-zinc-600">{labelKey('column.constraints.unique')}</span>
+          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{labelKey('column.constraints.unique')}</span>
         </label>
 
         {(selectedColumn.type === 'Enum' || selectedColumn.type === 'EnumList') && (
           <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1">
+            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
               {labelKey('column.constraints.enumValues')}
             </label>
             <textarea
@@ -62,7 +63,8 @@ export function ColumnConstraintsSection({ selectedColumn, handleConstraintUpdat
                     .filter((v) => v.length > 0),
                 })
               }
-              className="w-full px-2.5 py-1.5 text-xs border border-zinc-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+              className="w-full px-2.5 py-1.5 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+              style={{ backgroundColor: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
               rows={3}
               placeholder={labelEnJa('Enter one option per line', '選択肢を1行に1つ入力')}
             />

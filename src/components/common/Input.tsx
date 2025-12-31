@@ -16,7 +16,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       <div className="w-full">
         {label && (
           <div className="flex items-center mb-1">
-            <label htmlFor={inputId} className="block text-xs font-medium text-zinc-600">
+            <label 
+              htmlFor={inputId} 
+              className="block text-xs font-medium"
+              style={{ color: 'var(--text-secondary)' }}
+            >
               {label}
             </label>
             {labelSuffix}
@@ -27,16 +31,20 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           autoComplete="off"
           className={`
-            w-full px-1.5 py-[3px] text-sm border rounded bg-white
+            w-full px-1.5 py-[3px] text-sm border rounded
             focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500
-            placeholder:text-zinc-400 transition-colors
-            ${error ? 'border-red-400' : 'border-zinc-200 hover:border-zinc-300'}
+            transition-colors
             ${className}
           `}
+          style={{
+            backgroundColor: 'var(--input-bg)',
+            borderColor: error ? 'var(--destructive)' : 'var(--input-border)',
+            color: 'var(--text-primary)',
+          }}
           {...props}
         />
         {error && (
-          <p className="mt-0.5 text-xs text-red-500">{error}</p>
+          <p className="mt-0.5 text-xs" style={{ color: 'var(--destructive)' }}>{error}</p>
         )}
       </div>
     );

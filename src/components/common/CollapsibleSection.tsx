@@ -32,15 +32,20 @@ export function CollapsibleSection({
   }, [isOpen, storageKey]);
 
   return (
-    <div className={`border border-zinc-200 rounded-md overflow-hidden ${className}`}>
+    <div
+      className={`border rounded-md overflow-hidden ${className}`}
+      style={{ borderColor: 'var(--border)' }}
+    >
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-3 py-2 bg-zinc-50 hover:bg-zinc-100 transition-colors text-left"
+        className="w-full flex items-center justify-between px-3 py-2 transition-colors text-left"
+        style={{ backgroundColor: 'var(--muted)' }}
       >
-        <span className="text-[11px] font-medium text-zinc-600">{title}</span>
+        <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>{title}</span>
         <svg
-          className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          style={{ color: 'var(--text-muted)' }}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -49,7 +54,7 @@ export function CollapsibleSection({
         </svg>
       </button>
       {isOpen && (
-        <div className="px-3 py-2 bg-white">
+        <div className="px-3 py-2" style={{ backgroundColor: 'var(--card)' }}>
           {children}
         </div>
       )}
