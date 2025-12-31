@@ -36,6 +36,8 @@ Tauri 2.x + React + TypeScriptで構築されています。
 - Rust (Tauri用)
 - pnpm / npm / yarn
 
+※ `npm run tauri:dev` / `npm run tauri:build` は内部で `corepack pnpm ...` を実行します。初回は `corepack` を有効化してください（`corepack: command not found` が出る環境では `npm i -g corepack` が必要です）。
+
 Windowsで `npm` が認識されない場合は、Node.js（npm同梱）が未インストール、または `PATH` 未設定の可能性があります。Node.jsをインストール後、ターミナル/VS Codeを開き直して `node -v` / `npm -v` で確認してください。
 
 複数プロジェクトでNodeのバージョンを切り替える場合は、Windows向けのNodeバージョンマネージャ（例: nvm-windows）を利用するのが簡単です。本リポジトリには `.nvmrc`（推奨メジャーバージョン）が含まれます。
@@ -43,6 +45,11 @@ Windowsで `npm` が認識されない場合は、Node.js（npm同梱）が未�
 ### セットアップ
 
 ```bash
+# pnpm を使えるようにする（初回のみ）
+npm i -g corepack
+corepack enable
+corepack prepare pnpm@latest --activate
+
 # 依存関係のインストール
 npm install
 
