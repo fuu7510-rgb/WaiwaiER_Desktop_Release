@@ -160,9 +160,9 @@ export function Simulator() {
 
   // 生データ (AppFormula未計算)
   const tableRows = useMemo(() => {
-    if (!selectedTable?.id) return [];
-    return sampleDataByTableId[selectedTable.id] ?? [];
-  }, [sampleDataByTableId, selectedTable?.id]);
+    if (!selectedTableId) return [];
+    return sampleDataByTableId[selectedTableId] ?? [];
+  }, [sampleDataByTableId, selectedTableId]);
 
   // 計算済みデータ (AppFormula適用後)
   const computedTableRows = useMemo(() => {

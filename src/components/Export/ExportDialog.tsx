@@ -22,6 +22,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
   const { exportDiagram, tables, ensureSampleData } = useERStore();
   const { currentProjectId, projects } = useProjectStore();
   const { openProjectDialog, settings } = useUIStore();
+  const noteParamOutputSettings = settings.noteParamOutputSettings;
   const [format, setFormat] = useState<ExportFormat>('json');
   const [includeData, setIncludeData] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -114,7 +115,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
           tables: tables,
           sampleData: sampleData,
           includeData: includeData,
-          noteParamOutputSettings: settings.noteParamOutputSettings,
+          noteParamOutputSettings: noteParamOutputSettings,
         },
         filePath: filePath,
       });
@@ -126,7 +127,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
     } finally {
       setIsExporting(false);
     }
-  }, [tables, currentProject, includeData, onClose, t, ensureSampleData]);
+  }, [tables, currentProject, includeData, noteParamOutputSettings, onClose, t, ensureSampleData]);
 
   const handleExport = useCallback(async () => {
     switch (format) {
