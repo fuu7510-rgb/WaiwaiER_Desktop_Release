@@ -37,7 +37,7 @@
 
 ---
 
-### 2. `Simulator.tsx` のコンポーネント分割 (1,006行)
+### 2. `Simulator.tsx` のコンポーネント分割 (1,006行) ✅ 完了
 
 **ファイル**: `src/components/Simulator/Simulator.tsx`
 
@@ -45,43 +45,42 @@
 - 1つのファイルに1000行超のコンポーネント
 - Detail View、Form View、テーブルナビ、行編集ロジックがすべて混在
 
-**推奨される修正**:
-- `SimulatorNavPanel.tsx` - テーブルナビゲーション
-- `SimulatorDetailPanel.tsx` - Detail View表示
-- `SimulatorRowForm.tsx` - 行編集フォーム
-- `SimulatorRelatedRecords.tsx` - 関連レコード表示
+**実施した修正**:
+- `SimulatorNavPanel.tsx` (224行) - テーブルナビゲーション
+- `SimulatorDetailPanel.tsx` (192行) - Detail View表示
+- `SimulatorRowForm.tsx` (251行) - 行編集フォーム
+- `SimulatorRelatedRecords.tsx` (133行) - 関連レコード表示
+- `Simulator.tsx` (461行) - メインコンポーネント（分割後）
 
-**理由**:
-- 各Viewの責務が明確になる
-- AppSheetの仕様に合わせた改修が容易になる
-- コンポーネント単位でのテストが可能になる
+**結果**:
+- 1,006行 → 合計約800行（メイン461行 + 分割4ファイル800行）に分割
+- 各Viewの責務が明確になった
+- コンポーネント単位でのテストが可能に
 
 ---
 
-### 3. `appFormula.ts` の分割 (891行)
+### 3. `expression.ts` の分割 (891行) ✅ 完了
 
-**ファイル**: `src/lib/appsheet/appFormula.ts`
+**ファイル**: `src/lib/appsheet/expression.ts`
 
 **問題点**:
 - AppSheet式の評価エンジンが巨大
 - Tokenizer、Parser、Evaluatorが混在
 
-**推奨される修正**:
+**修正内容** (2025-12-31完了):
 ```
 src/lib/appsheet/
-├── appFormula.ts        # メインエントリ（ファサード）
-├── tokenizer.ts         # トークナイザー
-├── parser.ts            # パーサー
-├── evaluator.ts         # 評価器
-└── functions/
-    ├── index.ts
-    ├── text.ts          # TEXT, CONCATENATE等
-    ├── math.ts          # SUM, AVERAGE等
-    ├── logical.ts       # IF, AND, OR等
-    └── datetime.ts      # NOW, TODAY等
+├── expression.ts        # 後方互換性のための再エクスポート（ファサード）
+└── formula/
+    ├── index.ts         # モジュールエントリポイント
+    ├── types.ts         # 型定義 (Token, Expr, AppSheetEvalContext等)
+    ├── tokenizer.ts     # 字句解析
+    ├── parser.ts        # 構文解析
+    ├── helpers.ts       # ユーティリティ関数
+    └── evaluator.ts     # AST評価器
 ```
 
-**理由**:
+**効果**:
 - 新しい関数の追加が容易になる
 - 各フェーズのテストが独立して書ける
 - バグの特定が容易になる
@@ -235,13 +234,13 @@ src-tauri/src/excel/
 ## 推奨実施順序
 
 ### Phase 1: 安全網の構築
-1. [ ] `appFormula.ts` のユニットテスト追加
-2. [ ] `diagramSchema.ts` のマイグレーションテスト追加
+1. [x] `appFormula.ts` のユニットテスト追加
+2. [x] `diagramSchema.ts` のマイグレーションテスト追加
 
 ### Phase 2: 大規模分割
-3. [ ] `erStore.ts` のスライス分割
-4. [ ] `Simulator.tsx` のコンポーネント分割
-5. [ ] `appFormula.ts` のモジュール分割
+3. [x] `erStore.ts` のスライス分割 ✅ 2025-12-31完了
+4. [x] `Simulator.tsx` のコンポーネント分割 ✅ 2025-12-31完了
+5. [x] `expression.ts` のモジュール分割 ✅ 2025-12-31完了 (`src/lib/appsheet/formula/` に分割)
 
 ### Phase 3: 品質向上
 6. [ ] コードの重複解消
