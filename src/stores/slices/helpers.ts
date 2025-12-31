@@ -3,7 +3,7 @@
  * サンプルデータの同期、型変換、共通カラム処理などのユーティリティ
  */
 import { v4 as uuidv4 } from 'uuid';
-import type { Table, Column, ColumnType, CommonColumnDefinition } from '../../types';
+import type { Table, Column, ColumnType, CommonColumnDefinition, SampleRow, SampleDataByTableId, SampleRowValue } from '../../types';
 import { DEFAULT_SAMPLE_ROWS, MAX_SAMPLE_ROWS } from './types';
 
 // ========== 配列操作 ==========
@@ -65,7 +65,7 @@ export function isBlankSampleCell(value: unknown): boolean {
   return s.trim().length === 0 || s.trim() === '-';
 }
 
-export function coerceDummyValueForType(raw: string, type: ColumnType): unknown {
+export function coerceDummyValueForType(raw: string, type: ColumnType): SampleRowValue {
   const trimmed = String(raw ?? '').trim();
   if (trimmed.length === 0) return '';
 
@@ -91,9 +91,9 @@ export function coerceDummyValueForType(raw: string, type: ColumnType): unknown 
 
 export function syncSampleRowsToTableSchema(params: {
   table: Table;
-  currentRows: Record<string, unknown>[] | undefined;
+  currentRows: SampleRow[] | undefined;
   desiredRowCount?: number;
-}): Record<string, unknown>[] {
+}): SampleRow[] {
   const { table } = params;
   const currentRows = params.currentRows ?? [];
 
@@ -102,15 +102,15 @@ export function syncSampleRowsToTableSchema(params: {
   const nextCount = Math.min(Math.max(nextCountRaw, 0), MAX_SAMPLE_ROWS);
 
   const baseRows = currentRows.slice(0, nextCount);
-  const rows: Record<string, unknown>[] = [];
+  const rows: SampleRow[] = [];
 
   for (let i = 0; i < nextCount; i++) {
     const current = baseRows[i] ?? {};
-    const out: Record<string, unknown> = {};
+    const out: SampleRow = {};
 
     for (const column of table.columns) {
       if (column.id in current) {
-        out[column.id] = current[column.id];
+        out[column.id] = current[column.id] as SampleRow[string];
         continue;
       }
       // 新規カラムは原則空欄。Keyだけは参照成立のため決定的に埋める。
@@ -131,10 +131,10 @@ export function syncSampleRowsToTableSchema(params: {
 }
 
 export function applyDummyValuesToSampleRows(params: {
-  rows: Record<string, unknown>[];
+  rows: SampleRow[];
   column: Column;
   previousDummyValues?: string[];
-}): Record<string, unknown>[] {
+}): SampleRow[] {
   const { rows, column, previousDummyValues } = params;
   if (column.isKey) return rows;
   const values = (column.dummyValues ?? []).map((v) => String(v).trim()).filter((v) => v.length > 0);
@@ -165,15 +165,15 @@ const AUTO_REF_PLACEHOLDER_RE = /^REF-\d+$/;
 
 export function normalizeRefValues(params: {
   tables: Table[];
-  sampleDataByTableId: Record<string, Record<string, unknown>[]>;
-}): Record<string, Record<string, unknown>[]> {
+  sampleDataByTableId: SampleDataByTableId;
+}): SampleDataByTableId {
   const { tables } = params;
   const base = params.sampleDataByTableId;
 
   const tableById = new Map<string, Table>();
   for (const t of tables) tableById.set(t.id, t);
 
-  const next: Record<string, Record<string, unknown>[]> = { ...base };
+  const next: SampleDataByTableId = { ...base };
 
   for (const table of tables) {
     const rows = next[table.id] ?? [];
@@ -184,7 +184,7 @@ export function normalizeRefValues(params: {
 
     let anyRowChanged = false;
     const nextRows = rows.map((row, rowIndex) => {
-      let outRow: Record<string, unknown> = row;
+      let outRow: SampleRow = row;
 
       for (let refIndex = 0; refIndex < refColumns.length; refIndex++) {
         const column = refColumns[refIndex];
@@ -236,10 +236,10 @@ export function normalizeRefValues(params: {
 
 export function reconcileSampleDataBySchema(params: {
   tables: Table[];
-  previousSampleDataByTableId: Record<string, Record<string, unknown>[]>;
-}): Record<string, Record<string, unknown>[]> {
+  previousSampleDataByTableId: SampleDataByTableId;
+}): SampleDataByTableId {
   const { tables, previousSampleDataByTableId } = params;
-  const next: Record<string, Record<string, unknown>[]> = {};
+  const next: SampleDataByTableId = {};
 
   for (const table of tables) {
     next[table.id] = syncSampleRowsToTableSchema({
@@ -339,12 +339,12 @@ export function applyCommonColumnsToTableInPlace(table: Table, defs: CommonColum
 
 export function migrateStoredSampleDataToIds(params: {
   tables: Table[];
-  storedSampleData: Record<string, Record<string, unknown>[]> | null;
-}): Record<string, Record<string, unknown>[]> | null {
+  storedSampleData: SampleDataByTableId | null;
+}): SampleDataByTableId | null {
   const { tables, storedSampleData } = params;
   if (!storedSampleData) return null;
 
-  const out: Record<string, Record<string, unknown>[]> = {};
+  const out: SampleDataByTableId = {};
 
   for (const table of tables) {
     const rawRows =
@@ -353,8 +353,8 @@ export function migrateStoredSampleDataToIds(params: {
     if (!Array.isArray(rawRows)) continue;
 
     out[table.id] = rawRows.map((raw) => {
-      const row = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-      const nextRow: Record<string, unknown> = {};
+      const row = raw && typeof raw === 'object' ? (raw as SampleRow) : {};
+      const nextRow: SampleRow = {};
 
       for (const column of table.columns) {
         if (Object.prototype.hasOwnProperty.call(row, column.id)) {

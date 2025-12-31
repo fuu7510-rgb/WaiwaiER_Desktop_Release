@@ -1,7 +1,7 @@
 /**
  * 永続化およびインポート/エクスポートスライス
  */
-import type { ERDiagram } from '../../types';
+import type { ERDiagram, SampleDataByTableId } from '../../types';
 import type { PersistenceState, PersistenceActions, ImportExportActions, SliceCreator } from './types';
 import { saveDiagram, loadDiagram, loadSampleData, saveSampleData } from '../../lib/database';
 import { toast } from '../toastStore';
@@ -66,18 +66,18 @@ export const createPersistenceSlice: SliceCreator<PersistenceSlice> = (set, get)
       const diagram = await loadDiagram(projectId, { passphrase: resolvedPassphrase });
       const storedSampleData = await loadSampleData(projectId, { passphrase: resolvedPassphrase });
       const migratedSampleData = diagram
-        ? migrateStoredSampleDataToIds({ tables: diagram.tables ?? [], storedSampleData })
+        ? migrateStoredSampleDataToIds({ tables: diagram.tables ?? [], storedSampleData: storedSampleData as SampleDataByTableId | null })
         : null;
       if (diagram) {
         set((state) => {
           state.tables = diagram.tables;
           state.relations = diagram.relations;
           state.memos = diagram.memos ?? [];
-          const fallback = Object.fromEntries(
+          const fallback: SampleDataByTableId = Object.fromEntries(
             (diagram.tables ?? []).map((t) => [t.id, syncSampleRowsToTableSchema({ table: t, currentRows: undefined })])
-          ) as Record<string, Record<string, unknown>[]>;
+          );
           const base = migratedSampleData ?? fallback;
-          const next: Record<string, Record<string, unknown>[]> = {};
+          const next: SampleDataByTableId = {};
           for (const t of diagram.tables ?? []) {
             next[t.id] = syncSampleRowsToTableSchema({ table: t, currentRows: base[t.id] });
           }
@@ -165,7 +165,7 @@ export const createPersistenceSlice: SliceCreator<PersistenceSlice> = (set, get)
         state.memos = diagram.memos ?? [];
         state.sampleDataByTableId = Object.fromEntries(
           (diagram.tables ?? []).map((t) => [t.id, syncSampleRowsToTableSchema({ table: t, currentRows: undefined })])
-        );
+        ) as SampleDataByTableId;
         state.deletedSampleRowStack = [];
         state.selectedTableId = null;
         state.selectedColumnId = null;

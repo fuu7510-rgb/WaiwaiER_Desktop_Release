@@ -1,6 +1,7 @@
 /**
  * サンプルデータ操作スライス
  */
+import type { SampleRow, SampleDataByTableId } from '../../types';
 import type { SampleDataState, SampleDataActions, SliceCreator } from './types';
 import { MAX_SAMPLE_ROWS } from './types';
 import {
@@ -18,7 +19,7 @@ export const createSampleDataSlice: SliceCreator<SampleDataSlice> = (set, get) =
   ensureSampleData: () => {
     const { tables } = get();
     set((state) => {
-      const next: Record<string, Record<string, unknown>[]> = {};
+      const next: SampleDataByTableId = {};
       for (const table of tables) {
         next[table.id] = syncSampleRowsToTableSchema({
           table,
@@ -32,7 +33,7 @@ export const createSampleDataSlice: SliceCreator<SampleDataSlice> = (set, get) =
   regenerateSampleData: () => {
     const { tables } = get();
     set((state) => {
-      const next: Record<string, Record<string, unknown>[]> = {};
+      const next: SampleDataByTableId = {};
       for (const table of tables) {
         next[table.id] = syncSampleRowsToTableSchema({ table, currentRows: undefined });
       }
@@ -94,10 +95,10 @@ export const createSampleDataSlice: SliceCreator<SampleDataSlice> = (set, get) =
         .map((c) => c.id)
     );
 
-    const sanitizedUpdates: Record<string, unknown> = {};
+    const sanitizedUpdates: SampleRow = {};
     for (const [k, v] of Object.entries(updates ?? {})) {
       if (appFormulaColumnIds.has(k)) continue;
-      sanitizedUpdates[k] = v;
+      sanitizedUpdates[k] = v as SampleRow[string];
     }
 
     set((state) => {
