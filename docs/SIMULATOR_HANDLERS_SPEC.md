@@ -99,3 +99,43 @@ ERエディタにおけるテーブル間の接続（リレーション）と、
 - **禁止マーク**: 接続ドラッグ中に `isValidConnection` が `false` を返す場所（自分自身や既に参照されているカラムなど）にカーソルを合わせると、カーソルの横に「×」マークが表示されます。
 - **フラッシュ**: 無効な場所にドロップしようとした際、その場所に一時的に「×」マークがフラッシュ表示されます。
 
+---
+
+## 5. 実装上の注意事項
+
+### エッジ更新時の `updateEdge` 使用禁止
+
+React Flow の `updateEdge` ユーティリティ関数は使用しないでください。
+
+**問題**:
+`updateEdge` を呼び出すと、React Flow が内部で新しいエッジIDを自動生成します（`reactflow__edge-...` 形式）。
+これにより、ストア（`relations`）で管理しているリレーションIDとReact Flowのエッジ内部IDが不整合を起こし、
+以降のエッジ操作（付け替え、削除など）で「relation not found」エラーが発生します。
+
+**正しい実装**:
+`onEdgeUpdate` コールバックでは、ストアの `updateRelation` のみを呼び出し、`updateEdge` は呼び出しません。
+ストアの `relations` が更新されると、`useEffect` が自動的に `setEdges(relations.map(relationToEdge))` を呼び出し、
+エッジが正しく同期されます。
+
+```typescript
+const onEdgeUpdate = useCallback(
+  (oldEdge: Edge, newConnection: Connection) => {
+    edgeUpdateSuccessfulRef.current = true;
+    retargetRelationFromEdgeUpdate(oldEdge.id, newConnection);
+    // updateEdge(oldEdge, newConnection, eds) は呼ばない
+  },
+  [retargetRelationFromEdgeUpdate]
+);
+```
+
+### クロージャによる古い状態参照の問題
+
+`useCallback` 内で `tables` や `relations` を参照する場合、ストア更新後もクロージャが古い値を参照し続けることがあります。
+ストア更新直後に最新の状態が必要な場合は、`useERStore.getState()` を使用して最新の状態を取得してください。
+
+```typescript
+// 例: updateColumn/updateRelation 呼び出し後に最新の状態を取得
+const latestState = useERStore.getState();
+const latestTables = latestState.tables;
+const latestRelations = latestState.relations;
+```

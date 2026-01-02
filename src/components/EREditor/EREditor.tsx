@@ -7,7 +7,6 @@ import ReactFlow, {
   useEdgesState,
   applyNodeChanges,
   applyEdgeChanges,
-  updateEdge,
   ReactFlowProvider,
   useStore as useReactFlowStore,
 } from 'reactflow';
@@ -167,7 +166,16 @@ function EREditorInner() {
         targetColumn.constraints.refTableId === relation.sourceTableId &&
         targetColumn.constraints.refColumnId === relation.sourceColumnId;
 
-      if (targetColumn && isRefWithSameTarget) {
+      // 参照制約が何らかの理由でズレていても、当該カラムに incoming relation が無ければ
+      // 「線を外した=Ref解除」とみなして確実にリセットする。
+      const hasOtherIncomingRelationToTargetColumn = relations.some(
+        (r) => r.id !== relationId && r.targetTableId === relation.targetTableId && r.targetColumnId === relation.targetColumnId
+      );
+
+      const shouldResetTargetColumnRef =
+        !!targetColumn && targetColumn.type === 'Ref' && (isRefWithSameTarget || !hasOtherIncomingRelationToTargetColumn);
+
+      if (targetColumn && shouldResetTargetColumnRef) {
         updateColumn(relation.targetTableId, relation.targetColumnId, {
           type: 'Text',
           constraints: {
@@ -244,15 +252,21 @@ function EREditorInner() {
       // 旧ターゲット側のRefを解除（新ターゲットと同一なら何もしない）
       // ※ updateColumn(type:Text) は targetColumnId に紐づく relations を自動掃除するため、
       //    先に updateRelation で付け替え完了させてから実行する。
+      // ※ 上の updateColumn/updateRelation 呼び出し後は tables/relations がクロージャで古い値を
+      //    参照している可能性があるため、useERStore.getState() で最新の状態を取得する。
       if (prevTargetTableId !== next.target || prevTargetColumnId !== targetColumnId) {
-        const oldTargetTable = tables.find((t) => t.id === prevTargetTableId);
+        const latestState = useERStore.getState();
+        const latestTables = latestState.tables;
+        const latestRelations = latestState.relations;
+        const oldTargetTable = latestTables.find((t) => t.id === prevTargetTableId);
         const oldTargetColumn = oldTargetTable?.columns.find((c) => c.id === prevTargetColumnId);
-        const isOldRefWithSameTarget =
-          oldTargetColumn?.type === 'Ref' &&
-          oldTargetColumn.constraints.refTableId === prevSourceTableId &&
-          oldTargetColumn.constraints.refColumnId === prevSourceColumnId;
 
-        if (oldTargetColumn && isOldRefWithSameTarget) {
+        // 旧ターゲットカラムが Ref 型で、かつ他のリレーションから参照されていなければ Text にリセット
+        const hasOtherIncomingRelation = latestRelations.some(
+          (r) => r.id !== relationId && r.targetTableId === prevTargetTableId && r.targetColumnId === prevTargetColumnId
+        );
+
+        if (oldTargetColumn && oldTargetColumn.type === 'Ref' && !hasOtherIncomingRelation) {
           updateColumn(prevTargetTableId, prevTargetColumnId, {
             type: 'Text',
             constraints: {
@@ -501,14 +515,21 @@ function EREditorInner() {
     (oldEdge: Edge, newConnection: Connection) => {
       edgeUpdateSuccessfulRef.current = true;
       retargetRelationFromEdgeUpdate(oldEdge.id, newConnection);
-      setEdges((eds) => updateEdge(oldEdge, newConnection, eds));
+      // Note: updateEdge を呼ばない。ストアの relations が更新されると、
+      // useEffect が setEdges を呼んでエッジが正しく同期される。
+      // updateEdge を呼ぶと React Flow が新しい ID を生成してしまい、
+      // ストアのリレーションIDとの整合性が失われる。
     },
-    [retargetRelationFromEdgeUpdate, setEdges]
+    [retargetRelationFromEdgeUpdate]
   );
 
-  const onEdgeUpdateEnd = useCallback((_: unknown, edge: Edge) => {
+  const onEdgeUpdateEnd = useCallback((event: MouseEvent | TouchEvent, edge: Edge) => {
     if (!edgeUpdateSuccessfulRef.current) {
-      detachRelation(edge.id);
+      const targetEl = (event as MouseEvent).target as HTMLElement | null;
+      const droppedOnHandle = targetEl?.closest?.('.react-flow__handle') != null;
+      if (!droppedOnHandle) {
+        detachRelation(edge.id);
+      }
     }
     activeEdgeUpdateIdRef.current = null;
     edgeUpdateSuccessfulRef.current = true;
