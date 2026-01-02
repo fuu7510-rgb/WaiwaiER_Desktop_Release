@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Handle, Position } from 'reactflow';
+import { Handle, Position, useStore as useReactFlowStore } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { useTranslation } from 'react-i18next';
 import { useERStore } from '../../stores';
@@ -153,7 +153,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
           type="target"
           position={Position.Left}
           id={`${table.id}__addColumn`}
-          className="!w-3 !h-3 !bg-green-400 !border-2 !border-white !-left-1.5"
+          className="!w-3 !h-3 !bg-green-400 !border-[1.5px] !border-white !-left-1.5"
           title="ここに接続すると新しいカラムを作成"
         />
         <button
@@ -203,7 +203,7 @@ function TableNodeSortableColumns(props: { table: Table }) {
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <SortableContext items={table.columns.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-        <div className="divide-y divide-zinc-100 nodrag">
+        <div className="divide-y divide-zinc-100 nodrag overflow-visible">
           {table.columns.map((column, index) => (
             <ColumnRow
               key={column.id}
@@ -228,7 +228,8 @@ interface ColumnRowProps {
 
 const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) => {
   const { t } = useTranslation();
-  const { selectColumn, selectedColumnId, reorderColumn, updateColumn } = useERStore();
+  const { selectColumn, selectedColumnId, reorderColumn, updateColumn, deleteColumn } = useERStore();
+  const zoom = useReactFlowStore((state) => state.transform[2]) ?? 1;
   const isSelected = selectedColumnId === column.id;
   const typeClass = columnTypeClasses[column.type] || 'bg-slate-500';
 
@@ -236,8 +237,18 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
     id: column.id,
   });
 
+  const adjustedTransform = useMemo(() => {
+    if (!transform) return null;
+    const safeZoom = zoom > 0 ? zoom : 1;
+    return {
+      ...transform,
+      x: transform.x / safeZoom,
+      y: transform.y / safeZoom,
+    };
+  }, [transform, zoom]);
+
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Transform.toString(adjustedTransform),
     transition,
     opacity: isDragging ? 0.7 : undefined,
   };
@@ -303,6 +314,11 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
     }
   }, [tableId, column.id, column.order, isLast, reorderColumn]);
 
+  const handleDelete = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    deleteColumn(tableId, column.id);
+  }, [deleteColumn, tableId, column.id]);
+
   return (
     <div
       ref={setNodeRef}
@@ -312,7 +328,7 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
       }}
       className={`
         relative px-2 py-1 flex items-center gap-1.5 cursor-pointer
-        transition-colors group
+        transition-colors
         ${isOver ? 'ring-2 ring-indigo-200 ring-inset' : ''}
         nodrag
       `}
@@ -320,17 +336,39 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
       {...attributes}
       {...listeners}
     >
+      {/* Delete button (visible when selected) */}
+      <button
+        type="button"
+        onClick={handleDelete}
+        onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        className={`${isSelected ? 'flex' : 'hidden'} items-center justify-center absolute -left-6 top-1/2 -translate-y-1/2 shadow-sm border rounded p-0.5 z-20`}
+        style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+        title={t('common.delete', '削除')}
+        aria-label={t('common.delete', '削除')}
+      >
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 11v6" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 11v6" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 7l1 14h10l1-14" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7V4h6v3" />
+        </svg>
+      </button>
+
       {/* Left Handle (for incoming connections) */}
       <Handle
         type="target"
         position={Position.Left}
         id={column.id}
-        className="!w-3 !h-3 !bg-zinc-300 !border-2 !border-white"
+        className="!w-3 !h-3 !bg-zinc-300 !border-[1.5px] !border-white !-left-1.5"
+        onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
       />
 
-      {/* Reorder buttons (visible on hover) */}
+      {/* Reorder buttons (visible when selected) */}
       <div 
-        className="hidden group-hover:flex flex-col absolute -left-4 shadow-sm border rounded overflow-hidden z-10"
+        className={`${isSelected ? 'flex' : 'hidden'} flex-col absolute -right-6 top-1/2 -translate-y-1/2 shadow-sm border rounded overflow-hidden z-10`}
         style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
       >
         <button
@@ -425,8 +463,10 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
           type="source"
           position={Position.Right}
           id={`${column.id}__source`}
-          className="!w-3 !h-3 !bg-amber-400 !border-2 !border-white hover:!bg-amber-500 cursor-crosshair"
+          className="!w-3 !h-3 !bg-amber-400 !border-[1.5px] !border-white hover:!bg-amber-500 cursor-crosshair !-right-1.5"
           title="ドラッグして他のテーブルのカラムに接続"
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
         />
       )}
     </div>

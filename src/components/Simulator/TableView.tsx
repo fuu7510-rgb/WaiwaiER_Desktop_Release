@@ -324,7 +324,16 @@ function SortableTableHeaderCell(props: {
         isOver ? 'ring-2 ring-indigo-200 ring-inset' : ''
       }`}
     >
-      <div className="flex items-center gap-1 group" style={{ color: 'var(--text-muted)' }} {...attributes} {...listeners}>
+      <div
+        className="flex items-center gap-1 group"
+        style={{ color: 'var(--text-muted)' }}
+        tabIndex={0}
+        onPointerDownCapture={(e) => {
+          (e.currentTarget as HTMLDivElement).focus();
+        }}
+        {...attributes}
+        {...listeners}
+      >
         {column.isKey && (
           <svg className="w-3 h-3 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
             <path
@@ -337,7 +346,7 @@ function SortableTableHeaderCell(props: {
         {column.name}
         {column.constraints.required && <span className="text-red-400">*</span>}
 
-        <span className="ml-1 hidden group-hover:inline-flex items-center gap-0.5 align-middle">
+        <span className="ml-1 hidden group-focus-within:inline-flex items-center gap-0.5 align-middle">
           <button
             type="button"
             data-reorder-button="true"

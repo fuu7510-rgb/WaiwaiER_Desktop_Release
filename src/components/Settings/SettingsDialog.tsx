@@ -411,16 +411,16 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
             type="button"
             onClick={toggleTableCreationRulesOpen}
             className={
-              'w-full flex items-center justify-between text-left px-3 py-2 rounded border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ' +
+              'settings-collapsible-button w-full flex items-center justify-between text-left px-3 py-2 rounded border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ' +
               (isTableCreationRulesOpen
                 ? 'border-indigo-300 bg-indigo-50'
                 : 'border-indigo-200 bg-indigo-50/40 hover:bg-indigo-50/70 hover:border-indigo-300')
             }
           >
-            <h3 className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">{t('settings.tableCreationRules.title')}</h3>
+            <h3 className="settings-collapsible-title text-xs font-semibold text-indigo-700 uppercase tracking-wide">{t('settings.tableCreationRules.title')}</h3>
             <svg
               className={
-                'w-4 h-4 transition-transform ' +
+                'settings-collapsible-icon w-4 h-4 transition-transform ' +
                 (isTableCreationRulesOpen ? 'rotate-180 text-indigo-600' : 'rotate-0 text-indigo-500/70')
               }
               fill="none"
@@ -532,16 +532,16 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
             type="button"
             onClick={toggleCommonColumnsOpen}
             className={
-              'w-full flex items-center justify-between text-left px-3 py-2 rounded border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ' +
+              'settings-collapsible-button w-full flex items-center justify-between text-left px-3 py-2 rounded border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ' +
               (isCommonColumnsOpen
                 ? 'border-indigo-300 bg-indigo-50'
                 : 'border-indigo-200 bg-indigo-50/40 hover:bg-indigo-50/70 hover:border-indigo-300')
             }
           >
-            <h3 className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">{t('settings.commonColumns.title')}</h3>
+            <h3 className="settings-collapsible-title text-xs font-semibold text-indigo-700 uppercase tracking-wide">{t('settings.commonColumns.title')}</h3>
             <svg
               className={
-                'w-4 h-4 transition-transform ' +
+                'settings-collapsible-icon w-4 h-4 transition-transform ' +
                 (isCommonColumnsOpen ? 'rotate-180 text-indigo-600' : 'rotate-0 text-indigo-500/70')
               }
               fill="none"
@@ -764,16 +764,16 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
             type="button"
             onClick={toggleBackupSettingsOpen}
             className={
-              'w-full flex items-center justify-between text-left px-3 py-2 rounded border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ' +
+              'settings-collapsible-button w-full flex items-center justify-between text-left px-3 py-2 rounded border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ' +
               (isBackupSettingsOpen
                 ? 'border-indigo-300 bg-indigo-50'
                 : 'border-indigo-200 bg-indigo-50/40 hover:bg-indigo-50/70 hover:border-indigo-300')
             }
           >
-            <h3 className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">{t('settings.backup')}</h3>
+            <h3 className="settings-collapsible-title text-xs font-semibold text-indigo-700 uppercase tracking-wide">{t('settings.backup')}</h3>
             <svg
               className={
-                'w-4 h-4 transition-transform ' +
+                'settings-collapsible-icon w-4 h-4 transition-transform ' +
                 (isBackupSettingsOpen ? 'rotate-180 text-indigo-600' : 'rotate-0 text-indigo-500/70')
               }
               fill="none"
@@ -829,16 +829,16 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
             type="button"
             onClick={toggleNoteParamsSettingsOpen}
             className={
-              'w-full flex items-center justify-between text-left px-3 py-2 rounded border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ' +
+              'settings-collapsible-button w-full flex items-center justify-between text-left px-3 py-2 rounded border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ' +
               (isNoteParamsSettingsOpen
                 ? 'border-indigo-300 bg-indigo-50'
                 : 'border-indigo-200 bg-indigo-50/40 hover:bg-indigo-50/70 hover:border-indigo-300')
             }
           >
-            <h3 className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">{t('settings.noteParams.title')}</h3>
+            <h3 className="settings-collapsible-title text-xs font-semibold text-indigo-700 uppercase tracking-wide">{t('settings.noteParams.title')}</h3>
             <svg
               className={
-                'w-4 h-4 transition-transform ' +
+                'settings-collapsible-icon w-4 h-4 transition-transform ' +
                 (isNoteParamsSettingsOpen ? 'rotate-180 text-indigo-600' : 'rotate-0 text-indigo-500/70')
               }
               fill="none"

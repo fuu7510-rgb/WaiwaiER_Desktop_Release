@@ -235,3 +235,22 @@ html[data-theme="dark"] input[type="checkbox"]:checked {
   background-color: #6366f1;
   border-color: #6366f1;
 }
+
+/* Settings dialog: collapsible section headers */
+html[data-theme="dark"] .settings-collapsible-button {
+  background-color: var(--card) !important;
+  border-color: var(--border) !important;
+}
+
+html[data-theme="dark"] .settings-collapsible-button:hover {
+  background-color: var(--muted) !important;
+  border-color: var(--border) !important;
+}
+
+html[data-theme="dark"] .settings-collapsible-title {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .settings-collapsible-icon {
+  color: var(--text-primary) !important;
+}
