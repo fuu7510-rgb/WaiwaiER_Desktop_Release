@@ -400,13 +400,14 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
         <div
           className="absolute z-30"
           style={{
-            width: 12,
-            height: 12,
+            width: 14,
+            height: 14,
             borderRadius: 9999,
+            boxSizing: 'border-box',
             backgroundColor: 'var(--primary)',
-            border: '1.5px solid var(--card)',
+            border: '1.5px solid #fff',
             cursor: 'default',
-            left: -6,
+            left: -7,
             top: '50%',
             transform: 'translateY(-50%)',
           }}
