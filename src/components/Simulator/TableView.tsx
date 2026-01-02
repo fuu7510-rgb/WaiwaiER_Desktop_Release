@@ -327,7 +327,6 @@ function SortableTableHeaderCell(props: {
       <div
         className="flex items-center gap-1 group"
         style={{ color: 'var(--text-muted)' }}
-        tabIndex={0}
         onPointerDownCapture={(e) => {
           (e.currentTarget as HTMLDivElement).focus();
         }}

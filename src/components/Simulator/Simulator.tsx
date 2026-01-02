@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useERStore } from '../../stores';
 import { Button } from '../common';
 import { TableView } from './TableView';
-import type { Table } from '../../types';
+import type { SampleRow, Table } from '../../types';
 import { computeRowWithAppFormulas, getAppFormulaString } from '../../lib/appsheet/expression';
 import { SimulatorNavPanel } from './SimulatorNavPanel';
 import { SimulatorDetailPanel } from './SimulatorDetailPanel';
@@ -28,11 +28,11 @@ export function Simulator() {
 
   const lastDeletedSampleRow =
     deletedSampleRowStack.length > 0 ? deletedSampleRowStack[deletedSampleRowStack.length - 1] : null;
-  const [selectedRow, setSelectedRow] = useState<Record<string, unknown> | null>(null);
+  const [selectedRow, setSelectedRow] = useState<SampleRow | null>(null);
   const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [draftRow, setDraftRow] = useState<Record<string, unknown> | null>(null);
+  const [draftRow, setDraftRow] = useState<SampleRow | null>(null);
   const [pendingSelection, setPendingSelection] = useState<{
     tableId: string;
     rowIndex: number;
@@ -50,7 +50,7 @@ export function Simulator() {
   );
 
   const makeRowKeyForTable = useCallback(
-    (table: Table | undefined, row: Record<string, unknown>, rowIndex: number): string => {
+    (table: Table | undefined, row: SampleRow, rowIndex: number): string => {
       const keyColumnId = getTableKeyColumnId(table);
       const keyValue = keyColumnId ? row[keyColumnId] : undefined;
       const keyString = String(keyValue ?? '').trim();
@@ -158,7 +158,7 @@ export function Simulator() {
     return selectedTable?.columns.find((c) => c.isKey)?.id ?? selectedTable?.columns[0]?.id;
   }, [selectedTable]);
 
-  const makeSelectedRowKey = (row: Record<string, unknown>, rowIndex: number): string => {
+  const makeSelectedRowKey = (row: SampleRow, rowIndex: number): string => {
     const keyValue = selectedTableKeyColumnId ? row[selectedTableKeyColumnId] : undefined;
     const keyString = String(keyValue ?? '').trim();
     return keyString ? `${selectedTableKeyColumnId}:${keyString}` : `row:${rowIndex}`;
@@ -257,7 +257,7 @@ export function Simulator() {
 
   // 関連行選択ハンドラー
   const handleSelectRelatedRow = useCallback(
-    (tableId: string, row: Record<string, unknown>, rowIndex: number) => {
+    (tableId: string, row: SampleRow, rowIndex: number) => {
       if (tableId === selectedTable?.id) {
         setSelectedRow(row);
         setSelectedRowIndex(rowIndex);
@@ -274,6 +274,7 @@ export function Simulator() {
 
   // 詳細パネルのアクションハンドラー
   const handleEdit = useCallback(() => {
+    if (!selectedRow) return;
     setIsEditing(true);
     setDraftRow({ ...selectedRow });
   }, [selectedRow]);
@@ -286,10 +287,10 @@ export function Simulator() {
     const appFormulaColumnIds = new Set(
       selectedTable.columns.filter((c) => getAppFormulaString(c).length > 0).map((c) => c.id)
     );
-    const sanitizedDraft: Record<string, unknown> = {};
+    const sanitizedDraft: SampleRow = {};
     for (const [k, v] of Object.entries(draftRow)) {
       if (appFormulaColumnIds.has(k)) continue;
-      sanitizedDraft[k] = v;
+      sanitizedDraft[k] = v as SampleRow[string];
     }
 
     updateSampleRow(selectedTable.id, selectedRowIndex, sanitizedDraft);
@@ -324,7 +325,7 @@ export function Simulator() {
   }, []);
 
   const handleDraftChange = useCallback(
-    (updater: (prev: Record<string, unknown> | null) => Record<string, unknown>) => {
+    (updater: (prev: SampleRow | null) => SampleRow) => {
       setDraftRow(updater);
     },
     []

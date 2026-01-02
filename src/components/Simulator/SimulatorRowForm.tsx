@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import type { Column, Table } from '../../types';
+import type { Column, SampleDataByTableId, SampleRow, SampleRowValue, Table } from '../../types';
 import { Select } from '../common/Select';
 import { getRowLabel, getRefDisplayLabel } from './recordLabel';
 import { getAppFormulaString } from '../../lib/appsheet/expression';
@@ -8,12 +8,12 @@ import { formatValue } from '../../lib';
 interface SimulatorRowFormProps {
   column: Column;
   tables: Table[];
-  sampleDataByTableId: Record<string, Record<string, unknown>[]>;
-  selectedRow: Record<string, unknown>;
-  draftRow: Record<string, unknown> | null;
+  sampleDataByTableId: SampleDataByTableId;
+  selectedRow: SampleRow;
+  draftRow: SampleRow | null;
   computedDraftRow: Record<string, unknown> | null;
   computedSelectedRow: Record<string, unknown> | null;
-  onDraftChange: (updater: (prev: Record<string, unknown> | null) => Record<string, unknown>) => void;
+  onDraftChange: (updater: (prev: SampleRow | null) => SampleRow) => void;
 }
 
 function getInputType(column: Column): string {
@@ -111,7 +111,7 @@ export function SimulatorRowForm({
           type="checkbox"
           checked={checked}
           onChange={(e) => {
-            const nextValue: unknown = e.target.checked ? 'Yes' : 'No';
+            const nextValue: SampleRowValue = e.target.checked ? 'Yes' : 'No';
             onDraftChange((prev) => ({
               ...(prev ?? { ...selectedRow }),
               [column.id]: nextValue,
@@ -134,7 +134,7 @@ export function SimulatorRowForm({
         title={column.name}
         value={String(currentValue ?? '')}
         onChange={(e) => {
-          const nextValue: unknown = e.target.value;
+          const nextValue: SampleRowValue = e.target.value;
           onDraftChange((prev) => ({
             ...(prev ?? { ...selectedRow }),
             [column.id]: nextValue,
@@ -167,7 +167,7 @@ export function SimulatorRowForm({
                     const next = new Set(selected);
                     if (e.target.checked) next.add(opt);
                     else next.delete(opt);
-                    const nextValue: unknown = formatEnumList(next);
+                    const nextValue: SampleRowValue = formatEnumList(next);
                     onDraftChange((prev) => ({
                       ...(prev ?? { ...selectedRow }),
                       [column.id]: nextValue,
@@ -212,7 +212,7 @@ export function SimulatorRowForm({
         title={column.name}
         value={String(currentValue ?? '')}
         onChange={(e) => {
-          const nextValue: unknown = e.target.value;
+          const nextValue: SampleRowValue = e.target.value;
           onDraftChange((prev) => ({
             ...(prev ?? { ...selectedRow }),
             [column.id]: nextValue,
@@ -239,7 +239,7 @@ export function SimulatorRowForm({
       title={column.name}
       value={String(currentValue ?? '')}
       onChange={(e) => {
-        const nextValue: unknown = e.target.value;
+        const nextValue: SampleRowValue = e.target.value;
         onDraftChange((prev) => ({
           ...(prev ?? { ...selectedRow }),
           [column.id]: nextValue,

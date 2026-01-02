@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '../common';
 import { TABLE_BG_COLOR_CLASSES } from '../../lib/constants';
 import { formatValue } from '../../lib';
-import type { Column, Table } from '../../types';
+import type { Column, SampleDataByTableId, SampleRow, Table } from '../../types';
 import { getRefDisplayLabel, getRowLabel } from './recordLabel';
 import { SimulatorRowForm } from './SimulatorRowForm';
 import { SimulatorRelatedRecords, type RelatedSection } from './SimulatorRelatedRecords';
@@ -10,21 +10,21 @@ import { SimulatorRelatedRecords, type RelatedSection } from './SimulatorRelated
 interface SimulatorDetailPanelProps {
   table: Table;
   tables: Table[];
-  sampleDataByTableId: Record<string, Record<string, unknown>[]>;
-  selectedRow: Record<string, unknown>;
+  sampleDataByTableId: SampleDataByTableId;
+  selectedRow: SampleRow;
   computedSelectedRow: Record<string, unknown> | null;
   computedDraftRow: Record<string, unknown> | null;
   isEditing: boolean;
-  draftRow: Record<string, unknown> | null;
+  draftRow: SampleRow | null;
   relatedSections: RelatedSection[];
   onEdit: () => void;
   onSave: () => void;
   onCancel: () => void;
   onDelete: () => void;
   onClose: () => void;
-  onDraftChange: (updater: (prev: Record<string, unknown> | null) => Record<string, unknown>) => void;
+  onDraftChange: (updater: (prev: SampleRow | null) => SampleRow) => void;
   onAddRelatedRow: (section: RelatedSection) => void;
-  onSelectRelatedRow: (tableId: string, row: Record<string, unknown>, rowIndex: number) => void;
+  onSelectRelatedRow: (tableId: string, row: SampleRow, rowIndex: number) => void;
 }
 
 export function SimulatorDetailPanel({

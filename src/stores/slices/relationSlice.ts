@@ -10,6 +10,18 @@ export const createRelationSlice: SliceCreator<RelationSlice> = (set, get) => ({
   relations: [],
 
   addRelation: (relation) => {
+    const existing = get().relations.find(
+      (r) =>
+        r.sourceTableId === relation.sourceTableId &&
+        r.sourceColumnId === relation.sourceColumnId &&
+        r.targetTableId === relation.targetTableId &&
+        r.targetColumnId === relation.targetColumnId
+    );
+
+    if (existing) {
+      return existing.id;
+    }
+
     const id = uuidv4();
     set((state) => {
       state.relations.push({ ...relation, id });

@@ -1,11 +1,10 @@
-import { useCallback, useRef, useEffect, useMemo } from 'react';
+import { useCallback, useRef, useEffect, useMemo, useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
   MiniMap,
   useNodesState,
   useEdgesState,
-  addEdge,
   applyNodeChanges,
   applyEdgeChanges,
   ReactFlowProvider,
@@ -25,7 +24,21 @@ import { useTranslation } from 'react-i18next';
 
 function EREditorInner() {
   const { t } = useTranslation();
-  const { tables, relations, memos, moveTable, moveMemo, addMemo, addRelation, addColumn, updateColumn, selectTable, selectedTableId } = useERStore();
+  const {
+    tables,
+    relations,
+    memos,
+    moveTable,
+    moveMemo,
+    addMemo,
+    addRelation,
+    addColumn,
+    updateColumn,
+    updateRelation,
+    deleteRelation,
+    selectTable,
+    selectedTableId,
+  } = useERStore();
   const {
     isRelationHighlightEnabled,
     toggleRelationHighlight,
@@ -37,6 +50,236 @@ function EREditorInner() {
   } = useUIStore();
   const zoom = useReactFlowStore((state) => state.transform[2]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+
+  const lastPointerPosRef = useRef<{ x: number; y: number } | null>(null);
+  const connectFlashTimerRef = useRef<number | null>(null);
+  const [connectFlashPos, setConnectFlashPos] = useState<{ x: number; y: number } | null>(null);
+
+  const activeEdgeUpdateIdRef = useRef<string | null>(null);
+  const edgeUpdateSuccessfulRef = useRef(true);
+
+  const [isConnectDragging, setIsConnectDragging] = useState(false);
+  const [isConnectDragNotAllowed, setIsConnectDragNotAllowed] = useState(false);
+  const isConnectDragNotAllowedRef = useRef(false);
+  const pointerRafRef = useRef<number | null>(null);
+  const [connectDragPos, setConnectDragPos] = useState<{ x: number; y: number } | null>(null);
+  const [isEdgeUpdating, setIsEdgeUpdating] = useState(false);
+  const isEdgeUpdatingRef = useRef(false);
+  const [edgeUpdatePos, setEdgeUpdatePos] = useState<{ x: number; y: number } | null>(null);
+  const [isEdgeUpdaterHovering, setIsEdgeUpdaterHovering] = useState(false);
+  const isEdgeUpdaterHoveringRef = useRef(false);
+  const [edgeUpdaterHoverPos, setEdgeUpdaterHoverPos] = useState<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    isConnectDragNotAllowedRef.current = isConnectDragNotAllowed;
+  }, [isConnectDragNotAllowed]);
+
+  useEffect(() => {
+    isEdgeUpdatingRef.current = isEdgeUpdating;
+  }, [isEdgeUpdating]);
+
+  useEffect(() => {
+    isEdgeUpdaterHoveringRef.current = isEdgeUpdaterHovering;
+  }, [isEdgeUpdaterHovering]);
+
+  const flashConnectNotAllowed = useCallback(() => {
+    const pos = lastPointerPosRef.current;
+    if (!pos) return;
+
+    setConnectFlashPos({ x: pos.x, y: pos.y });
+
+    if (connectFlashTimerRef.current !== null) {
+      window.clearTimeout(connectFlashTimerRef.current);
+    }
+    connectFlashTimerRef.current = window.setTimeout(() => {
+      setConnectFlashPos(null);
+      connectFlashTimerRef.current = null;
+    }, 800);
+  }, []);
+
+  const isValidConnection = useCallback(
+    (connection: Connection) => {
+      if (!connection.source || !connection.target || !connection.sourceHandle || !connection.targetHandle) {
+        setIsConnectDragNotAllowed(false);
+        return false;
+      }
+
+      // ハンドル付け替えは独自実装で処理する（ReactFlowの接続開始に依存しない）
+
+      const sourceHandleParts = connection.sourceHandle.split('__');
+      const sourceColumnId = sourceHandleParts[0];
+      const sourceTable = tables.find((t) => t.id === connection.source);
+      const sourceColumn = sourceTable?.columns.find((c) => c.id === sourceColumnId);
+      if (!sourceTable || !sourceColumn || !sourceColumn.isKey) {
+        setIsConnectDragNotAllowed(true);
+        return false;
+      }
+
+      const isAddColumnTarget = connection.targetHandle.endsWith('__addColumn');
+      if (isAddColumnTarget) {
+        setIsConnectDragNotAllowed(false);
+        return true;
+      }
+
+      const targetColumnId = connection.targetHandle;
+
+      const ignoreRelationId = activeEdgeUpdateIdRef.current;
+
+      // 既に他テーブルから参照されているカラムへの「上書き」を禁止
+      const hasIncomingRelationToTargetColumn = relations.some(
+        (r) =>
+          r.id !== ignoreRelationId && r.targetTableId === connection.target && r.targetColumnId === targetColumnId
+      );
+      if (hasIncomingRelationToTargetColumn) {
+        setIsConnectDragNotAllowed(true);
+        return false;
+      }
+
+      const isDuplicate = relations.some(
+        (r) =>
+          r.id !== ignoreRelationId &&
+          r.sourceTableId === connection.source &&
+          r.sourceColumnId === sourceColumnId &&
+          r.targetTableId === connection.target &&
+          r.targetColumnId === targetColumnId
+      );
+      setIsConnectDragNotAllowed(isDuplicate);
+      return !isDuplicate;
+    },
+    [relations, tables]
+  );
+
+  const detachRelation = useCallback(
+    (relationId: string) => {
+      const relation = relations.find((r) => r.id === relationId);
+      if (!relation) {
+        deleteRelation(relationId);
+        return;
+      }
+
+      const targetTable = tables.find((t) => t.id === relation.targetTableId);
+      const targetColumn = targetTable?.columns.find((c) => c.id === relation.targetColumnId);
+
+      // 線=外部キー(Ref)とみなして、Refのときは解除する
+      const isRefWithSameTarget =
+        targetColumn?.type === 'Ref' &&
+        targetColumn.constraints.refTableId === relation.sourceTableId &&
+        targetColumn.constraints.refColumnId === relation.sourceColumnId;
+
+      // 参照制約が何らかの理由でズレていても、当該カラムに incoming relation が無ければ
+      // 「線を外した=Ref解除」とみなして確実にリセットする。
+      const hasOtherIncomingRelationToTargetColumn = relations.some(
+        (r) => r.id !== relationId && r.targetTableId === relation.targetTableId && r.targetColumnId === relation.targetColumnId
+      );
+
+      const shouldResetTargetColumnRef =
+        !!targetColumn && targetColumn.type === 'Ref' && (isRefWithSameTarget || !hasOtherIncomingRelationToTargetColumn);
+
+      if (targetColumn && shouldResetTargetColumnRef) {
+        updateColumn(relation.targetTableId, relation.targetColumnId, {
+          type: 'Text',
+          constraints: {
+            ...targetColumn.constraints,
+            refTableId: undefined,
+            refColumnId: undefined,
+          },
+        });
+        // updateColumn側でtargetColumnIdを参照するrelationsを掃除するため、ここではdeleteRelationしない。
+        return;
+      }
+
+      deleteRelation(relationId);
+    },
+    [deleteRelation, relations, tables, updateColumn]
+  );
+
+  const retargetRelationFromEdgeUpdate = useCallback(
+    (relationId: string, next: Connection) => {
+      const relation = relations.find((r) => r.id === relationId);
+      if (!relation) return;
+      if (!next.source || !next.target || !next.sourceHandle || !next.targetHandle) return;
+
+      const prevSourceTableId = relation.sourceTableId;
+      const prevSourceColumnId = relation.sourceColumnId;
+      const prevTargetTableId = relation.targetTableId;
+      const prevTargetColumnId = relation.targetColumnId;
+
+      const sourceColumnId = next.sourceHandle.split('__')[0];
+
+      const sourceTable = tables.find((t) => t.id === next.source);
+      const sourceColumn = sourceTable?.columns.find((c) => c.id === sourceColumnId);
+      if (!sourceTable || !sourceColumn || !sourceColumn.isKey) return;
+
+      const isAddColumnTarget = next.targetHandle.endsWith('__addColumn');
+      let targetColumnId = next.targetHandle;
+
+      if (isAddColumnTarget) {
+        const newColumnId = addColumn(next.target, {
+          name: sourceColumn.name,
+          type: 'Ref',
+          isKey: false,
+          isLabel: false,
+          constraints: {
+            refTableId: next.source,
+            refColumnId: sourceColumnId,
+          },
+        });
+        if (!newColumnId) return;
+        targetColumnId = newColumnId;
+      } else {
+        // 既に参照されているカラムへ上書きする操作は禁止（自分自身のリレーションは除外）
+        const hasIncomingRelationToTargetColumn = relations.some(
+          (r) => r.id !== relationId && r.targetTableId === next.target && r.targetColumnId === targetColumnId
+        );
+        if (hasIncomingRelationToTargetColumn) return;
+
+        updateColumn(next.target, targetColumnId, {
+          type: 'Ref',
+          constraints: {
+            refTableId: next.source,
+            refColumnId: sourceColumnId,
+          },
+        });
+      }
+
+      updateRelation(relationId, {
+        sourceTableId: next.source,
+        sourceColumnId,
+        targetTableId: next.target,
+        targetColumnId,
+      });
+
+      // 旧ターゲット側のRefを解除（新ターゲットと同一なら何もしない）
+      // ※ updateColumn(type:Text) は targetColumnId に紐づく relations を自動掃除するため、
+      //    先に updateRelation で付け替え完了させてから実行する。
+      // ※ 上の updateColumn/updateRelation 呼び出し後は tables/relations がクロージャで古い値を
+      //    参照している可能性があるため、useERStore.getState() で最新の状態を取得する。
+      if (prevTargetTableId !== next.target || prevTargetColumnId !== targetColumnId) {
+        const latestState = useERStore.getState();
+        const latestTables = latestState.tables;
+        const latestRelations = latestState.relations;
+        const oldTargetTable = latestTables.find((t) => t.id === prevTargetTableId);
+        const oldTargetColumn = oldTargetTable?.columns.find((c) => c.id === prevTargetColumnId);
+
+        // 旧ターゲットカラムが Ref 型で、かつ他のリレーションから参照されていなければ Text にリセット
+        const hasOtherIncomingRelation = latestRelations.some(
+          (r) => r.id !== relationId && r.targetTableId === prevTargetTableId && r.targetColumnId === prevTargetColumnId
+        );
+
+        if (oldTargetColumn && oldTargetColumn.type === 'Ref' && !hasOtherIncomingRelation) {
+          updateColumn(prevTargetTableId, prevTargetColumnId, {
+            type: 'Text',
+            constraints: {
+              ...oldTargetColumn.constraints,
+              refTableId: undefined,
+              refColumnId: undefined,
+            },
+          });
+        }
+      }
+    },
+    [addColumn, relations, tables, updateColumn, updateRelation]
+  );
 
   // Keep these objects referentially stable to avoid React Flow warning #002.
   const nodeTypes = useMemo(
@@ -197,6 +440,7 @@ function EREditorInner() {
       sourceHandle: `${relation.sourceColumnId}__source`,
       targetHandle: relation.targetColumnId,
       type: 'relationEdge',
+      updatable: true,
       animated: true,
       style: edgeStyle,
       data: {
@@ -248,10 +492,50 @@ function EREditorInner() {
 
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
+      const removed = changes.filter((c) => c.type === 'remove');
+      if (removed.length > 0) {
+        for (const change of removed) {
+          detachRelation(change.id);
+        }
+      }
       setEdges((eds) => applyEdgeChanges(changes, eds));
     },
-    [setEdges]
+    [detachRelation, setEdges]
   );
+
+  const onEdgeUpdateStart = useCallback((_: unknown, edge: Edge) => {
+    activeEdgeUpdateIdRef.current = edge.id;
+    edgeUpdateSuccessfulRef.current = false;
+    setIsEdgeUpdating(true);
+    const pos = lastPointerPosRef.current;
+    setEdgeUpdatePos(pos ? { x: pos.x, y: pos.y } : null);
+  }, []);
+
+  const onEdgeUpdate = useCallback(
+    (oldEdge: Edge, newConnection: Connection) => {
+      edgeUpdateSuccessfulRef.current = true;
+      retargetRelationFromEdgeUpdate(oldEdge.id, newConnection);
+      // Note: updateEdge を呼ばない。ストアの relations が更新されると、
+      // useEffect が setEdges を呼んでエッジが正しく同期される。
+      // updateEdge を呼ぶと React Flow が新しい ID を生成してしまい、
+      // ストアのリレーションIDとの整合性が失われる。
+    },
+    [retargetRelationFromEdgeUpdate]
+  );
+
+  const onEdgeUpdateEnd = useCallback((event: MouseEvent | TouchEvent, edge: Edge) => {
+    if (!edgeUpdateSuccessfulRef.current) {
+      const targetEl = (event as MouseEvent).target as HTMLElement | null;
+      const droppedOnHandle = targetEl?.closest?.('.react-flow__handle') != null;
+      if (!droppedOnHandle) {
+        detachRelation(edge.id);
+      }
+    }
+    activeEdgeUpdateIdRef.current = null;
+    edgeUpdateSuccessfulRef.current = true;
+    setIsEdgeUpdating(false);
+    setEdgeUpdatePos(null);
+  }, [detachRelation]);
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -269,6 +553,7 @@ function EREditorInner() {
         
         if (!sourceTable || !sourceColumn || !sourceColumn.isKey) {
           // キーカラムからの接続のみ許可
+          flashConnectNotAllowed();
           return;
         }
 
@@ -290,6 +575,15 @@ function EREditorInner() {
           if (!newColumnId) return;
           targetColumnId = newColumnId;
         } else {
+          // 既に参照されているカラムへ上書きする操作は禁止
+          const hasIncomingRelationToTargetColumn = relations.some(
+            (r) => r.targetTableId === connection.target && r.targetColumnId === targetColumnId
+          );
+          if (hasIncomingRelationToTargetColumn) {
+            flashConnectNotAllowed();
+            return;
+          }
+
           // 既存のカラムに接続された場合：カラムの型をRefに変更
           updateColumn(connection.target, targetColumnId, {
             type: 'Ref',
@@ -299,6 +593,8 @@ function EREditorInner() {
             },
           });
         }
+
+        // 重複チェックは isValidConnection と store 側で実施
         
         // リレーションを追加
         addRelation({
@@ -317,24 +613,86 @@ function EREditorInner() {
                   : '',
         });
       }
-      setEdges((eds) => addEdge(connection, eds));
     },
-    [addRelation, addColumn, settings.relationLabelInitialCustomText, settings.relationLabelInitialMode, updateColumn, setEdges, tables]
+    [addRelation, addColumn, flashConnectNotAllowed, relations, settings.relationLabelInitialCustomText, settings.relationLabelInitialMode, updateColumn, tables]
   );
+
+  const onConnectStart = useCallback(() => {
+    setIsConnectDragging(true);
+  }, []);
+
+  const onConnectEnd = useCallback(() => {
+    setIsConnectDragging(false);
+    setIsConnectDragNotAllowed(false);
+    setConnectDragPos(null);
+  }, []);
 
   const onPaneClick = useCallback(() => {
     selectTable(null);
   }, [selectTable]);
 
   return (
-    <div ref={reactFlowWrapper} className="w-full h-full relative">
+    <div
+      ref={reactFlowWrapper}
+      className="w-full h-full relative"
+      onMouseMove={(e) => {
+        const rect = reactFlowWrapper.current?.getBoundingClientRect();
+        if (!rect) return;
+        lastPointerPosRef.current = {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        };
+
+        // Detect hover over edge updater handles (before drag starts)
+        // Note: edge updater elements are created by React Flow inside an SVG.
+        const targetEl = e.target as Element | null;
+        const hoveredUpdater =
+          targetEl?.closest?.('.react-flow__edgeupdater-source, .react-flow__edgeupdater-target') != null;
+        if (!isEdgeUpdatingRef.current) {
+          if (hoveredUpdater !== isEdgeUpdaterHoveringRef.current) {
+            setIsEdgeUpdaterHovering(hoveredUpdater);
+            if (!hoveredUpdater) {
+              setEdgeUpdaterHoverPos(null);
+            }
+          }
+        }
+
+        const needsOverlayUpdate =
+          (isConnectDragging && isConnectDragNotAllowedRef.current) ||
+          isEdgeUpdatingRef.current ||
+          (!isEdgeUpdatingRef.current && hoveredUpdater);
+        if (!needsOverlayUpdate) return;
+        if (pointerRafRef.current !== null) return;
+        pointerRafRef.current = window.requestAnimationFrame(() => {
+          pointerRafRef.current = null;
+          const pos = lastPointerPosRef.current;
+          if (!pos) return;
+
+          if (isConnectDragging && isConnectDragNotAllowedRef.current) {
+            setConnectDragPos({ x: pos.x, y: pos.y });
+          }
+          if (isEdgeUpdatingRef.current) {
+            setEdgeUpdatePos({ x: pos.x, y: pos.y });
+          }
+          if (!isEdgeUpdatingRef.current && hoveredUpdater) {
+            setEdgeUpdaterHoverPos({ x: pos.x, y: pos.y });
+          }
+        });
+      }}
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onEdgeUpdate={onEdgeUpdate}
+        onEdgeUpdateStart={onEdgeUpdateStart}
+        onEdgeUpdateEnd={onEdgeUpdateEnd}
         onNodeDragStop={onNodeDragStop}
         onConnect={onConnect}
+        onConnectStart={onConnectStart}
+        onConnectEnd={onConnectEnd}
+        isValidConnection={isValidConnection}
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
@@ -342,6 +700,8 @@ function EREditorInner() {
         snapToGrid
         snapGrid={[15, 15]}
         deleteKeyCode="Delete"
+        // Increase edge-updater hit radius (visual is hidden via CSS).
+        edgeUpdaterRadius={10}
         style={{ backgroundColor: 'var(--background)' }}
       >
         {isGridVisible && (
@@ -363,6 +723,74 @@ function EREditorInner() {
           }}
         />
       </ReactFlow>
+
+      {isConnectDragging && isConnectDragNotAllowed && connectDragPos && (
+        <div
+          className="pointer-events-none absolute z-50 flex items-center justify-center rounded-full border text-xs"
+          style={{
+            left: connectDragPos.x + 10,
+            top: connectDragPos.y + 10,
+            width: 24,
+            height: 24,
+            backgroundColor: 'var(--card)',
+            borderColor: 'var(--border)',
+            color: 'var(--text-secondary)',
+          }}
+          aria-hidden="true"
+        >
+          ×
+        </div>
+      )}
+
+      {connectFlashPos && (
+        <div
+          className="pointer-events-none absolute z-50 flex items-center justify-center rounded-full border text-xs"
+          style={{
+            left: connectFlashPos.x + 10,
+            top: connectFlashPos.y + 10,
+            width: 24,
+            height: 24,
+            backgroundColor: 'var(--card)',
+            borderColor: 'var(--border)',
+            color: 'var(--text-secondary)',
+          }}
+          aria-hidden="true"
+        >
+          ×
+        </div>
+      )}
+
+      {isEdgeUpdating && edgeUpdatePos && (
+        <div
+          className="pointer-events-none absolute z-50 select-none rounded-md border px-2 py-1 text-xs shadow-sm"
+          style={{
+            left: edgeUpdatePos.x + 12,
+            top: edgeUpdatePos.y + 12,
+            backgroundColor: 'var(--card)',
+            borderColor: 'var(--border)',
+            color: 'var(--text-secondary)',
+          }}
+          aria-hidden="true"
+        >
+          {t('editor.edgeRetargetHint')}
+        </div>
+      )}
+
+      {!isEdgeUpdating && isEdgeUpdaterHovering && edgeUpdaterHoverPos && (
+        <div
+          className="pointer-events-none absolute z-50 select-none rounded-md border px-2 py-1 text-xs shadow-sm"
+          style={{
+            left: edgeUpdaterHoverPos.x + 12,
+            top: edgeUpdaterHoverPos.y + 12,
+            backgroundColor: 'var(--card)',
+            borderColor: 'var(--border)',
+            color: 'var(--text-secondary)',
+          }}
+          aria-hidden="true"
+        >
+          {t('editor.edgeRetargetHint')}
+        </div>
+      )}
 
       <div className="absolute left-16 bottom-3 z-10 flex flex-col gap-2">
         <div 

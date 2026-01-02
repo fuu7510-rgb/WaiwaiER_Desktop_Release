@@ -1,22 +1,22 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '../common';
 import { formatValue } from '../../lib';
-import type { Column, Table } from '../../types';
+import type { Column, SampleDataByTableId, SampleRow, Table } from '../../types';
 import { getRefDisplayLabel } from './recordLabel';
 import { computeRowWithAppFormulas } from '../../lib/appsheet/expression';
 
 export interface RelatedSection {
   childTable: Table;
   refColumn: Column;
-  rows: Array<{ row: Record<string, unknown>; rowIndex: number }>;
+  rows: Array<{ row: SampleRow; rowIndex: number }>;
 }
 
 interface SimulatorRelatedRecordsProps {
   tables: Table[];
-  sampleDataByTableId: Record<string, Record<string, unknown>[]>;
+  sampleDataByTableId: SampleDataByTableId;
   relatedSections: RelatedSection[];
   onAddRelatedRow: (section: RelatedSection) => void;
-  onSelectRelatedRow: (tableId: string, row: Record<string, unknown>, rowIndex: number) => void;
+  onSelectRelatedRow: (tableId: string, row: SampleRow, rowIndex: number) => void;
 }
 
 export function SimulatorRelatedRecords({
