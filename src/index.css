@@ -277,13 +277,14 @@ html[data-theme="dark"] .settings-collapsible-icon {
 .react-flow__edgeupdater-source,
 .react-flow__edgeupdater-target {
   pointer-events: all;
-  fill: var(--primary);
-  stroke: var(--card);
+  /* Keep updater functional but visually hidden */
+  fill: transparent;
+  stroke: transparent;
   stroke-width: 1.5;
-  /* Match ER handle size (w-3/h-3 = 12px diameter) */
   transform-box: fill-box;
   transform-origin: center;
-  transform: scale(0.6);
+  /* Don't scale down: keep full hit area from edgeUpdaterRadius */
+  transform: none;
 }
 
 /* Ensure full shape (no half-circle clipping) */

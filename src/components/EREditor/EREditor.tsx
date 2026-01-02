@@ -64,10 +64,24 @@ function EREditorInner() {
   const isConnectDragNotAllowedRef = useRef(false);
   const pointerRafRef = useRef<number | null>(null);
   const [connectDragPos, setConnectDragPos] = useState<{ x: number; y: number } | null>(null);
+  const [isEdgeUpdating, setIsEdgeUpdating] = useState(false);
+  const isEdgeUpdatingRef = useRef(false);
+  const [edgeUpdatePos, setEdgeUpdatePos] = useState<{ x: number; y: number } | null>(null);
+  const [isEdgeUpdaterHovering, setIsEdgeUpdaterHovering] = useState(false);
+  const isEdgeUpdaterHoveringRef = useRef(false);
+  const [edgeUpdaterHoverPos, setEdgeUpdaterHoverPos] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     isConnectDragNotAllowedRef.current = isConnectDragNotAllowed;
   }, [isConnectDragNotAllowed]);
+
+  useEffect(() => {
+    isEdgeUpdatingRef.current = isEdgeUpdating;
+  }, [isEdgeUpdating]);
+
+  useEffect(() => {
+    isEdgeUpdaterHoveringRef.current = isEdgeUpdaterHovering;
+  }, [isEdgeUpdaterHovering]);
 
   const flashConnectNotAllowed = useCallback(() => {
     const pos = lastPointerPosRef.current;
@@ -478,6 +492,9 @@ function EREditorInner() {
   const onEdgeUpdateStart = useCallback((_: unknown, edge: Edge) => {
     activeEdgeUpdateIdRef.current = edge.id;
     edgeUpdateSuccessfulRef.current = false;
+    setIsEdgeUpdating(true);
+    const pos = lastPointerPosRef.current;
+    setEdgeUpdatePos(pos ? { x: pos.x, y: pos.y } : null);
   }, []);
 
   const onEdgeUpdate = useCallback(
@@ -495,6 +512,8 @@ function EREditorInner() {
     }
     activeEdgeUpdateIdRef.current = null;
     edgeUpdateSuccessfulRef.current = true;
+    setIsEdgeUpdating(false);
+    setEdgeUpdatePos(null);
   }, [detachRelation]);
 
   const onConnect = useCallback(
@@ -603,13 +622,40 @@ function EREditorInner() {
           y: e.clientY - rect.top,
         };
 
-        if (!isConnectDragging || !isConnectDragNotAllowedRef.current) return;
+        // Detect hover over edge updater handles (before drag starts)
+        // Note: edge updater elements are created by React Flow inside an SVG.
+        const targetEl = e.target as Element | null;
+        const hoveredUpdater =
+          targetEl?.closest?.('.react-flow__edgeupdater-source, .react-flow__edgeupdater-target') != null;
+        if (!isEdgeUpdatingRef.current) {
+          if (hoveredUpdater !== isEdgeUpdaterHoveringRef.current) {
+            setIsEdgeUpdaterHovering(hoveredUpdater);
+            if (!hoveredUpdater) {
+              setEdgeUpdaterHoverPos(null);
+            }
+          }
+        }
+
+        const needsOverlayUpdate =
+          (isConnectDragging && isConnectDragNotAllowedRef.current) ||
+          isEdgeUpdatingRef.current ||
+          (!isEdgeUpdatingRef.current && hoveredUpdater);
+        if (!needsOverlayUpdate) return;
         if (pointerRafRef.current !== null) return;
         pointerRafRef.current = window.requestAnimationFrame(() => {
           pointerRafRef.current = null;
           const pos = lastPointerPosRef.current;
           if (!pos) return;
-          setConnectDragPos({ x: pos.x, y: pos.y });
+
+          if (isConnectDragging && isConnectDragNotAllowedRef.current) {
+            setConnectDragPos({ x: pos.x, y: pos.y });
+          }
+          if (isEdgeUpdatingRef.current) {
+            setEdgeUpdatePos({ x: pos.x, y: pos.y });
+          }
+          if (!isEdgeUpdatingRef.current && hoveredUpdater) {
+            setEdgeUpdaterHoverPos({ x: pos.x, y: pos.y });
+          }
         });
       }}
     >
@@ -633,8 +679,8 @@ function EREditorInner() {
         snapToGrid
         snapGrid={[15, 15]}
         deleteKeyCode="Delete"
-        // Keep updater circle size unchanged; adjust its visual position via CSS instead.
-        edgeUpdaterRadius={4}
+        // Increase edge-updater hit radius (visual is hidden via CSS).
+        edgeUpdaterRadius={10}
         style={{ backgroundColor: 'var(--background)' }}
       >
         {isGridVisible && (
@@ -690,6 +736,38 @@ function EREditorInner() {
           aria-hidden="true"
         >
           ×
+        </div>
+      )}
+
+      {isEdgeUpdating && edgeUpdatePos && (
+        <div
+          className="pointer-events-none absolute z-50 select-none rounded-md border px-2 py-1 text-xs shadow-sm"
+          style={{
+            left: edgeUpdatePos.x + 12,
+            top: edgeUpdatePos.y + 12,
+            backgroundColor: 'var(--card)',
+            borderColor: 'var(--border)',
+            color: 'var(--text-secondary)',
+          }}
+          aria-hidden="true"
+        >
+          {t('editor.edgeRetargetHint')}
+        </div>
+      )}
+
+      {!isEdgeUpdating && isEdgeUpdaterHovering && edgeUpdaterHoverPos && (
+        <div
+          className="pointer-events-none absolute z-50 select-none rounded-md border px-2 py-1 text-xs shadow-sm"
+          style={{
+            left: edgeUpdaterHoverPos.x + 12,
+            top: edgeUpdaterHoverPos.y + 12,
+            backgroundColor: 'var(--card)',
+            borderColor: 'var(--border)',
+            color: 'var(--text-secondary)',
+          }}
+          aria-hidden="true"
+        >
+          {t('editor.edgeRetargetHint')}
         </div>
       )}
 

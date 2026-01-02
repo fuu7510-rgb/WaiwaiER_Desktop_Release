@@ -133,6 +133,7 @@
     "zoomIn": "Zoom In",
     "zoomOut": "Zoom Out",
     "fitView": "Fit View",
+    "edgeRetargetHint": "Retarget: drop to change",
     "relationHighlight": "Relationship Highlight",
     "enableRelationHighlight": "Turn relationship highlighting ON",
     "disableRelationHighlight": "Turn relationship highlighting OFF",

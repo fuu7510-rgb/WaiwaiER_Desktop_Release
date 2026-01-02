@@ -118,6 +118,7 @@
     "zoomIn": "拡大",
     "zoomOut": "縮小",
     "fitView": "全体を表示",
+    "edgeRetargetHint": "付け替え：ドロップで変更",
     "memo": "メモ",
     "showMemos": "メモを表示",
     "hideMemos": "メモを非表示",
