@@ -198,9 +198,6 @@ function EREditorInner() {
       const relation = relations.find((r) => r.id === relationId);
       if (!relation) return;
       if (!next.source || !next.target || !next.sourceHandle || !next.targetHandle) return;
-
-      const prevSourceTableId = relation.sourceTableId;
-      const prevSourceColumnId = relation.sourceColumnId;
       const prevTargetTableId = relation.targetTableId;
       const prevTargetColumnId = relation.targetColumnId;
 
