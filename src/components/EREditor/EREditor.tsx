@@ -59,9 +59,6 @@ function EREditorInner() {
   const activeEdgeUpdateIdRef = useRef<string | null>(null);
   const edgeUpdateSuccessfulRef = useRef(true);
 
-  const [retargetDrag, setRetargetDrag] = useState<{ tableId: string; columnId: string; startX: number; startY: number } | null>(null);
-  const [retargetMousePos, setRetargetMousePos] = useState<{ x: number; y: number } | null>(null);
-
   const [isConnectDragging, setIsConnectDragging] = useState(false);
   const [isConnectDragNotAllowed, setIsConnectDragNotAllowed] = useState(false);
   const isConnectDragNotAllowedRef = useRef(false);
@@ -78,17 +75,6 @@ function EREditorInner() {
 
     setConnectFlashPos({ x: pos.x, y: pos.y });
 
-    if (connectFlashTimerRef.current !== null) {
-      window.clearTimeout(connectFlashTimerRef.current);
-    }
-    connectFlashTimerRef.current = window.setTimeout(() => {
-      setConnectFlashPos(null);
-      connectFlashTimerRef.current = null;
-    }, 800);
-  }, []);
-
-  const flashNotAllowedAt = useCallback((pos: { x: number; y: number }) => {
-    setConnectFlashPos({ x: pos.x, y: pos.y });
     if (connectFlashTimerRef.current !== null) {
       window.clearTimeout(connectFlashTimerRef.current);
     }
@@ -184,130 +170,6 @@ function EREditorInner() {
     },
     [deleteRelation, relations, tables, updateColumn]
   );
-
-  const detachRelationForTargetColumn = useCallback(
-    (tableId: string, columnId: string) => {
-      const relation = relations.find((r) => r.targetTableId === tableId && r.targetColumnId === columnId);
-      if (!relation) return;
-      detachRelation(relation.id);
-    },
-    [detachRelation, relations]
-  );
-
-  const beginRetargetDrag = useCallback(
-    (args: { tableId: string; columnId: string; clientX: number; clientY: number }) => {
-      const rect = reactFlowWrapper.current?.getBoundingClientRect();
-      if (!rect) return;
-      const x = args.clientX - rect.left;
-      const y = args.clientY - rect.top;
-      setRetargetDrag({ tableId: args.tableId, columnId: args.columnId, startX: x, startY: y });
-      setRetargetMousePos({ x, y });
-    },
-    []
-  );
-
-  // テーブル/カラム位置からドロップ先を計算するヘルパー
-  // テーブルノード領域内でドロップした場合、そのテーブルのキー列を返す
-  const findDropTargetKeyColumn = useCallback(
-    (screenX: number, screenY: number, excludeTableId?: string): { tableId: string; columnId: string } | null => {
-      const rect = reactFlowWrapper.current?.getBoundingClientRect();
-      if (!rect) return null;
-
-      console.log('[findDropTarget] screenPos:', screenX, screenY);
-
-      // 全てのテーブルノードを検索し、マウス位置がノード領域内にあるかチェック
-      for (const table of tables) {
-        // 自分自身のテーブルは除外
-        if (table.id === excludeTableId) continue;
-
-        const nodeEl = document.querySelector(`[data-id="${table.id}"]`) as HTMLElement | null;
-        if (!nodeEl) continue;
-        
-        const nodeRect = nodeEl.getBoundingClientRect();
-        
-        // マウス位置がノード領域内か判定
-        if (
-          screenX >= nodeRect.left &&
-          screenX <= nodeRect.right &&
-          screenY >= nodeRect.top &&
-          screenY <= nodeRect.bottom
-        ) {
-          // このテーブルの最初のキー列を返す
-          const keyColumn = table.columns.find((c) => c.isKey);
-          if (keyColumn) {
-            console.log(`[findDropTarget] HIT! ${table.name}.${keyColumn.name}`);
-            return { tableId: table.id, columnId: keyColumn.id };
-          }
-        }
-      }
-      
-      console.log('[findDropTarget] No table hit');
-      return null;
-    },
-    [tables]
-  );
-
-  useEffect(() => {
-    if (!retargetDrag) return;
-
-    const onPointerMove = (e: PointerEvent) => {
-      const rect = reactFlowWrapper.current?.getBoundingClientRect();
-      if (!rect) return;
-      const pos = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-      setRetargetMousePos(pos);
-    };
-
-    const onPointerUp = (e: PointerEvent) => {
-      const rect = reactFlowWrapper.current?.getBoundingClientRect();
-      if (!rect) {
-        setRetargetDrag(null);
-        setRetargetMousePos(null);
-        return;
-      }
-      const pos = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-
-      // ドロップ先判定: テーブルノード領域内ならそのテーブルのキー列を返す
-      // 自分自身のテーブルは除外
-      const dropTarget = findDropTargetKeyColumn(e.clientX, e.clientY, retargetDrag.tableId);
-      console.log('[Retarget] dropTarget:', dropTarget, 'screenPos:', e.clientX, e.clientY);
-
-      if (dropTarget) {
-        const nextParentTable = tables.find((t) => t.id === dropTarget.tableId);
-        const nextParentColumn = nextParentTable?.columns.find((c) => c.id === dropTarget.columnId);
-        if (!nextParentTable || !nextParentColumn || !nextParentColumn.isKey) {
-          flashNotAllowedAt(pos);
-        } else {
-          const currentTargetTable = tables.find((t) => t.id === retargetDrag.tableId);
-          const currentTargetColumn = currentTargetTable?.columns.find((c) => c.id === retargetDrag.columnId);
-          if (!currentTargetTable || !currentTargetColumn) {
-            flashNotAllowedAt(pos);
-          } else {
-            updateColumn(retargetDrag.tableId, retargetDrag.columnId, {
-              type: 'Ref',
-              constraints: {
-                ...currentTargetColumn.constraints,
-                refTableId: dropTarget.tableId,
-                refColumnId: dropTarget.columnId,
-              },
-            });
-          }
-        }
-      } else {
-        // 何もないところで離したら削除
-        detachRelationForTargetColumn(retargetDrag.tableId, retargetDrag.columnId);
-      }
-
-      setRetargetDrag(null);
-      setRetargetMousePos(null);
-    };
-
-    window.addEventListener('pointermove', onPointerMove, { passive: true });
-    window.addEventListener('pointerup', onPointerUp, { passive: true });
-    return () => {
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-    };
-  }, [detachRelationForTargetColumn, findDropTargetKeyColumn, flashNotAllowedAt, retargetDrag, tables, updateColumn]);
 
   const retargetRelationFromEdgeUpdate = useCallback(
     (relationId: string, next: Connection) => {
@@ -476,7 +338,6 @@ function EREditorInner() {
       position: table.position,
       data: {
         table,
-        onRetargetStart: beginRetargetDrag,
         highlight: {
           isGraphSelected,
           isUpstream,
@@ -486,7 +347,7 @@ function EREditorInner() {
         },
       },
     };
-  }, [beginRetargetDrag, relatedGraph, selectedTableId]);
+  }, [relatedGraph, selectedTableId]);
 
   const memoToNode = useCallback((memo: Memo): Node => {
     return {
@@ -772,7 +633,8 @@ function EREditorInner() {
         snapToGrid
         snapGrid={[15, 15]}
         deleteKeyCode="Delete"
-        edgeUpdaterRadius={6}
+        // Keep updater circle size unchanged; adjust its visual position via CSS instead.
+        edgeUpdaterRadius={4}
         style={{ backgroundColor: 'var(--background)' }}
       >
         {isGridVisible && (
@@ -794,30 +656,6 @@ function EREditorInner() {
           }}
         />
       </ReactFlow>
-
-      {/* 付け替えドラッグ中の仮の線 */}
-      {retargetDrag && retargetMousePos && (
-        <svg
-          className="pointer-events-none absolute inset-0 z-40"
-          style={{ overflow: 'visible' }}
-        >
-          <line
-            x1={retargetDrag.startX}
-            y1={retargetDrag.startY}
-            x2={retargetMousePos.x}
-            y2={retargetMousePos.y}
-            stroke="#6366f1"
-            strokeWidth={2}
-            strokeDasharray="6 3"
-          />
-          <circle
-            cx={retargetMousePos.x}
-            cy={retargetMousePos.y}
-            r={6}
-            fill="#6366f1"
-          />
-        </svg>
-      )}
 
       {isConnectDragging && isConnectDragNotAllowed && connectDragPos && (
         <div

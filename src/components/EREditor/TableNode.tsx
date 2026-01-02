@@ -14,7 +14,6 @@ import { useAppSheetSanitizer } from './ColumnEditorParts/hooks/useAppSheetSanit
 
 interface TableNodeData {
   table: Table;
-  onRetargetStart?: (args: { tableId: string; columnId: string; clientX: number; clientY: number }) => void;
   highlight?: {
     isGraphSelected: boolean;
     isUpstream: boolean;
@@ -68,7 +67,6 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
   const { table } = data;
   const { t } = useTranslation();
   const { selectTable, selectedTableId, addColumn, updateTable } = useERStore();
-  const onRetargetStart = data.onRetargetStart;
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(table.name);
 
@@ -150,7 +148,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
       </div>
 
       {/* Columns */}
-      <TableNodeSortableColumns table={table} onRetargetStart={onRetargetStart} />
+      <TableNodeSortableColumns table={table} />
 
       {/* Add Column Button */}
       <div className="relative">
@@ -178,9 +176,8 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
 
 TableNode.displayName = 'TableNode';
 
-function TableNodeSortableColumns(props: { table: Table; onRetargetStart?: TableNodeData['onRetargetStart'] }) {
+function TableNodeSortableColumns(props: { table: Table }) {
   const { table } = props;
-  const { onRetargetStart } = props;
   const { reorderColumn } = useERStore();
 
   const sensors = useSensors(
@@ -217,7 +214,6 @@ function TableNodeSortableColumns(props: { table: Table; onRetargetStart?: Table
               tableId={table.id}
               isFirst={index === 0}
               isLast={index === table.columns.length - 1}
-              onRetargetStart={onRetargetStart}
             />
           ))}
         </div>
@@ -231,10 +227,9 @@ interface ColumnRowProps {
   tableId: string;
   isFirst: boolean;
   isLast: boolean;
-  onRetargetStart?: TableNodeData['onRetargetStart'];
 }
 
-const ColumnRow = memo(({ column, tableId, isFirst, isLast, onRetargetStart }: ColumnRowProps) => {
+const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) => {
   const { t, i18n } = useTranslation();
   const { selectColumn, selectedColumnId, reorderColumn, updateColumn, deleteColumn, relations } = useERStore();
   const zoom = useReactFlowStore((state) => state.transform[2]) ?? 1;
@@ -245,7 +240,7 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast, onRetargetStart }: C
     return relations.some((r) => r.targetTableId === tableId && r.targetColumnId === column.id);
   }, [column.id, relations, tableId]);
 
-  const showRetargetOverlay = hasIncomingRelation && !!onRetargetStart;
+  const showRetargetOverlay = hasIncomingRelation;
 
   // Use same options as ColumnEditor for consistency
   const { labelEnJa, labelEnJaNoSpace, tEn, tJa } = useColumnEditorLabels(i18n);
@@ -410,19 +405,12 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast, onRetargetStart }: C
             borderRadius: 9999,
             backgroundColor: 'var(--primary)',
             border: '1.5px solid var(--card)',
-            cursor: 'grab',
+            cursor: 'default',
             left: -6,
             top: '50%',
             transform: 'translateY(-50%)',
           }}
-          title={t('table.retargetRelation', 'ドラッグして参照先を付け替え / 何もない所で離すと削除')}
-          onPointerDown={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            // ドラッグ開始時に自分を非表示にしてドロップ判定に影響させない
-            (e.currentTarget as HTMLElement).style.pointerEvents = 'none';
-            onRetargetStart({ tableId, columnId: column.id, clientX: e.clientX, clientY: e.clientY });
-          }}
+          title={t('table.hasIncomingRelation', '他テーブルから参照されています')}
         />
       )}
 
