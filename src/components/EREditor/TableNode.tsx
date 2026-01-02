@@ -8,9 +8,13 @@ import { useTranslation } from 'react-i18next';
 import { useERStore } from '../../stores';
 import type { Table, Column, ColumnType } from '../../types';
 import { TABLE_NODE_STYLE_CLASSES, DEFAULT_TABLE_COLOR } from '../../lib/constants';
+import { useColumnEditorLabels } from './ColumnEditorParts/hooks/useColumnEditorLabels';
+import { useColumnEditorOptions } from './ColumnEditorParts/hooks/useColumnEditorOptions';
+import { useAppSheetSanitizer } from './ColumnEditorParts/hooks/useAppSheetSanitizer';
 
 interface TableNodeData {
   table: Table;
+  onRetargetStart?: (args: { tableId: string; columnId: string; clientX: number; clientY: number }) => void;
   highlight?: {
     isGraphSelected: boolean;
     isUpstream: boolean;
@@ -64,6 +68,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
   const { table } = data;
   const { t } = useTranslation();
   const { selectTable, selectedTableId, addColumn, updateTable } = useERStore();
+  const onRetargetStart = data.onRetargetStart;
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(table.name);
 
@@ -145,7 +150,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
       </div>
 
       {/* Columns */}
-      <TableNodeSortableColumns table={table} />
+      <TableNodeSortableColumns table={table} onRetargetStart={onRetargetStart} />
 
       {/* Add Column Button */}
       <div className="relative">
@@ -153,7 +158,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
           type="target"
           position={Position.Left}
           id={`${table.id}__addColumn`}
-          className="!w-3 !h-3 !bg-green-400 !border-[1.5px] !border-white !-left-1.5"
+          className="!w-3 !h-3 !bg-green-400 !border-[1.5px] !border-white !-left-1.5 !rounded-full"
           title="ここに接続すると新しいカラムを作成"
         />
         <button
@@ -173,8 +178,9 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
 
 TableNode.displayName = 'TableNode';
 
-function TableNodeSortableColumns(props: { table: Table }) {
+function TableNodeSortableColumns(props: { table: Table; onRetargetStart?: TableNodeData['onRetargetStart'] }) {
   const { table } = props;
+  const { onRetargetStart } = props;
   const { reorderColumn } = useERStore();
 
   const sensors = useSensors(
@@ -211,6 +217,7 @@ function TableNodeSortableColumns(props: { table: Table }) {
               tableId={table.id}
               isFirst={index === 0}
               isLast={index === table.columns.length - 1}
+              onRetargetStart={onRetargetStart}
             />
           ))}
         </div>
@@ -224,16 +231,28 @@ interface ColumnRowProps {
   tableId: string;
   isFirst: boolean;
   isLast: boolean;
+  onRetargetStart?: TableNodeData['onRetargetStart'];
 }
 
-const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) => {
-  const { t } = useTranslation();
-  const { selectColumn, selectedColumnId, reorderColumn, updateColumn, deleteColumn } = useERStore();
+const ColumnRow = memo(({ column, tableId, isFirst, isLast, onRetargetStart }: ColumnRowProps) => {
+  const { t, i18n } = useTranslation();
+  const { selectColumn, selectedColumnId, reorderColumn, updateColumn, deleteColumn, relations } = useERStore();
   const zoom = useReactFlowStore((state) => state.transform[2]) ?? 1;
   const isSelected = selectedColumnId === column.id;
   const typeClass = columnTypeClasses[column.type] || 'bg-slate-500';
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({
+  const hasIncomingRelation = useMemo(() => {
+    return relations.some((r) => r.targetTableId === tableId && r.targetColumnId === column.id);
+  }, [column.id, relations, tableId]);
+
+  const showRetargetOverlay = hasIncomingRelation && !!onRetargetStart;
+
+  // Use same options as ColumnEditor for consistency
+  const { labelEnJa, labelEnJaNoSpace, tEn, tJa } = useColumnEditorLabels(i18n);
+  const { typeOptions } = useColumnEditorOptions({ labelEnJa, labelEnJaNoSpace, tEn, tJa });
+  const { sanitizeForType } = useAppSheetSanitizer();
+
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging, isOver } = useSortable({
     id: column.id,
   });
 
@@ -314,28 +333,39 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
     }
   }, [tableId, column.id, column.order, isLast, reorderColumn]);
 
+  const handleToggleKey = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    updateColumn(tableId, column.id, { isKey: !column.isKey });
+  }, [column.id, column.isKey, tableId, updateColumn]);
+
+  const handleToggleLabel = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    updateColumn(tableId, column.id, { isLabel: !column.isLabel });
+  }, [column.id, column.isLabel, tableId, updateColumn]);
+
   const handleDelete = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     deleteColumn(tableId, column.id);
   }, [deleteColumn, tableId, column.id]);
 
+  const dragListeners = isEditingName ? undefined : listeners;
+
   return (
     <div
-      ref={setNodeRef}
-      style={{
-        ...style,
-        backgroundColor: isSelected ? 'var(--section-bg-active)' : undefined,
-      }}
-      className={`
-        relative px-2 py-1 flex items-center gap-1.5 cursor-pointer
-        transition-colors
-        ${isOver ? 'ring-2 ring-indigo-200 ring-inset' : ''}
-        nodrag
-      `}
-      onClick={handleClick}
-      {...attributes}
-      {...listeners}
-    >
+        ref={setNodeRef}
+        style={{
+          ...style,
+          backgroundColor: isSelected ? 'var(--section-bg-active)' : undefined,
+        }}
+        className={`
+          relative px-2 py-1 flex items-center gap-1.5 cursor-pointer
+          transition-colors
+          ${isOver ? 'ring-2 ring-indigo-200 ring-inset' : ''}
+          nodrag
+        `}
+        onClick={handleClick}
+        {...attributes}
+      >
       {/* Delete button (visible when selected) */}
       <button
         type="button"
@@ -361,42 +391,155 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
         type="target"
         position={Position.Left}
         id={column.id}
-        className="!w-3 !h-3 !bg-zinc-300 !border-[1.5px] !border-white !-left-1.5"
+        className={
+          showRetargetOverlay
+            ? '!w-px !h-px !bg-transparent !border-0 !opacity-0 !pointer-events-none !-left-1.5'
+            : '!w-3 !h-3 !bg-zinc-400 !border-[1.5px] !border-white !-left-1.5 !rounded-full'
+        }
         onPointerDown={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       />
 
+      {/* Retarget overlay: 既存リレーションがある列だけ「ハンドルを掴んで付け替え/削除」 */}
+      {showRetargetOverlay && (
+        <div
+          className="absolute z-30"
+          style={{
+            width: 12,
+            height: 12,
+            borderRadius: 9999,
+            backgroundColor: 'var(--primary)',
+            border: '1.5px solid var(--card)',
+            cursor: 'grab',
+            left: -6,
+            top: '50%',
+            transform: 'translateY(-50%)',
+          }}
+          title={t('table.retargetRelation', 'ドラッグして参照先を付け替え / 何もない所で離すと削除')}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            // ドラッグ開始時に自分を非表示にしてドロップ判定に影響させない
+            (e.currentTarget as HTMLElement).style.pointerEvents = 'none';
+            onRetargetStart({ tableId, columnId: column.id, clientX: e.clientX, clientY: e.clientY });
+          }}
+        />
+      )}
+
       {/* Reorder buttons (visible when selected) */}
-      <div 
-        className={`${isSelected ? 'flex' : 'hidden'} flex-col absolute -right-6 top-1/2 -translate-y-1/2 shadow-sm border rounded overflow-hidden z-10`}
-        style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+      <div
+        className={`${isSelected ? 'flex' : 'hidden'} absolute left-full top-1/2 -translate-y-1/2 flex-col items-start gap-1 z-10 ml-1`}
       >
-        <button
-          onClick={handleMoveUp}
-          disabled={isFirst}
-          data-reorder-button="true"
-          onPointerDown={(e) => e.stopPropagation()}
-          className={`p-0.5 ${isFirst ? 'opacity-20 cursor-not-allowed' : ''}`}
-          style={{ color: 'var(--text-muted)' }}
-          title={t('common.moveUp')}
+        {/* Move up/down and Key/Label buttons */}
+        <div
+          className="flex shadow-sm border rounded overflow-hidden"
+          style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
         >
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-          </svg>
-        </button>
-        <button
-          onClick={handleMoveDown}
-          disabled={isLast}
-          data-reorder-button="true"
+          <div className="flex flex-col">
+            <button
+              onClick={handleMoveUp}
+              disabled={isFirst}
+              data-reorder-button="true"
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              className={`p-0.5 ${isFirst ? 'opacity-20 cursor-not-allowed' : ''}`}
+              style={{ color: 'var(--text-muted)' }}
+              title={t('common.moveUp')}
+              aria-label={t('common.moveUp')}
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+            </button>
+            <button
+              onClick={handleMoveDown}
+              disabled={isLast}
+              data-reorder-button="true"
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              className={`p-0.5 border-t ${isLast ? 'opacity-20 cursor-not-allowed' : ''}`}
+              style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}
+              title={t('common.moveDown')}
+              aria-label={t('common.moveDown')}
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="flex flex-col">
+            <button
+              onClick={handleToggleKey}
+              data-reorder-button="true"
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="p-0.5 border-l flex items-center justify-center"
+              style={{
+                borderColor: 'var(--border)',
+                backgroundColor: column.isKey ? 'var(--section-bg-active)' : 'transparent',
+              }}
+              title={t('table.toggleKey')}
+              aria-label={t('table.toggleKey')}
+            >
+              <svg className="w-3 h-3 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+              </svg>
+            </button>
+
+            <button
+              onClick={handleToggleLabel}
+              data-reorder-button="true"
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="p-0.5 border-l border-t flex items-center justify-center"
+              style={{
+                borderColor: 'var(--border)',
+                backgroundColor: column.isLabel ? 'var(--section-bg-active)' : 'transparent',
+              }}
+              title={t('table.toggleLabel')}
+              aria-label={t('table.toggleLabel')}
+            >
+              <svg className="w-3 h-3 text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Type selector dropdown */}
+        <select
+          value={column.type}
+          onChange={(e) => {
+            e.stopPropagation();
+            const nextType = e.target.value as ColumnType;
+            if (nextType !== column.type) {
+              const { constraints, appSheet } = sanitizeForType(
+                nextType,
+                column.constraints,
+                column.appSheet as Record<string, unknown> | undefined
+              );
+              updateColumn(tableId, column.id, { type: nextType, constraints, appSheet });
+            }
+          }}
+          onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
-          className={`p-0.5 border-t ${isLast ? 'opacity-20 cursor-not-allowed' : ''}`}
-          style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}
-          title={t('common.moveDown')}
+          onMouseDown={(e) => e.stopPropagation()}
+          className="text-[9px] px-1 py-0.5 rounded border shadow-sm cursor-pointer nodrag nopan"
+          style={{
+            backgroundColor: 'var(--card)',
+            borderColor: 'var(--border)',
+            color: 'var(--text-primary)',
+            minWidth: '80px',
+          }}
+          title={t('column.changeTypeTooltip', 'クリックしてデータ型を変更')}
         >
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+          {typeOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Key/Label indicators */}
@@ -422,6 +565,8 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
         className="flex-1 min-w-0 text-[11px]" 
         style={{ color: 'var(--text-secondary)' }}
         onDoubleClick={handleNameDoubleClick}
+        ref={setActivatorNodeRef}
+        {...(dragListeners ?? {})}
       >
         {isEditingName ? (
           <input
@@ -463,7 +608,7 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
           type="source"
           position={Position.Right}
           id={`${column.id}__source`}
-          className="!w-3 !h-3 !bg-amber-400 !border-[1.5px] !border-white hover:!bg-amber-500 cursor-crosshair !-right-1.5"
+          className="!w-3 !h-3 !bg-amber-400 !border-[1.5px] !border-white hover:!bg-amber-500 cursor-crosshair !-right-1.5 !rounded-full"
           title="ドラッグして他のテーブルのカラムに接続"
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}

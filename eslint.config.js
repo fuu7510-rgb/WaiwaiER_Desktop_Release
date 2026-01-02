@@ -19,5 +19,11 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // テーマ対応のためCSS変数をインラインスタイルで使用することを許可
+      // (copilot-instructions.md に基づく)
+      'react/no-inline-styles': 'off',
+      '@stylistic/jsx-self-closing-comp': 'off',
+    },
   },
 ])

@@ -355,7 +355,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
       <div className="space-y-4">
         {/* Transfer Settings */}
         <section>
-          <h3 className="text-xs font-medium uppercase tracking-wide mb-2.5" style={{ color: 'var(--text-muted)' }}>{t('settings.transfer.title')}</h3>
+          <h3 className="text-xs font-medium uppercase tracking-wide mb-2.5 theme-text-muted">{t('settings.transfer.title')}</h3>
 
           <div className="space-y-2.5">
             <div className="flex items-center gap-2">
@@ -373,13 +373,13 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
               </p>
             )}
 
-            <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('settings.transfer.description')}</p>
+            <p className="text-[10px] theme-text-muted">{t('settings.transfer.description')}</p>
           </div>
         </section>
 
         {/* General Settings */}
         <section>
-          <h3 className="text-xs font-medium uppercase tracking-wide mb-2.5" style={{ color: 'var(--text-muted)' }}>{t('settings.general')}</h3>
+          <h3 className="text-xs font-medium uppercase tracking-wide mb-2.5 theme-text-muted">{t('settings.general')}</h3>
           
           <div className="space-y-2.5">
             <Select
@@ -436,7 +436,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
             <div className="mt-2.5 space-y-4">
               {/* Table Name Settings */}
               <div>
-                <h4 className="text-xs font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.tableName.title')}</h4>
+                <h4 className="text-xs font-semibold mb-2 theme-text-secondary">{t('settings.tableName.title')}</h4>
                 <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2.5">
                   <Input
                     label={t('settings.tableName.prefix')}
@@ -446,8 +446,8 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                   />
 
                   <div className="w-full">
-                    <div className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>&nbsp;</div>
-                    <div className="px-1.5 py-[3px] text-sm whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>{t('settings.tableName.inputPlaceholder')}</div>
+                    <div className="block text-xs font-medium mb-1 theme-text-secondary">&nbsp;</div>
+                    <div className="px-1.5 py-[3px] text-sm whitespace-nowrap theme-text-muted">{t('settings.tableName.inputPlaceholder')}</div>
                   </div>
 
                   <Input
@@ -461,7 +461,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
 
               {/* Key Column Name Settings */}
               <div>
-                <h4 className="text-xs font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.keyColumn.title')}</h4>
+                <h4 className="text-xs font-semibold mb-2 theme-text-secondary">{t('settings.keyColumn.title')}</h4>
                 <div className="space-y-2.5">
                   <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2.5">
                     <Input
@@ -472,8 +472,8 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                     />
 
                     <div className="w-full">
-                      <div className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>&nbsp;</div>
-                      <div className="px-1.5 py-[3px] text-sm whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>{t('settings.keyColumn.inputPlaceholder')}</div>
+                      <div className="block text-xs font-medium mb-1 theme-text-secondary">&nbsp;</div>
+                      <div className="px-1.5 py-[3px] text-sm whitespace-nowrap theme-text-muted">{t('settings.keyColumn.inputPlaceholder')}</div>
                     </div>
 
                     <Input
@@ -491,13 +491,13 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                     onChange={(e) => updateSettings({ defaultKeyColumnName: e.target.value })}
                   />
 
-                  <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('settings.keyColumn.description')}</p>
+                  <p className="text-[10px] theme-text-muted">{t('settings.keyColumn.description')}</p>
                 </div>
               </div>
 
               {/* Relation Label Settings */}
               <div>
-                <h4 className="text-xs font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.relationLabel.title')}</h4>
+                <h4 className="text-xs font-semibold mb-2 theme-text-secondary">{t('settings.relationLabel.title')}</h4>
                 <div className="space-y-2.5">
                   <Select
                     label={t('settings.relationLabel.initialMode')}
@@ -519,7 +519,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                     />
                   )}
 
-                  <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('settings.relationLabel.description')}</p>
+                  <p className="text-[10px] theme-text-muted">{t('settings.relationLabel.description')}</p>
                 </div>
               </div>
             </div>
@@ -555,22 +555,22 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
 
           {isCommonColumnsOpen && (
             <div className="mt-2.5 space-y-2.5">
-              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('settings.commonColumns.description')}</p>
+              <p className="text-[10px] theme-text-muted">{t('settings.commonColumns.description')}</p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {/* List */}
-                <div className="border rounded" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
-                  <div className="p-2 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
-                    <div className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('settings.commonColumns.listTitle')}</div>
+                <div className="border rounded theme-border theme-bg-card">
+                  <div className="p-2 border-b flex items-center justify-between theme-border">
+                    <div className="text-xs font-semibold theme-text-secondary">{t('settings.commonColumns.listTitle')}</div>
                     <Button size="sm" onClick={addCommonColumn}>
                       {t('common.add')}
                     </Button>
                   </div>
 
                   {commonColumns.length === 0 ? (
-                    <div className="p-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('settings.commonColumns.empty')}</div>
+                    <div className="p-3 text-[11px] theme-text-muted">{t('settings.commonColumns.empty')}</div>
                   ) : (
-                    <ul className="divide-y" style={{ '--tw-divide-opacity': 1, borderColor: 'var(--border)' } as React.CSSProperties}>
+                    <ul className="divide-y theme-divide-y">
                       {commonColumns.map((c, index) => {
                         const isSelected = c.id === selectedCommonColumnId;
                         return (
@@ -578,22 +578,20 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                             <button
                               type="button"
                               onClick={() => setSelectedCommonColumnId(c.id)}
-                              className="w-full px-2.5 py-2 flex items-center justify-between gap-2 text-left"
-                              style={{ 
-                                color: 'var(--text-primary)',
-                                backgroundColor: isSelected ? 'var(--muted)' : 'transparent'
-                              }}
+                              className={
+                                'w-full px-2.5 py-2 flex items-center justify-between gap-2 text-left theme-text-primary ' +
+                                (isSelected ? 'theme-bg-muted' : 'bg-transparent')
+                              }
                             >
                               <div className="min-w-0">
-                                <div className="text-xs font-medium truncate" style={{ color: 'var(--text-primary)' }}>{c.name || t('settings.commonColumns.unnamed')}</div>
-                                <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('columnTypes.' + c.type)}</div>
+                                <div className="text-xs font-medium truncate theme-text-primary">{c.name || t('settings.commonColumns.unnamed')}</div>
+                                <div className="text-[10px] theme-text-muted">{t('columnTypes.' + c.type)}</div>
                               </div>
 
                               <div className="flex items-center gap-1">
                                 <button
                                   type="button"
-                                  className="px-1.5 py-0.5 text-[10px]"
-                                  style={{ color: 'var(--text-muted)' }}
+                                  className="px-1.5 py-0.5 text-[10px] theme-text-muted"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     moveCommonColumn(c.id, -1);
@@ -605,8 +603,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                                 </button>
                                 <button
                                   type="button"
-                                  className="px-1.5 py-0.5 text-[10px]"
-                                  style={{ color: 'var(--text-muted)' }}
+                                  className="px-1.5 py-0.5 text-[10px] theme-text-muted"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     moveCommonColumn(c.id, 1);
@@ -637,9 +634,9 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                 </div>
 
                 {/* Editor */}
-                <div className="border rounded" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
-                  <div className="p-2 border-b" style={{ borderColor: 'var(--border)' }}>
-                    <div className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('settings.commonColumns.editorTitle')}</div>
+                <div className="border rounded theme-border theme-bg-card">
+                  <div className="p-2 border-b theme-border">
+                    <div className="text-xs font-semibold theme-text-secondary">{t('settings.commonColumns.editorTitle')}</div>
                   </div>
 
                   {selectedCommonColumn ? (
@@ -669,10 +666,9 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                             type="checkbox"
                             checked={!!selectedCommonColumn.constraints?.required}
                             onChange={(e) => updateCommonColumnConstraints(selectedCommonColumn.id, { required: e.target.checked })}
-                            className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20"
-                            style={{ borderColor: 'var(--input-border)' }}
+                            className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20 theme-input-border"
                           />
-                          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('column.constraints.required')}</span>
+                          <span className="text-xs theme-text-secondary">{t('column.constraints.required')}</span>
                         </label>
 
                         <label className="flex items-center gap-1.5 cursor-pointer">
@@ -680,10 +676,9 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                             type="checkbox"
                             checked={!!selectedCommonColumn.constraints?.unique}
                             onChange={(e) => updateCommonColumnConstraints(selectedCommonColumn.id, { unique: e.target.checked })}
-                            className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20"
-                            style={{ borderColor: 'var(--input-border)' }}
+                            className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20 theme-input-border"
                           />
-                          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('column.constraints.unique')}</span>
+                          <span className="text-xs theme-text-secondary">{t('column.constraints.unique')}</span>
                         </label>
                       </div>
 
@@ -702,13 +697,12 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                           <label
                             htmlFor={`common-enum-values-${selectedCommonColumn.id}`}
                             className="block text-xs font-medium mb-1"
-                            style={{ color: 'var(--text-secondary)' }}>
+                          >
                             {t('column.constraints.enumValues')}
                           </label>
                           <textarea
                             id={`common-enum-values-${selectedCommonColumn.id}`}
-                            className="w-full px-2 py-1.5 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                            style={{ backgroundColor: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
+                            className="w-full px-2 py-1.5 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 theme-input-bg theme-input-border theme-text-primary"
                             rows={4}
                             placeholder={t('settings.commonColumns.enumHint')}
                             value={(selectedCommonColumn.constraints?.enumValues ?? []).join('\n')}
@@ -720,7 +714,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                               updateCommonColumnConstraints(selectedCommonColumn.id, { enumValues: lines.length > 0 ? lines : undefined });
                             }}
                           />
-                          <p className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('settings.commonColumns.enumHint')}</p>
+                          <p className="mt-1 text-[10px] theme-text-muted">{t('settings.commonColumns.enumHint')}</p>
                         </div>
                       )}
 
@@ -728,13 +722,12 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                         <label
                           htmlFor={`common-raw-note-${selectedCommonColumn.id}`}
                           className="block text-xs font-medium mb-1"
-                          style={{ color: 'var(--text-secondary)' }}>
+                        >
                           {t('settings.commonColumns.rawNoteLabel')}
                         </label>
                         <textarea
                           id={`common-raw-note-${selectedCommonColumn.id}`}
-                          className="w-full px-2 py-1.5 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                          style={{ backgroundColor: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
+                          className="w-full px-2 py-1.5 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 theme-input-bg theme-input-border theme-text-primary"
                           rows={4}
                           placeholder={t('settings.commonColumns.rawNotePlaceholder')}
                           value={
@@ -744,13 +737,13 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                           }
                           onChange={(e) => setCommonColumnAppSheetString(selectedCommonColumn.id, RAW_NOTE_OVERRIDE_KEY, e.target.value)}
                         />
-                        <p className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('settings.commonColumns.rawNoteHint')}</p>
+                        <p className="mt-1 text-[10px] theme-text-muted">{t('settings.commonColumns.rawNoteHint')}</p>
                       </div>
 
-                      <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('settings.commonColumns.note')}</p>
+                      <p className="text-[10px] theme-text-muted">{t('settings.commonColumns.note')}</p>
                     </div>
                   ) : (
-                    <div className="p-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('settings.commonColumns.selectToEdit')}</div>
+                    <div className="p-3 text-[11px] theme-text-muted">{t('settings.commonColumns.selectToEdit')}</div>
                   )}
                 </div>
               </div>
@@ -792,10 +785,9 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                   type="checkbox"
                   checked={settings.autoBackupEnabled}
                   onChange={(e) => updateSettings({ autoBackupEnabled: e.target.checked })}
-                  className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20"
-                  style={{ borderColor: 'var(--input-border)' }}
+                  className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20 theme-input-border"
                 />
-                <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('settings.autoBackup.enable')}</span>
+                <span className="text-xs theme-text-secondary">{t('settings.autoBackup.enable')}</span>
               </label>
 
               {settings.autoBackupEnabled && (
@@ -852,7 +844,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
 
           {isNoteParamsSettingsOpen && (
             <div className="mt-2.5 space-y-3">
-              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('settings.noteParams.description')}</p>
+              <p className="text-[10px] theme-text-muted">{t('settings.noteParams.description')}</p>
 
               {/* Status Legend */}
               <div className="flex flex-wrap gap-2 text-[10px]">
@@ -874,14 +866,14 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
               </div>
 
               {/* Parameters by Category */}
-              <div className="space-y-3 max-h-64 overflow-y-auto border rounded p-2" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
+              <div className="space-y-3 max-h-64 overflow-y-auto border rounded p-2 theme-border theme-bg-card">
                 {(Object.keys(NOTE_PARAM_CATEGORIES) as NoteParamCategory[]).map((category) => {
                   const params = getNoteParamsGroupedByCategory().get(category) ?? [];
                   if (params.length === 0) return null;
                   const categoryInfo = NOTE_PARAM_CATEGORIES[category];
                   return (
                     <div key={category}>
-                      <div className="text-[10px] font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                      <div className="text-[10px] font-semibold mb-1.5 theme-text-muted">
                         {isJapanese ? categoryInfo.labelJa : categoryInfo.labelEn}
                       </div>
                       <div className="space-y-1">
@@ -901,12 +893,11 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                                 type="checkbox"
                                 checked={isEnabled}
                                 onChange={(e) => updateNoteParamOutputSetting(param.key, e.target.checked)}
-                                className="w-3 h-3 rounded text-indigo-600 focus:ring-indigo-500/20"
-                                style={{ borderColor: 'var(--input-border)' }}
+                                className="w-3 h-3 rounded text-indigo-600 focus:ring-indigo-500/20 theme-input-border"
                               />
-                              <span className="text-xs flex-1 truncate" style={{ color: 'var(--text-primary)' }} title={param.key}>
+                              <span className="text-xs flex-1 truncate theme-text-primary" title={param.key}>
                                 {param.key}
-                                <span style={{ color: 'var(--text-muted)' }} className="ml-1">
+                                <span className="ml-1 theme-text-muted">
                                   ({isJapanese ? param.labelJa : param.labelEn})
                                 </span>
                               </span>
@@ -919,32 +910,31 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                 })}
               </div>
 
-              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('settings.noteParams.hint')}</p>
+              <p className="text-[10px] theme-text-muted">{t('settings.noteParams.hint')}</p>
             </div>
           )}
         </section>
 
         {/* License Settings */}
         <section>
-          <h3 className="text-xs font-medium uppercase tracking-wide mb-2.5" style={{ color: 'var(--text-muted)' }}>{t('settings.license')}</h3>
+          <h3 className="text-xs font-medium uppercase tracking-wide mb-2.5 theme-text-muted">{t('settings.license')}</h3>
           
-          <div className="rounded p-3" style={{ backgroundColor: 'var(--muted)' }}>
+          <div className="rounded p-3 theme-bg-muted">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('license.currentPlan')}</span>
+              <span className="text-[10px] theme-text-muted">{t('license.currentPlan')}</span>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
                 subscriptionPlan === 'pro' 
                   ? 'bg-indigo-100 text-indigo-700' 
-                  : ''
-              }`}
-              style={subscriptionPlan !== 'pro' ? { backgroundColor: 'var(--muted)', color: 'var(--text-secondary)' } : undefined}>
+                  : 'theme-bg-muted theme-text-secondary'
+              }`}>
                 {subscriptionPlan === 'pro' ? t('license.pro') : t('license.free')}
               </span>
             </div>
             
             {subscriptionPlan === 'free' && (
               <div className="space-y-2.5">
-                <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                  <h4 className="font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>{t('license.proFeatures.title')}</h4>
+                <div className="text-[10px] theme-text-muted">
+                  <h4 className="font-medium mb-1.5 theme-text-secondary">{t('license.proFeatures.title')}</h4>
                   <ul className="list-disc list-inside space-y-0.5">
                     <li>{t('license.proFeatures.unlimitedProjects')}</li>
                     <li>{t('license.proFeatures.unlimitedTables')}</li>
@@ -962,7 +952,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
             )}
             
             {subscriptionPlan === 'pro' && (
-              <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+              <div className="text-[10px] theme-text-muted">
                 <p className="text-green-600 mb-1.5 flex items-center gap-1">
                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -976,9 +966,9 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
         </section>
 
         {/* About */}
-        <section className="border-t pt-3" style={{ borderColor: 'var(--border)' }}>
-          <div className="text-center text-[10px]" style={{ color: 'var(--text-muted)' }}>
-            <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{t('app.title')}</p>
+        <section className="border-t pt-3 theme-border">
+          <div className="text-center text-[10px] theme-text-muted">
+            <p className="font-medium theme-text-secondary">{t('app.title')}</p>
             <p>{t('app.version', { version: appVersion || '0.0.0' })}</p>
             <div className="mt-2 flex justify-center">
               <Button variant="secondary" size="sm" onClick={openAboutDialog}>

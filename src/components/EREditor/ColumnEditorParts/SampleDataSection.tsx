@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import type { SampleDataByTableId, SampleRow } from '../../../types';
+
 import { Button, InfoTooltip } from '../../common';
 
 import { SampleDataDialog } from './SampleDataDialog';
@@ -12,8 +14,8 @@ type Labels = {
 
 type Props = {
   ensureSampleData: () => void;
-  sampleDataByTableId: Record<string, Record<string, unknown>[]>;
-  setSampleRowsForTable: (tableId: string, rows: Record<string, unknown>[]) => void;
+  sampleDataByTableId: SampleDataByTableId;
+  setSampleRowsForTable: (tableId: string, rows: SampleRow[]) => void;
 
   selectedTableId: string | null | undefined;
   selectedColumnId: string | null | undefined;
@@ -67,7 +69,7 @@ export function SampleDataSection({
 
     const currentRows = sampleDataByTableId[selectedTableId] ?? [];
     const desiredCount = lines.length;
-    const nextRows: Record<string, unknown>[] = [];
+    const nextRows: SampleRow[] = [];
     for (let i = 0; i < desiredCount; i++) {
       const base = currentRows[i] ?? {};
       nextRows.push({ ...base, [selectedColumnId]: lines[i] ?? '' });

@@ -182,9 +182,23 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   color: var(--text-muted);
 }
 
+/* Inputs */
+.theme-input-bg {
+  background-color: var(--input-bg);
+}
+
+.theme-input-border {
+  border-color: var(--input-border);
+}
+
 /* Borders */
 .theme-border {
   border-color: var(--border);
+}
+
+/* Dividers */
+.theme-divide-y > :not([hidden]) ~ :not([hidden]) {
+  border-top-color: var(--border);
 }
 
 /* React Flow overrides for dark theme */
@@ -253,4 +267,34 @@ html[data-theme="dark"] .settings-collapsible-title {
 
 html[data-theme="dark"] .settings-collapsible-icon {
   color: var(--text-primary) !important;
+}
+
+/* React Flow edge updater styling */
+.react-flow__edgeupdater {
+  cursor: crosshair;
+}
+
+.react-flow__edgeupdater-source,
+.react-flow__edgeupdater-target {
+  pointer-events: all;
+  fill: var(--primary);
+  stroke: var(--card);
+  stroke-width: 1.5;
+
+  /* Match ER handle size (w-3/h-3 = 12px diameter) */
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(0.8);
+}
+
+/* Ensure full shape (no half-circle clipping) */
+.react-flow__edgeupdater-source,
+.react-flow__edgeupdater-target {
+  clip-path: none;
+}
+
+/* Increase edge interaction area */
+.react-flow__edge-interaction {
+  stroke-width: 20;
+  pointer-events: stroke;
 }

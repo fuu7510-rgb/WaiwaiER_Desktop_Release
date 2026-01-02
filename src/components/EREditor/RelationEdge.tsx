@@ -206,6 +206,7 @@ export const RelationEdge = memo(({
           ...style,
         }}
         markerEnd={markerEnd}
+        interactionWidth={20}
       />
       {label && (
         <text
