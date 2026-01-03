@@ -13,7 +13,6 @@ type Props = {
   getAppSheetString: (key: string) => string;
 
   getTriState: (key: string) => '' | 'true' | 'false';
-  setTriState: (key: string, raw: string) => void;
   appSheetTriStateOptions: { value: string; label: string }[];
 };
 
@@ -22,9 +21,9 @@ export function DataValiditySection({
   handleConstraintUpdate,
   labelEnJa,
   setAppSheetValue,
+  setAppSheetValues,
   getAppSheetString,
   getTriState,
-  setTriState,
   appSheetTriStateOptions,
 }: Props) {
   const requiredIf = getAppSheetString('Required_If');
@@ -62,10 +61,14 @@ export function DataValiditySection({
 
             // Toggle and formula are mutually exclusive.
             if (raw === 'true' || raw === 'false') {
-              setAppSheetValue('Required_If', undefined);
+              setAppSheetValues({
+                Required_If: undefined,
+                IsRequired: raw === 'true',
+              });
+            } else {
+              // Empty = inherit (no explicit IsRequired)
+              setAppSheetValues({ IsRequired: undefined });
             }
-
-            setTriState('IsRequired', raw);
             handleConstraintUpdate({ required: raw === 'true' });
           }}
         />
@@ -74,12 +77,17 @@ export function DataValiditySection({
           value={requiredIf}
           onChange={(e) => {
             const v = e.target.value;
-            setAppSheetValue('Required_If', v);
             if (v.trim().length > 0) {
+              // NOTE: Must update atomically; otherwise subsequent AppSheet updates
+              // computed from stale selectedColumn.appSheet can wipe out Required_If.
+              setAppSheetValues({ Required_If: v, IsRequired: undefined });
               handleConstraintUpdate({ required: false });
               // Required_If is present => Require? must not be output.
-              setTriState('IsRequired', '');
+              return;
             }
+
+            // Empty string should delete the key.
+            setAppSheetValue('Required_If', v);
           }}
         />
       </div>

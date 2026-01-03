@@ -65,6 +65,8 @@ Note Parametersは以下のタイミングで最も効果的に機能します�
 
 > **重要**: テーブルの再生成に依存せず、新規カラム追加時や移動時にNote Parametersを設定することが推奨されます。
 
+補足: ただし `Show_If` / `Required_If` / `Editable_If` については、Regenerate schema（構造再生成）でも Note Parameters が強制上書きされることを確認しています。最新状況は [docs/AppSheet/NOTE_PARAMETERS_SUPPORT_STATUS.md](docs/AppSheet/NOTE_PARAMETERS_SUPPORT_STATUS.md) を参照してください。
+
 ## Excelエクスポート時のメモ機能（推奨フロー）
 
 Excelエクスポート機能でも、各カラムのヘッダーセルにAppSheetメモが自動的に**ノート（Note / レガシーメモ）**として追加されます。これにより：
@@ -194,6 +196,37 @@ Note Parametersで使用できる主要な設定項目は以下の通りです�
 |--------|-------------------------|----------|------|
 | `Editable_If` | Editable? (formula) | String | 編集可能条件を数式で指定 |
 | `Reset_If` | Reset on edit? | String | 編集時にリセットする条件 |
+
+## WaiwaiER Desktop のUI仕様（重要）
+
+WaiwaiER Desktop のカラム設定UIでは、AppSheetのベストプラクティス（「トグル系」と「数式系」を同時に出さない）を守るため、以下のルールで動作します。
+
+### 対象項目（4種類）
+
+- Require?（トグル）: `IsRequired` / 数式: `Required_If`
+- Show?（トグル）: `IsHidden` / 数式: `Show_If`
+- Editable?（トグル）: `Editable` / 数式: `Editable_If`
+- Reset on edit?（3値）: `Reset_If`
+
+### 共通ルール：数式が入っている間は必ず Unset
+
+以下の「数式欄」に文字が入っている場合、対応するトグル/3値UIは **必ず `Unset` 表示**になり、**選択変更できません（無効化）**。
+
+- `Required_If` が非空 → Require? は Unset（変更不可）
+- `Show_If` が非空 → Show? は Unset（変更不可）
+- `Editable_If` が非空 → Editable? は Unset（変更不可）
+
+この状態でアプリが勝手に true/false へ変化することはありません。ユーザーが数式を削除（空に）してから、トグル/3値を変更できます。
+
+### Reset on edit?（`Reset_If`）の扱い
+
+`Reset_If` は AppSheet 側が「条件式」として扱うため、WaiwaiER Desktop では次のように解釈します。
+
+- `Reset_If` が空 → 3値UIは Unset
+- `Reset_If` が `TRUE` / `FALSE`（大文字小文字は区別しない）→ 3値UIは true/false
+- `Reset_If` が上記以外（任意の式）→ 3値UIは Unset（変更不可）
+
+（任意の式を使う場合は、`Reset_If` 入力欄に直接式を入力します。true/false を選びたい場合は式を消してから選択してください。）
 
 ### バリデーション設定
 
@@ -544,6 +577,30 @@ AppSheet:{"IsLabel":true}
 ```json
 AppSheet:{"Show_If":"[ステータス]=\"処理中\""}
 ```
+
+#### 条件付き表示: 代替（TypeAuxData形式 / `context("ViewType")` 系）
+
+環境によっては、トップレベルの `Show_If` が反映されない/不安定なケースがあります。
+その場合、`Show_If` を `TypeAuxData`（JSON文字列）側へ入れることで AppSheet が認識することがあります。
+
+ポイントは、`TypeAuxData` が **「JSONを文字列として埋め込む」** ため、さらにその中の `Show_If` 文字列に含まれる `"` が
+外側レイヤーでは `\\"` になる（= 二重エスケープが必要）点です。
+
+```json
+AppSheet:{"Type":"Text","TypeAuxData":"{\"Show_If\":\"context(\\\"ViewType\\\") = \\\"Table\\\"\"}"}
+```
+
+※ 上記の `context(\\\"ViewType\\\") = \\\"Table\\\"` は例です。ここには用途に合わせた `Show_If` の数式を記述してください。
+
+（ユーザー検証例）
+
+```json
+AppSheet:{"IsRequired":false,"Type":"Text","Default":"","TypeAuxData":"{\"LongTextFormatting\":\"Plain Text\",\"Show_If\":\"context(\\\"ViewType\\\") = \\\"Table\\\"\"}","AppFormula":"\" \"","DisplayName":"\" \"","IsLabel":false,"IsKey":false,"IsScannable":false,"IsNfcScannable":false,"Searchable":false,"IsSensitive":false}
+```
+
+> 注意:
+> - キー名は大文字小文字を区別します。初期値は通常 `Default` が正で、`DEFAULT` は環境によって認識されないことがあります。
+> - `Show_If` などの数式系は、まずトップレベルを試し、ダメなら `TypeAuxData` 形式を試すのが安全です。
 
 ### 条件付き必須
 

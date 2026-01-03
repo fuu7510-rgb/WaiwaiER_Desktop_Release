@@ -153,33 +153,52 @@ export function AppSheetNoteParametersSection({
 
       <div className="space-y-3">
         <div className="space-y-2">
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={getTriState('IsHidden') !== 'true'}
-              onChange={(e) => {
-                const checked = e.target.checked;
+          {/** If Show_If (formula) is present, Show? (toggle) must be Unset and not editable. */}
+          {/** This matches the Note Parameters best practice: don't output both IsHidden and Show_If. */}
+          <Select
+            label={
+              <span className="inline-flex items-center">
+                {labelEnJa('Show?', '表示?')}
+                <InfoTooltip
+                  content={helpText(
+                    "Is this column visible in the app? You can also provide a 'Show_If' expression to decide.",
+                    'このカラムはアプリ上で表示されますか？Show_If の式で表示条件を指定することもできます。'
+                  )}
+                />
+              </span>
+            }
+            // If Show_If (formula) is present, Show? must be Unset.
+            value={
+              getAppSheetString('Show_If').trim().length > 0
+                ? ''
+                : (() => {
+                    // Tri-state for Show? is represented via IsHidden (inverse semantics).
+                    const hidden = getTriState('IsHidden');
+                    if (hidden === '') return '';
+                    return hidden === 'true' ? 'false' : 'true';
+                  })()
+            }
+            options={appSheetTriStateOptions}
+            disabled={getAppSheetString('Show_If').trim().length > 0}
+            onChange={(e) => {
+              const raw = e.target.value;
 
-                if (checked) {
-                  // Show (default): remove IsHidden. Keep Show_If as-is.
-                  setAppSheetValues({ IsHidden: undefined });
-                  return;
-                }
+              if (raw === '') {
+                // Unset (default): remove IsHidden.
+                setAppSheetValues({ IsHidden: undefined });
+                return;
+              }
 
-                // Hide: set IsHidden=true and avoid conflict with Show_If.
-                setAppSheetValues({ IsHidden: true, Show_If: undefined });
-              }}
-              className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20"
-              style={{ borderColor: 'var(--input-border)' }}
-            />
-            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{labelEnJa('Show?', '表示?')}</span>
-            <InfoTooltip
-              content={helpText(
-                "Is this column visible in the app? You can also provide a 'Show_If' expression to decide.",
-                'このカラムはアプリ上で表示されますか？Show_If の式で表示条件を指定することもできます。'
-              )}
-            />
-          </label>
+              if (raw === 'true') {
+                // Explicitly show: set IsHidden=false.
+                setAppSheetValues({ IsHidden: false });
+                return;
+              }
+
+              // Explicitly hide: set IsHidden=true and avoid conflict with Show_If.
+              setAppSheetValues({ IsHidden: true, Show_If: undefined });
+            }}
+          />
 
           <Input
             label={labelEnJa('Show_If', '表示条件（Show_If）')}
@@ -191,7 +210,8 @@ export function AppSheetNoteParametersSection({
                 setAppSheetValues({ Show_If: v, IsHidden: undefined });
                 return;
               }
-              setAppSheetValue('Show_If', v);
+              // Use batch setter for consistency and to avoid stale-state overwrites.
+              setAppSheetValues({ Show_If: v });
             }}
           />
         </div>
@@ -209,7 +229,6 @@ export function AppSheetNoteParametersSection({
           setAppSheetValues={setAppSheetValues}
           getAppSheetString={getAppSheetString}
           getTriState={getTriState}
-          setTriState={setTriState}
           appSheetTriStateOptions={appSheetTriStateOptions}
         />
 
@@ -227,10 +246,10 @@ export function AppSheetNoteParametersSection({
           handleUpdate={handleUpdate}
           labelEnJa={labelEnJa}
           helpText={helpText}
-          setAppSheetValue={setAppSheetValue}
           setAppSheetValues={setAppSheetValues}
           getAppSheetString={getAppSheetString}
           getTriState={getTriState}
+          appSheetTriStateOptions={appSheetTriStateOptions}
         />
 
         <DisplaySection

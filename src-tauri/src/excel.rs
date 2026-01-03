@@ -246,6 +246,63 @@ fn has_user_note_override(column: &Column) -> bool {
         .is_some_and(|s| !s.trim().is_empty())
 }
 
+fn parse_type_aux_data_object_from_str(s: &str) -> Option<serde_json::Map<String, Value>> {
+    let trimmed = s.trim();
+    if trimmed.is_empty() {
+        return Some(serde_json::Map::new());
+    }
+
+    // Case 1: raw JSON object text: {"Show_If":"..."}
+    if let Ok(Value::Object(obj)) = serde_json::from_str::<Value>(trimmed) {
+        return Some(obj);
+    }
+
+    // Case 2: already-escaped JSON object text copied from docs:
+    // {\"Show_If\":\"context(\\\"ViewType\\\") = \\\"Table\\\"\"}
+    // Wrap as a JSON string literal to unescape, then parse again.
+    if let Ok(unescaped) = serde_json::from_str::<String>(&format!("\"{}\"", trimmed)) {
+        if let Ok(Value::Object(obj)) = serde_json::from_str::<Value>(&unescaped) {
+            return Some(obj);
+        }
+    }
+
+    None
+}
+
+fn normalize_formula_key_into_type_aux_data(data: &mut serde_json::Map<String, Value>, key: &str) {
+    let raw = data.remove(key);
+    let formula = match raw {
+        None | Some(Value::Null) => return,
+        Some(Value::String(s)) => {
+            if s.trim().is_empty() {
+                return;
+            }
+            s
+        }
+        Some(other) => other.to_string(),
+    };
+
+    let mut aux_obj = match data.get("TypeAuxData") {
+        Some(Value::String(s)) => parse_type_aux_data_object_from_str(s).unwrap_or_else(serde_json::Map::new),
+        Some(Value::Object(obj)) => obj.clone(),
+        _ => serde_json::Map::new(),
+    };
+
+    aux_obj.insert(key.to_string(), Value::String(formula));
+
+    // TypeAuxData must be a JSON string value in Note Parameters.
+    let aux_str = serde_json::to_string(&Value::Object(aux_obj)).unwrap_or_else(|_| "{}".to_string());
+    data.insert("TypeAuxData".to_string(), Value::String(aux_str));
+}
+
+fn normalize_formulas_into_type_aux_data(data: &mut serde_json::Map<String, Value>) {
+    // docs/AppSheet/MEMO_SETUP.md の推奨に合わせ、数式系キーは TypeAuxData（JSON文字列）へ入れる。
+    // （トップレベルの式キーは環境によって不安定なケースがある）
+    normalize_formula_key_into_type_aux_data(data, "Show_If");
+    normalize_formula_key_into_type_aux_data(data, "Required_If");
+    normalize_formula_key_into_type_aux_data(data, "Editable_If");
+}
+
 // カラム設定のメモ内容を生成
 fn generate_column_note(column: &Column, tables: &[Table], user_settings: Option<&HashMap<String, bool>>) -> String {
     // docs/AppSheet/MEMO_SETUP.md に従い、AppSheet Note Parameters の形式で出力する
@@ -449,6 +506,9 @@ fn generate_column_note(column: &Column, tables: &[Table], user_settings: Option
             }
         }
     }
+
+    // docs/AppSheet/MEMO_SETUP.md の推奨に合わせ、式キーは TypeAuxData（JSON文字列）へ入れる。
+    normalize_formulas_into_type_aux_data(&mut data);
 
     let body = serialize_note_parameters_object(&data);
     if body == "{}" {

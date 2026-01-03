@@ -12,6 +12,59 @@ type AppSheetRecord = Record<string, unknown>;
 
 const RAW_NOTE_OVERRIDE_KEY = '__AppSheetNoteOverride';
 
+function parseTypeAuxDataObject(value: unknown): Record<string, unknown> {
+  if (!value) return {};
+
+  // If already an object, trust it.
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  if (typeof value !== 'string') return {};
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return {};
+
+  // Case 1: raw JSON object text
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
+  } catch {
+    // ignore
+  }
+
+  // Case 2: already-escaped JSON object text copied from docs
+  // e.g. {\"Show_If\":\"context(\\\"ViewType\\\") = \\\"Table\\\"\"}
+  try {
+    // Wrap as JSON string literal to unescape.
+    const unescaped = JSON.parse(`"${trimmed}"`) as string;
+    const parsed = JSON.parse(unescaped);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
+  } catch {
+    // ignore
+  }
+
+  return {};
+}
+
+function normalizeFormulaKeyIntoTypeAuxData(data: Record<string, unknown>, key: string): void {
+  const value = data[key];
+  if (typeof value !== 'string' || value.trim().length === 0) return;
+
+  delete data[key];
+
+  const auxObj = parseTypeAuxDataObject(data['TypeAuxData']);
+  auxObj[key] = value;
+
+  // TypeAuxData must be a JSON string value in Note Parameters.
+  data['TypeAuxData'] = JSON.stringify(auxObj);
+}
+
+function normalizeFormulasIntoTypeAuxData(data: Record<string, unknown>): void {
+  normalizeFormulaKeyIntoTypeAuxData(data, 'Show_If');
+  normalizeFormulaKeyIntoTypeAuxData(data, 'Required_If');
+  normalizeFormulaKeyIntoTypeAuxData(data, 'Editable_If');
+}
+
 function shouldOutputNoteParam(key: string, userSettings: NoteParamOutputSettings | undefined): boolean {
   // 保存された設定を最優先する。
   // userSettings が存在する場合、未定義キーは false として扱い、最新デフォルトにフォールバックしない。
@@ -123,6 +176,9 @@ function generateColumnNote(column: Table['columns'][number], userSettings: Note
       }
     }
   }
+
+  // docs/AppSheet/MEMO_SETUP.md の推奨に合わせ、式キーは TypeAuxData（JSON文字列）へ入れる。
+  normalizeFormulasIntoTypeAuxData(data);
 
   const body = JSON.stringify(data);
   if (body === '{}') return 'AppSheet:{}';

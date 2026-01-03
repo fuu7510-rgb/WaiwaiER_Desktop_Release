@@ -23,9 +23,9 @@
 |--------|------------|------------------|------|
 | `Type` | ✅ 確認済み | ❌ 未対応 | カラム型の設定。Regenerate schema では AppSheet 側の設定値が残り、Note Parameters は反映されない |
 | `IsRequired` | 🔍 未検証 | 🔍 未検証 | 必須フラグ（トグル） |
-| `Required_If` | 🔍 未検証 | 🔍 未検証 | 必須条件（数式） |
+| `Required_If` | ✅ 確認済み | ✅ 確認済み | 必須条件（数式）。新規取り込み/Regenerate schema とも Note Parameters が強制上書きされる |
 | `IsHidden` | ✅ 確認済み | ❌ 未対応 | 非表示フラグ（トグル）。Regenerate schema では Note Parameters は反映されない |
-| `Show_If` | 🔍 未検証 | 🔍 未検証 | 表示条件（数式） |
+| `Show_If` | ✅ 確認済み | ✅ 確認済み | 表示条件（数式）。トップレベルが不安定な場合、`TypeAuxData`（JSON文字列）内の `Show_If` で認識されるケースあり（例: `context(\"ViewType\") = \"Table\"`）。新規取り込み/Regenerate schema とも Note Parameters が強制上書きされる |
 | `DisplayName` | ✅ 確認済み | ❌ 未対応 | 表示名。Regenerate schema では AppSheet 側の設定値が残り、Note Parameters は反映されない |
 | `Description` | ✅ 確認済み | ✅ 確認済み | 説明文。新規取り込み/Regenerate schema とも Note Parameters が強制上書きされる |
 | `Default` | ✅ 確認済み | ✅ 確認済み | 初期値（キー名は `Default`。`DEFAULT` は誤り）。新規取り込み/Regenerate schema とも Note Parameters が強制上書きされる |
@@ -49,7 +49,7 @@
 | `Valid_If` | 🔍 未検証 | 🔍 未検証 | 有効性チェック数式 |
 | `Error_Message_If_Invalid` | 🔍 未検証 | 🔍 未検証 | 無効値エラーメッセージ |
 | `Suggested_Values` | 🔍 未検証 | 🔍 未検証 | 推奨値 |
-| `Editable_If` | 🔍 未検証 | 🔍 未検証 | 編集可能条件 |
+| `Editable_If` | ✅ 確認済み | ✅ 確認済み | 編集可能条件。新規取り込み/Regenerate schema とも Note Parameters が強制上書きされる |
 | `Reset_If` | 🔍 未検証 | 🔍 未検証 | リセット条件 |
 
 ## 数値型設定
@@ -113,10 +113,13 @@
 - Regenerate schema の検証結果を反映
 	- `Type`: Regenerate schema では AppSheet 側の設定値が残る（新規取り込みは反映可）
 	- `IsHidden`: Regenerate schema では Note Parameters は反映されない（新規取り込みは反映可）
+	- `Required_If`: 新規取り込み/Regenerate schema とも Note Parameters が強制上書き
+	- `Show_If`: 新規取り込み/Regenerate schema とも Note Parameters が強制上書き
 	- `Default`: Regenerate schema で Note Parameters が強制上書き
 	- `Default`: 新規取り込みでも Note Parameters が強制上書き
 	- `DisplayName`: Regenerate schema では AppSheet 側の設定値が残る（新規取り込みは反映可）
 	- `Description`: 新規取り込み/Regenerate schema とも Note Parameters が強制上書き
+	- `Editable_If`: 新規取り込み/Regenerate schema とも Note Parameters が強制上書き
 	- `IsLabel`: Regenerate schema では Note Parameters は反映されない
 
 ---
@@ -146,9 +149,12 @@ Note Parameters は「新規取り込み時は効くが、再生成では効か�
 - 結果（キー別）
 	- `Type`: AppSheet 側の設定値が残る（Note Parameters は反映されない）
 	- `IsHidden`: Note Parameters は反映されない
+	- `Required_If`: Note Parameters が強制上書き
+	- `Show_If`: Note Parameters が強制上書き
 	- `Default`: Note Parameters が強制上書き
 	- `DisplayName`: AppSheet 側の設定値が残る（Note Parameters は反映されない）
 	- `Description`: Note Parameters が強制上書き
+	- `Editable_If`: Note Parameters が強制上書き
 	- `IsLabel`: Note Parameters は反映されない
 
 ### 観点メモ（任意）
