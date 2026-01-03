@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -186,21 +187,15 @@ function TableNodeSortableColumns(props: { table: Table }) {
     })
   );
 
-  const columnById = useMemo(() => {
-    const m = new Map<string, (typeof table.columns)[number]>();
-    for (const c of table.columns) m.set(c.id, c);
-    return m;
-  }, [table]);
-
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
     const activeId = String(active.id);
     const overId = String(over.id);
     if (!activeId || !overId || activeId === overId) return;
-    const overColumn = columnById.get(overId);
-    if (!overColumn) return;
-    reorderColumn(table.id, activeId, overColumn.order);
+    const toIndex = table.columns.findIndex((c) => c.id === overId);
+    if (toIndex < 0) return;
+    reorderColumn(table.id, activeId, toIndex);
   };
 
   return (
@@ -212,6 +207,7 @@ function TableNodeSortableColumns(props: { table: Table }) {
               key={column.id}
               column={column}
               tableId={table.id}
+              index={index}
               isFirst={index === 0}
               isLast={index === table.columns.length - 1}
             />
@@ -225,11 +221,12 @@ function TableNodeSortableColumns(props: { table: Table }) {
 interface ColumnRowProps {
   column: Column;
   tableId: string;
+  index: number;
   isFirst: boolean;
   isLast: boolean;
 }
 
-const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) => {
+const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowProps) => {
   const { t, i18n } = useTranslation();
   const { selectColumn, selectedColumnId, reorderColumn, updateColumn, deleteColumn, relations } = useERStore();
   const zoom = useReactFlowStore((state) => state.transform[2]) ?? 1;
@@ -245,7 +242,38 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
   // Use same options as ColumnEditor for consistency
   const { labelEnJa, labelEnJaNoSpace, tEn, tJa } = useColumnEditorLabels(i18n);
   const { typeOptions } = useColumnEditorOptions({ labelEnJa, labelEnJaNoSpace, tEn, tJa });
-  const { sanitizeForType } = useAppSheetSanitizer();
+  const { sanitizeForType, pruneAppSheet } = useAppSheetSanitizer();
+
+  const isShown = useMemo(() => {
+    const isHiddenVal = (column.appSheet as Record<string, unknown> | undefined)?.IsHidden;
+    return isHiddenVal !== true;
+  }, [column.appSheet]);
+
+  const isEditable = useMemo(() => {
+    const editableVal = (column.appSheet as Record<string, unknown> | undefined)?.Editable;
+    return editableVal !== false;
+  }, [column.appSheet]);
+
+  const isRequired = !!column.constraints.required;
+
+  const currentAppFormula = useMemo(() => {
+    const v = (column.appSheet as Record<string, unknown> | undefined)?.AppFormula;
+    return typeof v === 'string' ? v : '';
+  }, [column.appSheet]);
+
+  const currentDisplayName = useMemo(() => {
+    const v = (column.appSheet as Record<string, unknown> | undefined)?.DisplayName;
+    return typeof v === 'string' ? v : '';
+  }, [column.appSheet]);
+
+  const currentDescription = useMemo(() => {
+    const v = (column.appSheet as Record<string, unknown> | undefined)?.Description;
+    return typeof v === 'string' ? v : '';
+  }, [column.appSheet]);
+
+  const currentInitialValue = useMemo(() => {
+    return column.constraints.defaultValue ?? '';
+  }, [column.constraints.defaultValue]);
 
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging, isOver } = useSortable({
     id: column.id,
@@ -269,7 +297,15 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState(column.name);
+  const [deleteArmed, setDeleteArmed] = useState(false);
+  const [deleteHintPos, setDeleteHintPos] = useState<{ x: number; y: number } | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  type MiniMetaTab = 'formula' | 'initialValue' | 'displayName' | 'description';
+  const [miniMetaTab, setMiniMetaTab] = useState<MiniMetaTab>('formula');
+  const [isEditingMiniMeta, setIsEditingMiniMeta] = useState(false);
+  const [miniMetaDraft, setMiniMetaDraft] = useState('');
+  const miniMetaInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (isEditingName) {
@@ -277,6 +313,52 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
       inputRef.current?.select();
     }
   }, [isEditingName]);
+
+  useEffect(() => {
+    if (!isSelected) {
+      setDeleteArmed(false);
+      setDeleteHintPos(null);
+    }
+  }, [isSelected]);
+
+  useEffect(() => {
+    setDeleteArmed(false);
+    setDeleteHintPos(null);
+  }, [column.id]);
+
+  useEffect(() => {
+    if (!deleteArmed) return;
+
+    const handleMove = (e: MouseEvent) => {
+      setDeleteHintPos({ x: e.clientX, y: e.clientY });
+    };
+
+    window.addEventListener('mousemove', handleMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+    };
+  }, [deleteArmed]);
+
+  const currentMiniMetaValue = useMemo(() => {
+    switch (miniMetaTab) {
+      case 'formula':
+        return currentAppFormula;
+      case 'initialValue':
+        return currentInitialValue;
+      case 'displayName':
+        return currentDisplayName;
+      case 'description':
+        return currentDescription;
+      default:
+        return '';
+    }
+  }, [currentAppFormula, currentDescription, currentDisplayName, currentInitialValue, miniMetaTab]);
+
+  useEffect(() => {
+    if (!isEditingMiniMeta) {
+      setMiniMetaDraft(currentMiniMetaValue);
+    }
+  }, [currentMiniMetaValue, isEditingMiniMeta]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -316,32 +398,195 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
 
   const handleMoveUp = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    setDeleteArmed(false);
+    setDeleteHintPos(null);
     if (!isFirst) {
-      reorderColumn(tableId, column.id, column.order - 1);
+      reorderColumn(tableId, column.id, index - 1);
     }
-  }, [tableId, column.id, column.order, isFirst, reorderColumn]);
+  }, [tableId, column.id, index, isFirst, reorderColumn]);
 
   const handleMoveDown = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    setDeleteArmed(false);
+    setDeleteHintPos(null);
     if (!isLast) {
-      reorderColumn(tableId, column.id, column.order + 1);
+      reorderColumn(tableId, column.id, index + 1);
     }
-  }, [tableId, column.id, column.order, isLast, reorderColumn]);
+  }, [tableId, column.id, index, isLast, reorderColumn]);
 
   const handleToggleKey = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    setDeleteArmed(false);
+    setDeleteHintPos(null);
     updateColumn(tableId, column.id, { isKey: !column.isKey });
   }, [column.id, column.isKey, tableId, updateColumn]);
 
   const handleToggleLabel = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    setDeleteArmed(false);
+    setDeleteHintPos(null);
     updateColumn(tableId, column.id, { isLabel: !column.isLabel });
   }, [column.id, column.isLabel, tableId, updateColumn]);
 
   const handleDelete = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!deleteArmed) {
+      setDeleteArmed(true);
+      setDeleteHintPos({ x: e.clientX, y: e.clientY });
+      return;
+    }
+
+    setDeleteArmed(false);
+    setDeleteHintPos(null);
     deleteColumn(tableId, column.id);
-  }, [deleteColumn, tableId, column.id]);
+  }, [column.id, deleteArmed, deleteColumn, tableId]);
+
+  const handleToggleShow = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleteArmed(false);
+    setDeleteHintPos(null);
+
+    const appSheet = column.appSheet as Record<string, unknown> | undefined;
+    const isHiddenVal = appSheet?.IsHidden;
+    const currentlyShown = isHiddenVal !== true;
+
+    if (currentlyShown) {
+      // Hide: set IsHidden=true and ensure it doesn't conflict with Show_If.
+      const nextAppSheet = pruneAppSheet({ ...(appSheet ?? {}), IsHidden: true }, ['Show_If']);
+      updateColumn(tableId, column.id, { appSheet: nextAppSheet });
+      return;
+    }
+
+    // Show: remove IsHidden (default behavior).
+    const nextAppSheet = pruneAppSheet(appSheet, ['IsHidden']);
+    updateColumn(tableId, column.id, { appSheet: nextAppSheet });
+  }, [column.appSheet, column.id, pruneAppSheet, tableId, updateColumn]);
+
+  const handleToggleEditable = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleteArmed(false);
+    setDeleteHintPos(null);
+
+    const appSheet = column.appSheet as Record<string, unknown> | undefined;
+    const editableVal = appSheet?.Editable;
+    const currentlyEditable = editableVal !== false;
+
+    if (currentlyEditable) {
+      // Not editable: set Editable=false and avoid conflict with Editable_If.
+      const nextAppSheet = pruneAppSheet({ ...(appSheet ?? {}), Editable: false }, ['Editable_If']);
+      updateColumn(tableId, column.id, { appSheet: nextAppSheet });
+      return;
+    }
+
+    // Editable: prefer Editable_If (AppSheet behavior). If not set, default to TRUE.
+    const editableIf = typeof appSheet?.Editable_If === 'string' ? appSheet.Editable_If.trim() : '';
+    const nextAppSheet = pruneAppSheet(
+      { ...(appSheet ?? {}), Editable_If: editableIf.length > 0 ? editableIf : 'TRUE' },
+      ['Editable']
+    );
+    updateColumn(tableId, column.id, { appSheet: nextAppSheet });
+  }, [column.appSheet, column.id, pruneAppSheet, tableId, updateColumn]);
+
+  const handleToggleRequired = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleteArmed(false);
+    setDeleteHintPos(null);
+
+    const nextRequired = !isRequired;
+    const appSheet = column.appSheet as Record<string, unknown> | undefined;
+
+    const nextAppSheet = nextRequired
+      ? pruneAppSheet({ ...(appSheet ?? {}), IsRequired: true }, ['Required_If'])
+      : pruneAppSheet(appSheet, ['IsRequired', 'Required_If']);
+
+    updateColumn(tableId, column.id, {
+      constraints: { ...column.constraints, required: nextRequired },
+      appSheet: nextAppSheet,
+    });
+  }, [column.appSheet, column.constraints, column.id, isRequired, pruneAppSheet, tableId, updateColumn]);
+
+  const isInitialValueDisabled = useMemo(() => {
+    return miniMetaTab === 'initialValue' && currentAppFormula.trim().length > 0;
+  }, [currentAppFormula, miniMetaTab]);
+
+  const commitMiniMeta = useCallback(() => {
+    if (miniMetaTab === 'initialValue' && currentAppFormula.trim().length > 0) {
+      // Keep consistent with ColumnEditor: Initial Value is disabled when AppFormula is set.
+      return;
+    }
+
+    const raw = miniMetaDraft;
+    const trimmed = raw.trim();
+    const appSheet = column.appSheet as Record<string, unknown> | undefined;
+
+    if (miniMetaTab === 'initialValue') {
+      const nextDefault = trimmed.length > 0 ? raw : undefined;
+      const nextConstraints = {
+        ...column.constraints,
+        defaultValue: nextDefault,
+      };
+      updateColumn(tableId, column.id, { constraints: nextConstraints });
+      return;
+    }
+
+    const key =
+      miniMetaTab === 'formula'
+        ? 'AppFormula'
+        : miniMetaTab === 'displayName'
+          ? 'DisplayName'
+          : 'Description';
+
+    if (trimmed.length === 0) {
+      const nextAppSheet = pruneAppSheet(appSheet, [key]);
+      if (nextAppSheet !== appSheet) {
+        updateColumn(tableId, column.id, { appSheet: nextAppSheet });
+      }
+      return;
+    }
+
+    const nextAppSheet = { ...(appSheet ?? {}), [key]: raw };
+
+    if (miniMetaTab === 'formula' && (column.constraints.defaultValue ?? '').trim().length > 0) {
+      // Same behavior as ColumnEditor: prefer AppFormula over Initial Value.
+      const nextConstraints = { ...column.constraints, defaultValue: undefined };
+      updateColumn(tableId, column.id, { appSheet: nextAppSheet, constraints: nextConstraints });
+      return;
+    }
+
+    updateColumn(tableId, column.id, { appSheet: nextAppSheet });
+  }, [column.appSheet, column.constraints, column.id, currentAppFormula, miniMetaDraft, miniMetaTab, pruneAppSheet, tableId, updateColumn]);
+
+  const handleMiniMetaKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        commitMiniMeta();
+        setIsEditingMiniMeta(false);
+        miniMetaInputRef.current?.blur();
+      } else if (e.key === 'Escape') {
+        e.stopPropagation();
+        setMiniMetaDraft(currentMiniMetaValue);
+        setIsEditingMiniMeta(false);
+        miniMetaInputRef.current?.blur();
+      }
+    },
+    [commitMiniMeta, currentMiniMetaValue]
+  );
+
+  const handleMiniMetaTabClick = useCallback(
+    (next: MiniMetaTab) => (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (next === miniMetaTab) return;
+
+      if (isEditingMiniMeta) {
+        commitMiniMeta();
+        setIsEditingMiniMeta(false);
+      }
+
+      setMiniMetaTab(next);
+    },
+    [commitMiniMeta, isEditingMiniMeta, miniMetaTab]
+  );
 
   const dragListeners = isEditingName ? undefined : listeners;
 
@@ -361,26 +606,6 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
         onClick={handleClick}
         {...attributes}
       >
-      {/* Delete button (visible when selected) */}
-      <button
-        type="button"
-        onClick={handleDelete}
-        onPointerDown={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
-        className={`${isSelected ? 'flex' : 'hidden'} items-center justify-center absolute -left-6 top-1/2 -translate-y-1/2 shadow-sm border rounded p-0.5 z-20`}
-        style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}
-        title={t('common.delete', '削除')}
-        aria-label={t('common.delete', '削除')}
-      >
-        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 11v6" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 11v6" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 7l1 14h10l1-14" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7V4h6v3" />
-        </svg>
-      </button>
-
       {/* Left Handle (for incoming connections) */}
       <Handle
         type="target"
@@ -458,77 +683,317 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
           </div>
 
           <div className="flex flex-col">
-            <button
-              onClick={handleToggleKey}
-              data-reorder-button="true"
-              onPointerDown={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
-              className="p-0.5 border-l flex items-center justify-center"
-              style={{
-                borderColor: 'var(--border)',
-                backgroundColor: column.isKey ? 'var(--section-bg-active)' : 'transparent',
-              }}
-              title={t('table.toggleKey')}
-              aria-label={t('table.toggleKey')}
-            >
-              <svg className="w-3 h-3 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-              </svg>
-            </button>
+            <div className="flex border-l" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex flex-col">
+                <div className="flex">
+                  <button
+                    onClick={handleToggleKey}
+                    data-reorder-button="true"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="p-0.5 flex items-center justify-center"
+                    style={{
+                      backgroundColor: column.isKey ? 'var(--section-bg-active)' : 'transparent',
+                    }}
+                    title={t('table.toggleKey')}
+                    aria-label={t('table.toggleKey')}
+                  >
+                    <svg className="w-3 h-3 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                    </svg>
+                  </button>
 
-            <button
-              onClick={handleToggleLabel}
-              data-reorder-button="true"
-              onPointerDown={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
-              className="p-0.5 border-l border-t flex items-center justify-center"
-              style={{
-                borderColor: 'var(--border)',
-                backgroundColor: column.isLabel ? 'var(--section-bg-active)' : 'transparent',
-              }}
-              title={t('table.toggleLabel')}
-              aria-label={t('table.toggleLabel')}
-            >
-              <svg className="w-3 h-3 text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-              </svg>
-            </button>
+                  <button
+                    type="button"
+                    onClick={handleToggleShow}
+                    data-reorder-button="true"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="p-0.5 border-l flex items-center justify-center"
+                    style={{
+                      borderColor: 'var(--border)',
+                      backgroundColor: isShown ? 'var(--section-bg-active)' : 'transparent',
+                      color: isShown ? 'var(--text-primary)' : 'var(--text-muted)',
+                    }}
+                    title={t('table.toggleShow')}
+                    aria-label={`${t('table.toggleShow')}: ${isShown ? t('common.on') : t('common.off')}`}
+                  >
+                    {isShown ? (
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10.477 10.477A3 3 0 0012 15a3 3 0 002.523-4.523"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6.228 6.228C4.434 7.36 3.091 9.06 2.458 12c1.274 4.057 5.065 7 9.542 7 1.63 0 3.16-.39 4.5-1.08"
+                        />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.88 9.88A3 3 0 0115 12" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17.772 17.772C19.566 16.64 20.909 14.94 21.542 12 20.268 7.943 16.477 5 12 5c-1.63 0-3.16.39-4.5 1.08"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex border-t" style={{ borderColor: 'var(--border)' }}>
+                  <button
+                    onClick={handleToggleLabel}
+                    data-reorder-button="true"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="p-0.5 flex items-center justify-center"
+                    style={{
+                      backgroundColor: column.isLabel ? 'var(--section-bg-active)' : 'transparent',
+                    }}
+                    title={t('table.toggleLabel')}
+                    aria-label={t('table.toggleLabel')}
+                  >
+                    <svg className="w-3 h-3 text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleToggleEditable}
+                    data-reorder-button="true"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="p-0.5 border-l flex items-center justify-center"
+                    style={{
+                      borderColor: 'var(--border)',
+                      backgroundColor: isEditable ? 'var(--section-bg-active)' : 'transparent',
+                      color: isEditable ? 'var(--text-primary)' : 'var(--text-muted)',
+                    }}
+                    title={t('table.toggleEditable')}
+                    aria-label={`${t('table.toggleEditable')}: ${isEditable ? t('common.on') : t('common.off')}`}
+                  >
+                    {isEditable ? (
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 20h9" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z"
+                        />
+                      </svg>
+                    ) : (
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 20h9" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 20l1-4 7.5-7.5" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.5 5.5l4 4" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-col border-l self-stretch" style={{ borderColor: 'var(--border)' }}>
+                <button
+                  type="button"
+                  onClick={handleToggleRequired}
+                  data-reorder-button="true"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  className="p-0.5 flex-1 flex items-center justify-center"
+                  style={{
+                    backgroundColor: isRequired ? 'var(--section-bg-active)' : 'transparent',
+                    color: isRequired ? 'var(--text-primary)' : 'var(--text-muted)',
+                  }}
+                  title={t('table.toggleRequired')}
+                  aria-label={`${t('table.toggleRequired')}: ${isRequired ? t('common.on') : t('common.off')}`}
+                >
+                  <span className="text-[10px] font-bold leading-none" aria-hidden="true">*</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  data-reorder-button="true"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  className="p-0.5 flex-1 border-t flex items-center justify-center"
+                  style={{
+                    borderColor: deleteArmed ? 'var(--destructive)' : 'var(--border)',
+                    backgroundColor: deleteArmed ? 'var(--section-bg-active)' : 'transparent',
+                    color: deleteArmed ? 'var(--destructive)' : 'var(--text-muted)',
+                  }}
+                  title={deleteArmed ? t('table.deleteColumnArmedHint') : t('common.delete', '削除')}
+                  aria-label={deleteArmed ? t('table.deleteColumnArmedHint') : t('common.delete', '削除')}
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 11v6" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 11v6" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 7l1 14h10l1-14" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7V4h6v3" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
+
+          {deleteArmed && deleteHintPos && typeof document !== 'undefined' &&
+            createPortal(
+              <div
+                className="fixed px-1 py-[1px] rounded border whitespace-nowrap pointer-events-none"
+                style={{
+                  left: deleteHintPos.x + 12,
+                  top: deleteHintPos.y + 12,
+                  backgroundColor: 'var(--card)',
+                  borderColor: 'var(--destructive)',
+                  color: 'var(--destructive)',
+                  zIndex: 99999,
+                }}
+              >
+                {t('table.deleteColumnArmedHint')}
+              </div>,
+              document.body
+            )}
         </div>
 
-        {/* Type selector dropdown */}
-        <select
-          value={column.type}
-          onChange={(e) => {
-            e.stopPropagation();
-            const nextType = e.target.value as ColumnType;
-            if (nextType !== column.type) {
-              const { constraints, appSheet } = sanitizeForType(
-                nextType,
-                column.constraints,
-                column.appSheet as Record<string, unknown> | undefined
-              );
-              updateColumn(tableId, column.id, { type: nextType, constraints, appSheet });
+        {/* Type selector dropdown + Formula */}
+        <div className="flex flex-col gap-1">
+          <select
+            value={column.type}
+            onChange={(e) => {
+              e.stopPropagation();
+              const nextType = e.target.value as ColumnType;
+              if (nextType !== column.type) {
+                const { constraints, appSheet } = sanitizeForType(
+                  nextType,
+                  column.constraints,
+                  column.appSheet as Record<string, unknown> | undefined
+                );
+                updateColumn(tableId, column.id, { type: nextType, constraints, appSheet });
+              }
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="text-[9px] px-1 py-0.5 rounded border shadow-sm cursor-pointer nodrag nopan"
+            style={{
+              backgroundColor: 'var(--card)',
+              borderColor: 'var(--border)',
+              color: 'var(--text-primary)',
+              minWidth: '80px',
+            }}
+            title={t('column.changeTypeTooltip', 'クリックしてデータ型を変更')}
+          >
+            {typeOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+
+          <input
+            ref={miniMetaInputRef}
+            type="text"
+            value={miniMetaDraft}
+            disabled={isInitialValueDisabled}
+            onFocus={() => setIsEditingMiniMeta(true)}
+            onBlur={() => {
+              commitMiniMeta();
+              setIsEditingMiniMeta(false);
+            }}
+            onChange={(e) => setMiniMetaDraft(e.target.value)}
+            onKeyDown={handleMiniMetaKeyDown}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="text-[9px] px-1 py-0.5 rounded border shadow-sm nodrag nopan"
+            style={{
+              backgroundColor: 'var(--input-bg)',
+              borderColor: 'var(--input-border)',
+              color: 'var(--text-primary)',
+              minWidth: '140px',
+              opacity: isInitialValueDisabled ? 0.5 : 1,
+              cursor: isInitialValueDisabled ? 'not-allowed' : 'text',
+            }}
+            placeholder={
+              miniMetaTab === 'formula'
+                ? t('column.formulaPlaceholder')
+                : miniMetaTab === 'initialValue'
+                  ? t('column.initialValuePlaceholder')
+                  : miniMetaTab === 'displayName'
+                    ? t('column.displayNamePlaceholder')
+                    : t('column.descriptionPlaceholder')
             }
-          }}
-          onClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          className="text-[9px] px-1 py-0.5 rounded border shadow-sm cursor-pointer nodrag nopan"
-          style={{
-            backgroundColor: 'var(--card)',
-            borderColor: 'var(--border)',
-            color: 'var(--text-primary)',
-            minWidth: '80px',
-          }}
-          title={t('column.changeTypeTooltip', 'クリックしてデータ型を変更')}
-        >
-          {typeOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+            aria-label={
+              miniMetaTab === 'formula'
+                ? t('column.formula')
+                : miniMetaTab === 'initialValue'
+                  ? t('column.initialValue')
+                  : miniMetaTab === 'displayName'
+                    ? t('column.displayName')
+                    : t('common.description')
+            }
+            title={
+              miniMetaTab === 'formula'
+                ? t('column.formula')
+                : miniMetaTab === 'initialValue'
+                  ? t('column.initialValue')
+                  : miniMetaTab === 'displayName'
+                    ? t('column.displayName')
+                    : t('common.description')
+            }
+          />
+
+          <div
+            className="flex border rounded overflow-hidden"
+            style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {(
+              [
+                { key: 'formula' as const, label: t('column.formula') },
+                { key: 'initialValue' as const, label: t('column.initialValue') },
+                { key: 'displayName' as const, label: t('column.displayName') },
+                { key: 'description' as const, label: t('common.description') },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={handleMiniMetaTabClick(tab.key)}
+                className="px-1 py-0.5 text-[9px] border-r last:border-r-0"
+                style={{
+                  borderColor: 'var(--border)',
+                  backgroundColor: miniMetaTab === tab.key ? 'var(--section-bg-active)' : 'transparent',
+                  color: miniMetaTab === tab.key ? 'var(--text-primary)' : 'var(--text-muted)',
+                }}
+                aria-pressed={miniMetaTab === tab.key}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Key/Label indicators */}
@@ -575,7 +1040,19 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
             aria-label={t('table.columnName')}
           />
         ) : (
-          <span className="block truncate">{column.name}</span>
+          <span className="flex min-w-0 items-center gap-0.5">
+            <span className="min-w-0 truncate">{column.name}</span>
+            {column.constraints.required && (
+              <span
+                className="shrink-0 text-[10px] font-bold"
+                style={{ color: 'var(--text-primary)' }}
+                aria-label={t('column.constraints.required')}
+                title={t('column.constraints.required')}
+              >
+                *
+              </span>
+            )}
+          </span>
         )}
       </span>
 
@@ -585,11 +1062,6 @@ const ColumnRow = memo(({ column, tableId, isFirst, isLast }: ColumnRowProps) =>
       >
         {t(`columnTypes.${column.type}`)}
       </span>
-
-      {/* Required indicator */}
-      {column.constraints.required && (
-        <span className="text-red-400 text-[10px] font-bold">*</span>
-      )}
 
       {/* Right Handle (for outgoing connections) - only for key columns */}
       {column.isKey && (

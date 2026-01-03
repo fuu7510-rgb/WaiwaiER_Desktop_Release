@@ -53,6 +53,39 @@
 - 内部動作:
   - `updateColumn(tableId, column.id, { isKey: !column.isKey })`
 
+### SHOW（表示/非表示）切替
+- 表示: **目アイコン**（表示） / **目+スラッシュ**（非表示）
+- ツールチップ/ラベル: `table.toggleShow`
+- 機能: AppSheet Note Parameters の `IsHidden` を切り替えます。
+  - 表示（デフォルト）: `IsHidden` を保持しない（未設定）
+  - 非表示: `IsHidden: true`
+- 内部動作:
+  - 非表示にする場合は `Show_If` と競合しないよう `Show_If` を除去します（AppSheetの挙動に合わせるため）。
+
+### Editable（編集可能）切替
+- 表示: **鉛筆アイコン**（編集可） / **鉛筆+スラッシュ**（編集不可）
+- ツールチップ/ラベル: `table.toggleEditable`
+- 機能: AppSheet Note Parameters の `Editable` / `Editable_If` を切り替えます。
+  - 編集不可（OFF）: `Editable: false` を設定し、`Editable_If` はクリア（競合回避）
+  - 編集可（ON）: `Editable` は未設定に戻し、`Editable_If` が未設定なら `TRUE` を入れる（AppSheetの想定動作に寄せる）
+
+### Require?（必須）切替
+- 表示: `*`（必須を表すアイコン）
+- ツールチップ/ラベル: `table.toggleRequired`
+- 機能: カラムを必須（Required）として扱うかどうかを ON/OFF します。
+  - ON: `constraints.required: true` を設定し、`appSheet.IsRequired: true` を設定します
+  - OFF: `constraints.required: false` に戻し、`appSheet.IsRequired` は未設定に戻します
+- 競合回避:
+  - `appSheet.Required_If` がある場合と競合するため、切替時に `Required_If` はクリアします。
+
+### Delete（削除）
+- 表示: ゴミ箱アイコン
+- ツールチップ/ラベル: `common.delete`
+- 機能: 選択中カラムを削除します。
+- 表示位置: **右側ミニツールバーの右端（Require? の下）**
+- 内部動作:
+  - `deleteColumn(tableId, column.id)`
+
 影響範囲（重要）:
 - `isKey` が ON のカラムは、カラム行の右側に **外向きリレーション用ハンドル（source handle）** が表示されます。
   - つまり「キーにする」ことで、他テーブルへの参照（リレーション）を張る起点になれます。

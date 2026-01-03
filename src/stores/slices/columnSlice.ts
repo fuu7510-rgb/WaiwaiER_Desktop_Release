@@ -162,26 +162,54 @@ export const createColumnSlice: SliceCreator<ColumnSlice> = (set, get) => ({
   },
 
   reorderColumn: (tableId, columnId, newOrder) => {
+    const tableSnapshot = get().tables.find((t) => t.id === tableId);
+    const columnSnapshot = tableSnapshot?.columns.find((c) => c.id === columnId);
+    if (!tableSnapshot || !columnSnapshot) return;
+    const maxOrder = Math.max(0, tableSnapshot.columns.length - 1);
+    const normalizedNewOrder = Math.max(0, Math.min(Number(newOrder), maxOrder));
+    if (!Number.isFinite(normalizedNewOrder)) return;
+
+    // 同一位置への移動は何もしない（履歴/DB保存も発生させない）
+    if (columnSnapshot.order === normalizedNewOrder) return;
+
     set((state) => {
       const table = state.tables.find((t) => t.id === tableId);
       if (table) {
         const column = table.columns.find((c) => c.id === columnId);
         if (column) {
+          // orderがズレている/重複している場合があるので、まず表示順に揃えてから処理する。
+          table.columns.sort((a, b) => a.order - b.order);
+          for (let i = 0; i < table.columns.length; i++) {
+            table.columns[i].order = i;
+          }
+
+          const max = Math.max(0, table.columns.length - 1);
+          const nextOrder = Math.max(0, Math.min(Number(newOrder), max));
+          if (!Number.isFinite(nextOrder)) return;
+
           const oldOrder = column.order;
+          if (oldOrder === nextOrder) return;
+
           table.columns.forEach((c) => {
             if (c.id === columnId) {
-              c.order = newOrder;
-            } else if (oldOrder < newOrder) {
-              if (c.order > oldOrder && c.order <= newOrder) {
+              c.order = nextOrder;
+            } else if (oldOrder < nextOrder) {
+              if (c.order > oldOrder && c.order <= nextOrder) {
                 c.order--;
               }
             } else {
-              if (c.order >= newOrder && c.order < oldOrder) {
+              if (c.order >= nextOrder && c.order < oldOrder) {
                 c.order++;
               }
             }
           });
           table.columns.sort((a, b) => a.order - b.order);
+
+          // 最終的に必ず0..n-1へ正規化する（UI/D&Dがindex基準で安定する）
+          for (let i = 0; i < table.columns.length; i++) {
+            table.columns[i].order = i;
+          }
+
           table.updatedAt = new Date().toISOString();
           const synced = syncSampleRowsToTableSchema({ table, currentRows: state.sampleDataByTableId[tableId] });
           state.sampleDataByTableId = normalizeRefValues({ tables: state.tables, sampleDataByTableId: { ...state.sampleDataByTableId, [tableId]: synced } });
