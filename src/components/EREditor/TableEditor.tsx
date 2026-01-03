@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useERStore, useProjectStore, useUIStore } from '../../stores';
-import { Button, Input, ConfirmDialog } from '../common';
+import { Button, Input, ConfirmDialog, InfoTooltip } from '../common';
 import { TABLE_COLOR_PALETTE, TABLE_COLOR_PICKER_CLASSES } from '../../lib/constants';
 import type { Table } from '../../types';
 
@@ -93,12 +93,18 @@ export function TableEditor() {
 
       {/* エクスポート先 */}
       <div>
-        <label
-          className="block text-xs font-medium mb-1.5"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          {t('table.exportTargets')}
-        </label>
+        <div className="flex items-center">
+          <label
+            className="block text-xs font-medium mb-1.5"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            {t('table.exportTargets')}
+          </label>
+          <InfoTooltip
+            content={t('table.exportTargetsHelp')}
+            ariaLabel={t('table.exportTargetsHelpAria')}
+          />
+        </div>
         <div className="space-y-1">
           <label className="flex items-center gap-2 cursor-pointer">
             <input

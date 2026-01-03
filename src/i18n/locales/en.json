@@ -178,7 +178,9 @@
     "color": "Color",
     "createdAt": "Created",
     "updatedAt": "Updated",
-    "exportTargets": "Export targets"
+    "exportTargets": "Export targets",
+    "exportTargetsHelp": "Choose which export formats include this table. Turning a format OFF excludes this table from that export.",
+    "exportTargetsHelpAria": "About export targets"
   },
   "column": {
     "column": "Column",

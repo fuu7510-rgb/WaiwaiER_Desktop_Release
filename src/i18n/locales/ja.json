@@ -161,7 +161,9 @@
     "hasIncomingRelation": "他テーブルから参照されています",
     "createdAt": "作成日",
     "updatedAt": "更新日",
-    "exportTargets": "エクスポート先"
+    "exportTargets": "エクスポート先",
+    "exportTargetsHelp": "このテーブルをどの形式に出力するかを選べます。OFFにすると、その形式のエクスポートから除外されます。",
+    "exportTargetsHelpAria": "エクスポート先の説明"
   },
   "column": {
     "column": "カラム",
