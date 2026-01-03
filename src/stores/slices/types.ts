@@ -67,6 +67,7 @@ export interface ColumnActions {
   addColumn: (tableId: string, column?: Partial<Column>) => string | null;
   updateColumn: (tableId: string, columnId: string, updates: Partial<Column>) => void;
   deleteColumn: (tableId: string, columnId: string) => void;
+  duplicateColumn: (tableId: string, columnId: string) => string | null;
   reorderColumn: (tableId: string, columnId: string, newOrder: number) => void;
   applyCommonColumnsToTable: (tableId: string, commonColumns?: CommonColumnDefinition[]) => void;
   applyCommonColumnsToAllTables: (commonColumns: CommonColumnDefinition[]) => void;

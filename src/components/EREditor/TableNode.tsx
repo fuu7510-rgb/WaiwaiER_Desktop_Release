@@ -229,7 +229,7 @@ interface ColumnRowProps {
 
 const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowProps) => {
   const { t, i18n } = useTranslation();
-  const { selectColumn, selectedColumnId, reorderColumn, updateColumn, deleteColumn, relations } = useERStore();
+  const { selectColumn, selectedColumnId, reorderColumn, updateColumn, deleteColumn, duplicateColumn, relations } = useERStore();
   const zoom = useReactFlowStore((state) => state.transform[2]) ?? 1;
   const isSelected = selectedColumnId === column.id;
   const typeClass = columnTypeClasses[column.type] || 'bg-slate-500';
@@ -474,6 +474,16 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
     setDeleteHintPos(null);
     deleteColumn(tableId, column.id);
   }, [column.id, deleteArmed, deleteColumn, tableId]);
+
+  const handleDuplicate = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleteArmed(false);
+    setDeleteHintPos(null);
+    const newId = duplicateColumn(tableId, column.id);
+    if (newId) {
+      selectColumn(tableId, newId);
+    }
+  }, [column.id, duplicateColumn, selectColumn, tableId]);
 
   const handleToggleShow = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -732,6 +742,26 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
 
           <div className="flex flex-col">
             <div className="flex border-l" style={{ borderColor: 'var(--border)' }}>
+              <button
+                type="button"
+                onClick={handleDuplicate}
+                data-reorder-button="true"
+                onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                className="p-0.5 flex items-center justify-center border-r"
+                style={{
+                  borderColor: 'var(--border)',
+                  color: 'var(--text-muted)',
+                }}
+                title={t('column.duplicateColumn')}
+                aria-label={t('column.duplicateColumn')}
+              >
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 8h10v10H8z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 16H5a1 1 0 01-1-1V5a1 1 0 011-1h10a1 1 0 011 1v1" />
+                </svg>
+              </button>
+
               <div className="flex flex-col">
                 <div className="flex">
                   <button

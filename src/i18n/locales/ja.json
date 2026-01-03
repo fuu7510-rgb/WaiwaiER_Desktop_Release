@@ -166,6 +166,7 @@
     "column": "カラム",
     "columns": "カラム",
     "deleteColumn": "カラムを削除",
+    "duplicateColumn": "カラムをコピー",
     "deleteColumnConfirm": "カラム「{{name}}」を削除しますか？",
     "selectTypeTitle": "データ型を選択",
     "changeTypeTooltip": "クリックしてデータ型を変更",

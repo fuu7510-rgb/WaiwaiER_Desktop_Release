@@ -43,6 +43,70 @@ export const createColumnSlice: SliceCreator<ColumnSlice> = (set, get) => ({
     return newColumn.id;
   },
 
+  duplicateColumn: (tableId, columnId) => {
+    const tableSnapshot = get().tables.find((t) => t.id === tableId);
+    const sourceSnapshot = tableSnapshot?.columns.find((c) => c.id === columnId);
+    if (!tableSnapshot || !sourceSnapshot) return null;
+
+    const existingNames = new Set(
+      tableSnapshot.columns.map((c) => String(c.name ?? '').trim()).filter((v) => v.length > 0)
+    );
+    const baseName = `${sourceSnapshot.name}_copy`;
+    let nextName = baseName;
+    let suffix = 2;
+    while (existingNames.has(nextName)) {
+      nextName = `${baseName}${suffix}`;
+      suffix++;
+    }
+
+    const newId = uuidv4();
+
+    set((state) => {
+      const table = state.tables.find((t) => t.id === tableId);
+      if (!table) return;
+      const source = table.columns.find((c) => c.id === columnId);
+      if (!source) return;
+
+      // orderがズレている/重複している場合があるので、まず表示順に揃える。
+      table.columns.sort((a, b) => a.order - b.order);
+      for (let i = 0; i < table.columns.length; i++) {
+        table.columns[i].order = i;
+      }
+
+      const insertIndex = Math.min(Math.max(source.order + 1, 0), table.columns.length);
+      for (const c of table.columns) {
+        if (c.order >= insertIndex) c.order++;
+      }
+
+      const duplicated: Column = {
+        ...source,
+        id: newId,
+        name: nextName,
+        constraints: { ...source.constraints },
+        appSheet: source.appSheet ? { ...(source.appSheet as Record<string, unknown>) } : undefined,
+        dummyValues: source.dummyValues ? [...source.dummyValues] : undefined,
+        order: insertIndex,
+      };
+
+      table.columns.push(duplicated);
+      table.columns.sort((a, b) => a.order - b.order);
+      for (let i = 0; i < table.columns.length; i++) {
+        table.columns[i].order = i;
+      }
+
+      table.updatedAt = new Date().toISOString();
+      const synced = syncSampleRowsToTableSchema({ table, currentRows: state.sampleDataByTableId[tableId] });
+      state.sampleDataByTableId = normalizeRefValues({
+        tables: state.tables,
+        sampleDataByTableId: { ...state.sampleDataByTableId, [tableId]: synced },
+      });
+    });
+
+    get().saveHistory(`カラム「${sourceSnapshot.name}」をコピー`);
+    get().queueSaveToDB();
+    return newId;
+  },
+
   updateColumn: (tableId, columnId, updates) => {
     set((state) => {
       const table = state.tables.find((t) => t.id === tableId);

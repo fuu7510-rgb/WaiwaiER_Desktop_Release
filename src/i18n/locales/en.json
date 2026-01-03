@@ -183,6 +183,7 @@
     "column": "Column",
     "columns": "Columns",
     "deleteColumn": "Delete Column",
+    "duplicateColumn": "Duplicate Column",
     "deleteColumnConfirm": "Are you sure you want to delete column \"{{name}}\"?",
     "selectTypeTitle": "Select Data Type",
     "changeTypeTooltip": "Click to change data type",
