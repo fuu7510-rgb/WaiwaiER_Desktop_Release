@@ -25,7 +25,7 @@
 
 3) **トグル（チェックボックス）**
 - 例: 「表示?」「キー」「編集可能」「Label」「Unique」「検索対象」など。
-- 内部的には AppSheet の Note Parameters に書き出される値（例: `Show_If`, `Editable_If`）や、ER側の制約（例: `constraints.required`）を更新します。
+- 内部的には AppSheet の Note Parameters に書き出される値（例: `IsHidden`, `Show_If`, `Editable_If`）や、ER側の制約（例: `constraints.required`）を更新します。
 
 4) **プルダウン（Select）／入力（Input, textarea）**
 - 「ボタン」ではありませんが、右ペインの主要な操作なので併記します（押下・選択で状態が更新されます）。
@@ -99,11 +99,20 @@
 
 #### 表示
 - **Show?（表示?）**
-  - ON:
-    - `Show_If` が空なら `"TRUE"` をセットします。
-    - `IsHidden` は必ず未設定（`undefined`）にします（`Show_If` と `IsHidden` の二重指定を避ける）。
-  - OFF:
-    - `Show_If` と `IsHidden` を未設定に戻します。
+  - 役割: AppSheet Note Parameters の **`IsHidden`（非表示フラグ）** を切り替えるためのチェックです。
+  - ON（表示）:
+    - `IsHidden` を未設定（`undefined`）に戻します（= デフォルト動作で表示）。
+    - `Show_If` は変更しません（既に設定されている表示条件は維持します）。
+  - OFF（非表示）:
+    - `IsHidden: true` を設定します。
+    - `Show_If` と競合しないよう、`Show_If` は未設定にします。
+
+- **Show_If（表示条件（数式））**
+  - 入力が非空になったら:
+    - `Show_If` をそのまま設定します。
+    - `IsHidden` は未設定（`undefined`）に戻します（`Show_If` と `IsHidden` は排他）。
+  - 入力が空になったら:
+    - `Show_If` を空（未指定）に戻します（※`IsHidden` はそのまま）。
 
 #### データ検証（Data Validity）
 - **Require? (toggle)（必須（トグル））** ※Select（true/false/未指定）
