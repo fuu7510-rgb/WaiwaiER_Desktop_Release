@@ -89,21 +89,15 @@ export function TableView({
     })
   );
 
-  const columnById = useMemo(() => {
-    const m = new Map<string, (typeof table.columns)[number]>();
-    for (const c of table.columns) m.set(c.id, c);
-    return m;
-  }, [table]);
-
   const handleColumnDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
     const activeId = String(active.id);
     const overId = String(over.id);
     if (!activeId || !overId || activeId === overId) return;
-    const overColumn = columnById.get(overId);
-    if (!overColumn) return;
-    reorderColumn(table.id, activeId, overColumn.order);
+    const toIndex = table.columns.findIndex((c) => c.id === overId);
+    if (toIndex < 0) return;
+    reorderColumn(table.id, activeId, toIndex);
   };
 
   const filteredData = useMemo(() => {

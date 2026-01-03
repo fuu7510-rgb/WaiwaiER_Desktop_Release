@@ -36,7 +36,9 @@
     "required": "必須",
     "optional": "任意",
     "collapseSidebar": "サイドバーを折り畳む",
-    "expandSidebar": "サイドバーを展開"
+    "expandSidebar": "サイドバーを展開",
+    "on": "ON",
+    "off": "OFF"
   },
   "app": {
     "title": "WaiwaiER Desktop",
@@ -143,6 +145,11 @@
     "toggleKeyLabel": "キー/ラベル ON/OFF",
     "toggleKey": "キー ON/OFF",
     "toggleLabel": "ラベル ON/OFF",
+    "show": "SHOW",
+    "toggleShow": "SHOW を切り替え",
+    "toggleEditable": "編集可能 を切り替え",
+    "toggleRequired": "必須 を切り替え",
+    "deleteColumnArmedHint": "もう一回クリックでカラムの削除",
     "constraints": "制約",
     "deleteTable": "テーブルを削除",
     "deleteTableConfirm": "テーブル「{{name}}」を削除しますか？",
@@ -162,6 +169,13 @@
     "dummyData": "サンプルデータ",
     "dummyDataPreview": "プレビュー（シミュレーターと一致）",
     "dummyDataPlaceholder": "1行に1つ入力（複数行可）",
+    "formula": "数式",
+    "formulaPlaceholder": "数式（AppFormula）",
+    "initialValue": "初期値",
+    "initialValuePlaceholder": "初期値",
+    "displayName": "表示名",
+    "displayNamePlaceholder": "表示名",
+    "descriptionPlaceholder": "説明",
     "constraints": {
       "required": "必須",
       "unique": "ユニーク",

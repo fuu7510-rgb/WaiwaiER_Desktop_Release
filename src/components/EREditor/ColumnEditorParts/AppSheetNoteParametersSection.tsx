@@ -156,19 +156,18 @@ export function AppSheetNoteParametersSection({
           <label className="flex items-center gap-1.5 cursor-pointer">
             <input
               type="checkbox"
-              checked={getAppSheetString('Show_If').trim().length > 0}
+              checked={getTriState('IsHidden') !== 'true'}
               onChange={(e) => {
                 const checked = e.target.checked;
 
                 if (checked) {
-                  const current = getAppSheetString('Show_If').trim();
-                  // Hide: Show_If and IsHidden should not both be set.
-                  setAppSheetValues({ Show_If: current.length > 0 ? current : 'TRUE', IsHidden: undefined });
+                  // Show (default): remove IsHidden. Keep Show_If as-is.
+                  setAppSheetValues({ IsHidden: undefined });
                   return;
                 }
 
-                // Unset (same pattern as Required_If toggle).
-                setAppSheetValues({ Show_If: undefined, IsHidden: undefined });
+                // Hide: set IsHidden=true and avoid conflict with Show_If.
+                setAppSheetValues({ IsHidden: true, Show_If: undefined });
               }}
               className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20"
               style={{ borderColor: 'var(--input-border)' }}
