@@ -53,7 +53,7 @@ export function useAppSheetConflictResolution({
       }
     }
 
-    // Hide: Show_If and IsHidden should not both be set.
+    // Hide: Show_If (formula) and IsHidden (toggle) should not both be set.
     const showIf = typeof nextAppSheet?.Show_If === 'string' ? nextAppSheet.Show_If.trim() : '';
     const isHiddenVal = nextAppSheet?.IsHidden;
     if (showIf.length > 0 && (isHiddenVal === true || isHiddenVal === false)) {

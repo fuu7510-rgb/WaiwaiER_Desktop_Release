@@ -158,11 +158,14 @@ export function Simulator() {
     return selectedTable?.columns.find((c) => c.isKey)?.id ?? selectedTable?.columns[0]?.id;
   }, [selectedTable]);
 
-  const makeSelectedRowKey = (row: SampleRow, rowIndex: number): string => {
-    const keyValue = selectedTableKeyColumnId ? row[selectedTableKeyColumnId] : undefined;
-    const keyString = String(keyValue ?? '').trim();
-    return keyString ? `${selectedTableKeyColumnId}:${keyString}` : `row:${rowIndex}`;
-  };
+  const makeSelectedRowKey = useCallback(
+    (row: SampleRow, rowIndex: number): string => {
+      const keyValue = selectedTableKeyColumnId ? row[selectedTableKeyColumnId] : undefined;
+      const keyString = String(keyValue ?? '').trim();
+      return keyString ? `${selectedTableKeyColumnId}:${keyString}` : `row:${rowIndex}`;
+    },
+    [selectedTableKeyColumnId]
+  );
 
   // 関連セクションの計算
   const relatedSections: RelatedSection[] = useMemo(() => {

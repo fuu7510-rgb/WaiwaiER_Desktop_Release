@@ -200,6 +200,26 @@ export const useUIStore = create<UIState>()(
     }),
     {
       name: 'waiwaier-ui',
+      version: 1,
+      migrate: (persisted: unknown) => {
+        if (typeof persisted !== 'object' || persisted === null) return persisted as UIState;
+        const state = persisted as UIState;
+        const settings = (state as unknown as { settings?: AppSettings }).settings;
+        const output = settings?.noteParamOutputSettings as unknown;
+
+        if (output && typeof output === 'object' && !Array.isArray(output)) {
+          const out = output as Record<string, unknown>;
+          // Backward compatibility: `DEFAULT` -> `Default`
+          if (typeof out.DEFAULT === 'boolean' && typeof out.Default !== 'boolean') {
+            out.Default = out.DEFAULT;
+          }
+          if (Object.prototype.hasOwnProperty.call(out, 'DEFAULT')) {
+            delete out.DEFAULT;
+          }
+        }
+
+        return state;
+      },
       partialize: (state) => ({
         settings: state.settings,
         isSidebarOpen: state.isSidebarOpen,

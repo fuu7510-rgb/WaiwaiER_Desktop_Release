@@ -65,6 +65,8 @@ Note Parametersは以下のタイミングで最も効果的に機能します�
 
 > **重要**: テーブルの再生成に依存せず、新規カラム追加時や移動時にNote Parametersを設定することが推奨されます。
 
+補足: ただし `Show_If` / `Required_If` / `Editable_If` については、Regenerate schema（構造再生成）でも Note Parameters が強制上書きされることを確認しています。最新状況は [docs/AppSheet/NOTE_PARAMETERS_SUPPORT_STATUS.md](docs/AppSheet/NOTE_PARAMETERS_SUPPORT_STATUS.md) を参照してください。
+
 ## Excelエクスポート時のメモ機能（推奨フロー）
 
 Excelエクスポート機能でも、各カラムのヘッダーセルにAppSheetメモが自動的に**ノート（Note / レガシーメモ）**として追加されます。これにより：
@@ -194,6 +196,37 @@ Note Parametersで使用できる主要な設定項目は以下の通りです�
 |--------|-------------------------|----------|------|
 | `Editable_If` | Editable? (formula) | String | 編集可能条件を数式で指定 |
 | `Reset_If` | Reset on edit? | String | 編集時にリセットする条件 |
+
+## WaiwaiER Desktop のUI仕様（重要）
+
+WaiwaiER Desktop のカラム設定UIでは、AppSheetのベストプラクティス（「トグル系」と「数式系」を同時に出さない）を守るため、以下のルールで動作します。
+
+### 対象項目（4種類）
+
+- Require?（トグル）: `IsRequired` / 数式: `Required_If`
+- Show?（トグル）: `IsHidden` / 数式: `Show_If`
+- Editable?（トグル）: `Editable` / 数式: `Editable_If`
+- Reset on edit?（3値）: `Reset_If`
+
+### 共通ルール：数式が入っている間は必ず Unset
+
+以下の「数式欄」に文字が入っている場合、対応するトグル/3値UIは **必ず `Unset` 表示**になり、**選択変更できません（無効化）**。
+
+- `Required_If` が非空 → Require? は Unset（変更不可）
+- `Show_If` が非空 → Show? は Unset（変更不可）
+
+この状態でアプリが勝手に true/false へ変化することはありません。ユーザーが数式を削除（空に）してから、トグル/3値を変更できます。
+
+### Reset on edit?（`Reset_If`）の扱い
+
+`Reset_If` は AppSheet 側が「条件式」として扱うため、WaiwaiER Desktop では次のように解釈します。
+
+- `Reset_If` が空 → 3値UIは Unset
+- `Reset_If` が `TRUE` / `FALSE`（大文字小文字は区別しない）→ 3値UIは true/false
+- `Reset_If` が上記以外（任意の式）→ 3値UIは Unset（変更不可）
+
+（任意の式を使う場合は、`Reset_If` 入力欄に直接式を入力します。true/false を選びたい場合は式を消してから選択してください。）
+（`Editable_If`も同様）
 
 ### バリデーション設定
 
@@ -343,23 +376,194 @@ Note Parameter Workshop の資料では、`TypeAuxData` / `BaseTypeQualifier` �
 
 ### TypeAuxDataの例
 
-#### Ref型（他テーブルへの参照）
+`TypeAuxData` はメタキー（AppSheetエディタに直接対応しない）であり、データ型固有のオプションを **JSON文字列** として記述します。
+Note Parameters 内でネストしたJSONオブジェクトを表現するため、内部の `"` は `\"` にエスケープする必要があります。
+
+---
+
+## TypeAuxData 内で使用可能なキー一覧
+
+以下は `TypeAuxData` のJSON文字列内に書くことができるキーの一覧です。
+
+> **注意**: 基本的には「トップレベルキー」を先に試すことを推奨します（[重要: TypeAuxData を使うべきか？](#重要-typeauxdata-を使うべきか資料間の差分) 参照）。
+> トップレベルが効かない場合に `TypeAuxData` 形式を使用してください。
+
+### Ref型（参照）関連
+
+| TypeAuxData内キー | 説明 | 対応トップレベルキー |
+|-------------------|------|---------------------|
+| `RefTable` | 参照先テーブル名 | `ReferencedTableName` |
+| `RefKeyColumn` | 参照先キーカラム名 | `ReferencedKeyColumn` |
+| `RefType` | 参照先キーカラムの型 | `ReferencedType` |
+| `ReferencedTableName` | 参照先テーブル名（別表現） | 同名 |
+| `ReferencedKeyColumn` | 参照先キーカラム名（別表現） | 同名 |
+| `ReferencedType` | 参照先キーカラムの型（別表現） | 同名 |
+
+#### 例: Ref型（基本）
 
 ```json
 AppSheet:{"Type":"Ref","TypeAuxData":"{\"RefTable\":\"顧客\"}"}
 ```
 
-#### Enum型（選択肢）
+#### 例: Ref型（キーカラム指定）
+
+```json
+AppSheet:{"Type":"Ref","TypeAuxData":"{\"RefTable\":\"顧客\",\"RefKeyColumn\":\"顧客ID\",\"RefType\":\"Text\"}"}
+```
+
+---
+
+### Enum型（選択肢）関連
+
+| TypeAuxData内キー | 説明 | 対応トップレベルキー |
+|-------------------|------|---------------------|
+| `EnumValues` | 選択肢の配列（各項目はダブルクォート） | `EnumValues` |
+| `BaseType` | ベース型（Text, LongText など） | `BaseType` |
+| `ReferencedRootTableName` | 参照テーブル名（enum base type reference用） | `ReferencedRootTableName` |
+| `EnumInputMode` | 入力モード（Auto, Buttons, Stack, Dropdown） | `EnumInputMode` |
+| `AllowOtherValues` | その他の値を許可 | `AllowOtherValues` |
+| `AutoCompleteOtherValues` | その他の値の自動補完 | `AutoCompleteOtherValues` |
+
+#### 例: Enum型（選択肢リスト）
 
 ```json
 AppSheet:{"Type":"Enum","TypeAuxData":"{\"EnumValues\":[\"電子機器\",\"衣料品\",\"食品\"],\"BaseType\":\"LongText\"}"}
 ```
 
-#### Enum型（参照テーブルベース）
+#### 例: Enum型（ボタン入力モード）
+
+```json
+AppSheet:{"Type":"Enum","TypeAuxData":"{\"EnumValues\":[\"未処理\",\"処理中\",\"完了\"],\"BaseType\":\"Text\",\"EnumInputMode\":\"Buttons\"}"}
+```
+
+#### 例: Enum型（参照テーブルベース）
 
 ```json
 AppSheet:{"Type":"Enum","TypeAuxData":"{\"ReferencedRootTableName\":\"カテゴリマスタ\",\"BaseType\":\"Text\"}"}
 ```
+
+---
+
+### 数値型（Number, Decimal, Price, Percent）関連
+
+| TypeAuxData内キー | 説明 | 対応トップレベルキー |
+|-------------------|------|---------------------|
+| `MinValue` | 最小値 | `MinValue` |
+| `MaxValue` | 最大値 | `MaxValue` |
+| `DecimalDigits` | 小数点以下の桁数 | `DecimalDigits` |
+| `NumericDigits` | 数値桁数 | `NumericDigits` |
+| `StepValue` | 増減ステップ値 | `StepValue` |
+| `ShowThousandsSeparator` | 千の位区切りを表示 | `ShowThousandsSeparator` |
+| `NumberDisplayMode` | 表示モード（Auto, Standard, Range, Label） | `NumberDisplayMode` |
+| `UpdateMode` | 更新モード（Accumulate, Reset） | `UpdateMode` |
+
+#### 例: Number型（範囲指定）
+
+```json
+AppSheet:{"Type":"Number","TypeAuxData":"{\"MinValue\":0,\"MaxValue\":100,\"DecimalDigits\":2}"}
+```
+
+#### 例: Decimal型（ステップ値付き）
+
+```json
+AppSheet:{"Type":"Decimal","TypeAuxData":"{\"MinValue\":0,\"MaxValue\":1000,\"StepValue\":0.5,\"DecimalDigits\":2}"}
+```
+
+---
+
+### テキスト型（Text, LongText）関連
+
+| TypeAuxData内キー | 説明 | 対応トップレベルキー |
+|-------------------|------|---------------------|
+| `LongTextFormatting` | フォーマット（Plain Text, Markdown, HTML） | `LongTextFormatting` |
+| `ItemSeparator` | 項目区切り文字 | `ItemSeparator` |
+
+#### 例: LongText型（Markdown形式）
+
+```json
+AppSheet:{"Type":"LongText","TypeAuxData":"{\"LongTextFormatting\":\"Markdown\"}"}
+```
+
+---
+
+### 条件式・数式関連（WaiwaiER Desktop推奨形式）
+
+以下のキーは、トップレベルでは不安定な場合があり、`TypeAuxData` 内に入れることでAppSheetが認識するケースがあります。
+**WaiwaiER Desktop のエクスポートでは、これらの式キーを `TypeAuxData` 内に出力します。**
+
+| TypeAuxData内キー | 説明 | 対応トップレベルキー |
+|-------------------|------|---------------------|
+| `Show_If` | 表示条件（数式） | `Show_If` |
+| `Required_If` | 必須条件（数式） | `Required_If` |
+| `Editable_If` | 編集可能条件（数式） | `Editable_If` |
+| `Reset_If` | リセット条件（数式） | `Reset_If` |
+
+#### 例: Show_If（条件付き表示）
+
+```json
+AppSheet:{"Type":"Text","TypeAuxData":"{\"Show_If\":\"[ステータス]=\\\"処理中\\\"\"}"}
+```
+
+#### 例: Show_If（context関数使用）
+
+```json
+AppSheet:{"Type":"Text","TypeAuxData":"{\"Show_If\":\"context(\\\"ViewType\\\") = \\\"Table\\\"\"}"}
+```
+
+> **エスケープの注意**: `TypeAuxData` の中にさらに `"` を含む文字列（式の中の `"処理中"` など）がある場合、
+> 二重エスケープ `\\\"` が必要になります。
+
+#### 例: 複合設定（Show_If + LongTextFormatting）
+
+```json
+AppSheet:{"Type":"LongText","TypeAuxData":"{\"LongTextFormatting\":\"Plain Text\",\"Show_If\":\"context(\\\"ViewType\\\") = \\\"Table\\\"\"}"}
+```
+
+#### 例: Reset_If（編集時リセット条件）
+
+```json
+AppSheet:{"Type":"Text","TypeAuxData":"{\"Reset_If\":\"TRUE\"}"}
+```
+
+#### 例: Reset_If（条件付きリセット）
+
+```json
+AppSheet:{"Type":"Number","TypeAuxData":"{\"Reset_If\":\"[ステータス]=\\\"完了\\\"\"}"}
+```
+
+---
+
+### その他のキー
+
+| TypeAuxData内キー | 説明 | 対応トップレベルキー |
+|-------------------|------|---------------------|
+| `InputMode` | 入力モード（Auto, Buttons, Dropdown） | `InputMode` |
+
+---
+
+## TypeAuxData エスケープ早見表
+
+`TypeAuxData` はJSON文字列なので、内部の `"` をエスケープする必要があります。
+
+| レイヤー | エスケープ | 例 |
+|----------|-----------|-----|
+| トップレベルJSON | 不要 | `{"Type":"Text"}` |
+| TypeAuxData内（1層目） | `\"` | `"{\"RefTable\":\"顧客\"}"` |
+| TypeAuxData内の文字列（2層目） | `\\\"` | `"{\"Show_If\":\"[Status]=\\\"Active\\\"\"}"` |
+
+### 完全な例
+
+以下は、Note Parameters として最終的にセルのメモに入る形です：
+
+```
+AppSheet:{"Type":"Ref","TypeAuxData":"{\"RefTable\":\"顧客\",\"RefKeyColumn\":\"ID\"}"}
+```
+
+分解すると：
+
+1. 外側: `AppSheet:{...}` — Note Parametersのプレフィックス
+2. トップレベル: `{"Type":"Ref","TypeAuxData":"..."}` — JSON
+3. TypeAuxData値: `"{\"RefTable\":\"顧客\",\"RefKeyColumn\":\"ID\"}"` — エスケープされたJSON文字列
 
 ## 手順（Excel→AppSheet）
 
@@ -544,6 +748,30 @@ AppSheet:{"IsLabel":true}
 ```json
 AppSheet:{"Show_If":"[ステータス]=\"処理中\""}
 ```
+
+#### 条件付き表示: 代替（TypeAuxData形式 / `context("ViewType")` 系）
+
+環境によっては、トップレベルの `Show_If` が反映されない/不安定なケースがあります。
+その場合、`Show_If` を `TypeAuxData`（JSON文字列）側へ入れることで AppSheet が認識することがあります。
+
+ポイントは、`TypeAuxData` が **「JSONを文字列として埋め込む」** ため、さらにその中の `Show_If` 文字列に含まれる `"` が
+外側レイヤーでは `\\"` になる（= 二重エスケープが必要）点です。
+
+```json
+AppSheet:{"Type":"Text","TypeAuxData":"{\"Show_If\":\"context(\\\"ViewType\\\") = \\\"Table\\\"\"}"}
+```
+
+※ 上記の `context(\\\"ViewType\\\") = \\\"Table\\\"` は例です。ここには用途に合わせた `Show_If` の数式を記述してください。
+
+（ユーザー検証例）
+
+```json
+AppSheet:{"IsRequired":false,"Type":"Text","Default":"","TypeAuxData":"{\"LongTextFormatting\":\"Plain Text\",\"Show_If\":\"context(\\\"ViewType\\\") = \\\"Table\\\"\"}","AppFormula":"\" \"","DisplayName":"\" \"","IsLabel":false,"IsKey":false,"IsScannable":false,"IsNfcScannable":false,"Searchable":false,"IsSensitive":false}
+```
+
+> 注意:
+> - キー名は大文字小文字を区別します。初期値は通常 `Default` が正で、`DEFAULT` は環境によって認識されないことがあります。
+> - `Show_If` などの数式系は、まずトップレベルを試し、ダメなら `TypeAuxData` 形式を試すのが安全です。
 
 ### 条件付き必須
 

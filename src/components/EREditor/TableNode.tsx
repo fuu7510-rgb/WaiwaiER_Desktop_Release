@@ -12,6 +12,7 @@ import { TABLE_NODE_STYLE_CLASSES, DEFAULT_TABLE_COLOR } from '../../lib/constan
 import { useColumnEditorLabels } from './ColumnEditorParts/hooks/useColumnEditorLabels';
 import { useColumnEditorOptions } from './ColumnEditorParts/hooks/useColumnEditorOptions';
 import { useAppSheetSanitizer } from './ColumnEditorParts/hooks/useAppSheetSanitizer';
+import { Tooltip } from '../common';
 
 interface TableNodeData {
   table: Table;
@@ -249,12 +250,39 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
     return isHiddenVal !== true;
   }, [column.appSheet]);
 
-  const isEditable = useMemo(() => {
-    const editableVal = (column.appSheet as Record<string, unknown> | undefined)?.Editable;
-    return editableVal !== false;
+  const showIfNonEmpty = useMemo(() => {
+    const v = (column.appSheet as Record<string, unknown> | undefined)?.Show_If;
+    return typeof v === 'string' && v.trim().length > 0;
+  }, [column.appSheet]);
+
+  const editableState = useMemo((): 'unset' | 'true' | 'false' => {
+    const appSheet = column.appSheet as Record<string, unknown> | undefined;
+    const editableIf = typeof appSheet?.Editable_If === 'string' ? appSheet.Editable_If.trim() : '';
+    const editableUpper = editableIf.toUpperCase();
+    if (editableUpper === 'TRUE') return 'true';
+    if (editableUpper === 'FALSE') return 'false';
+    // Fallback to legacy Editable key for compatibility
+    const editableVal = appSheet?.Editable;
+    if (editableVal === true) return 'true';
+    if (editableVal === false) return 'false';
+    return 'unset';
+  }, [column.appSheet]);
+
+  const editableHasFormula = useMemo(() => {
+    const v = (column.appSheet as Record<string, unknown> | undefined)?.Editable_If;
+    if (typeof v !== 'string') return false;
+    const trimmed = v.trim();
+    const upper = trimmed.toUpperCase();
+    // TRUE/FALSE are not formulas, only other non-empty strings are formulas
+    return trimmed.length > 0 && upper !== 'TRUE' && upper !== 'FALSE';
   }, [column.appSheet]);
 
   const isRequired = !!column.constraints.required;
+
+  const requiredIfNonEmpty = useMemo(() => {
+    const v = (column.appSheet as Record<string, unknown> | undefined)?.Required_If;
+    return typeof v === 'string' && v.trim().length > 0;
+  }, [column.appSheet]);
 
   const currentAppFormula = useMemo(() => {
     const v = (column.appSheet as Record<string, unknown> | undefined)?.AppFormula;
@@ -316,14 +344,18 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
 
   useEffect(() => {
     if (!isSelected) {
-      setDeleteArmed(false);
-      setDeleteHintPos(null);
+      Promise.resolve().then(() => {
+        setDeleteArmed(false);
+        setDeleteHintPos(null);
+      });
     }
   }, [isSelected]);
 
   useEffect(() => {
-    setDeleteArmed(false);
-    setDeleteHintPos(null);
+    Promise.resolve().then(() => {
+      setDeleteArmed(false);
+      setDeleteHintPos(null);
+    });
   }, [column.id]);
 
   useEffect(() => {
@@ -356,7 +388,9 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
 
   useEffect(() => {
     if (!isEditingMiniMeta) {
-      setMiniMetaDraft(currentMiniMetaValue);
+      Promise.resolve().then(() => {
+        setMiniMetaDraft(currentMiniMetaValue);
+      });
     }
   }, [currentMiniMetaValue, isEditingMiniMeta]);
 
@@ -447,6 +481,11 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
     setDeleteHintPos(null);
 
     const appSheet = column.appSheet as Record<string, unknown> | undefined;
+    const showIf = typeof appSheet?.Show_If === 'string' ? appSheet.Show_If.trim() : '';
+    if (showIf.length > 0) {
+      // Keep consistent with ColumnEditor: when Show_If is present, Show? (toggle) must be Unset and immutable.
+      return;
+    }
     const isHiddenVal = appSheet?.IsHidden;
     const currentlyShown = isHiddenVal !== true;
 
@@ -467,25 +506,28 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
     setDeleteArmed(false);
     setDeleteHintPos(null);
 
-    const appSheet = column.appSheet as Record<string, unknown> | undefined;
-    const editableVal = appSheet?.Editable;
-    const currentlyEditable = editableVal !== false;
-
-    if (currentlyEditable) {
-      // Not editable: set Editable=false and avoid conflict with Editable_If.
-      const nextAppSheet = pruneAppSheet({ ...(appSheet ?? {}), Editable: false }, ['Editable_If']);
-      updateColumn(tableId, column.id, { appSheet: nextAppSheet });
+    if (editableHasFormula) {
+      // Keep consistent with ColumnEditor: when Editable_If contains an expression (not TRUE/FALSE), toggle is locked.
       return;
     }
 
-    // Editable: prefer Editable_If (AppSheet behavior). If not set, default to TRUE.
-    const editableIf = typeof appSheet?.Editable_If === 'string' ? appSheet.Editable_If.trim() : '';
-    const nextAppSheet = pruneAppSheet(
-      { ...(appSheet ?? {}), Editable_If: editableIf.length > 0 ? editableIf : 'TRUE' },
-      ['Editable']
-    );
+    const appSheet = column.appSheet as Record<string, unknown> | undefined;
+
+    // Cycle through 3 states: unset → true → false → unset
+    let nextAppSheet: Record<string, unknown> | undefined;
+    if (editableState === 'unset') {
+      // unset → true
+      nextAppSheet = pruneAppSheet({ ...(appSheet ?? {}), Editable_If: 'TRUE' }, ['Editable']);
+    } else if (editableState === 'true') {
+      // true → false
+      nextAppSheet = pruneAppSheet({ ...(appSheet ?? {}), Editable_If: 'FALSE' }, ['Editable']);
+    } else {
+      // false → unset
+      nextAppSheet = pruneAppSheet(appSheet, ['Editable_If', 'Editable']);
+    }
+
     updateColumn(tableId, column.id, { appSheet: nextAppSheet });
-  }, [column.appSheet, column.id, pruneAppSheet, tableId, updateColumn]);
+  }, [column.appSheet, column.id, editableHasFormula, editableState, pruneAppSheet, tableId, updateColumn]);
 
   const handleToggleRequired = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -494,6 +536,12 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
 
     const nextRequired = !isRequired;
     const appSheet = column.appSheet as Record<string, unknown> | undefined;
+
+    const requiredIf = typeof appSheet?.Required_If === 'string' ? appSheet.Required_If.trim() : '';
+    if (requiredIf.length > 0) {
+      // Keep consistent with ColumnEditor: when Required_If is present, Require? (toggle) must be Unset and immutable.
+      return;
+    }
 
     const nextAppSheet = nextRequired
       ? pruneAppSheet({ ...(appSheet ?? {}), IsRequired: true }, ['Required_If'])
@@ -703,56 +751,61 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
                     </svg>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={handleToggleShow}
-                    data-reorder-button="true"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className="p-0.5 border-l flex items-center justify-center"
-                    style={{
-                      borderColor: 'var(--border)',
-                      backgroundColor: isShown ? 'var(--section-bg-active)' : 'transparent',
-                      color: isShown ? 'var(--text-primary)' : 'var(--text-muted)',
-                    }}
-                    title={t('table.toggleShow')}
-                    aria-label={`${t('table.toggleShow')}: ${isShown ? t('common.on') : t('common.off')}`}
-                  >
-                    {isShown ? (
-                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                        />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    ) : (
-                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10.477 10.477A3 3 0 0012 15a3 3 0 002.523-4.523"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6.228 6.228C4.434 7.36 3.091 9.06 2.458 12c1.274 4.057 5.065 7 9.542 7 1.63 0 3.16-.39 4.5-1.08"
-                        />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.88 9.88A3 3 0 0115 12" />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M17.772 17.772C19.566 16.64 20.909 14.94 21.542 12 20.268 7.943 16.477 5 12 5c-1.63 0-3.16.39-4.5 1.08"
-                        />
-                      </svg>
-                    )}
-                  </button>
+                  <Tooltip disabled={!showIfNonEmpty} content={t('table.lockedByShowIf')}>
+                    <button
+                      type="button"
+                      onClick={handleToggleShow}
+                      data-reorder-button="true"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className={`p-0.5 border-l flex items-center justify-center ${showIfNonEmpty ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      style={{
+                        borderColor: 'var(--border)',
+                        backgroundColor: isShown ? 'var(--section-bg-active)' : 'transparent',
+                        color: isShown ? 'var(--text-primary)' : 'var(--text-muted)',
+                      }}
+                      aria-label={
+                        showIfNonEmpty
+                          ? labelEnJa("Show toggle locked by Show_If", 'Show_Ifでロック中（表示トグル変更不可）')
+                          : `${t('table.toggleShow')}: ${isShown ? t('common.on') : t('common.off')}`
+                      }
+                    >
+                      {isShown ? (
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M10.477 10.477A3 3 0 0012 15a3 3 0 002.523-4.523"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6.228 6.228C4.434 7.36 3.091 9.06 2.458 12c1.274 4.057 5.065 7 9.542 7 1.63 0 3.16-.39 4.5-1.08"
+                          />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.88 9.88A3 3 0 0115 12" />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M17.772 17.772C19.566 16.64 20.909 14.94 21.542 12 20.268 7.943 16.477 5 12 5c-1.63 0-3.16.39-4.5 1.08"
+                          />
+                        </svg>
+                      )}
+                    </button>
+                  </Tooltip>
                 </div>
 
                 <div className="flex border-t" style={{ borderColor: 'var(--border)' }}>
@@ -773,60 +826,70 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
                     </svg>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={handleToggleEditable}
-                    data-reorder-button="true"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className="p-0.5 border-l flex items-center justify-center"
-                    style={{
-                      borderColor: 'var(--border)',
-                      backgroundColor: isEditable ? 'var(--section-bg-active)' : 'transparent',
-                      color: isEditable ? 'var(--text-primary)' : 'var(--text-muted)',
-                    }}
-                    title={t('table.toggleEditable')}
-                    aria-label={`${t('table.toggleEditable')}: ${isEditable ? t('common.on') : t('common.off')}`}
-                  >
-                    {isEditable ? (
-                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 20h9" />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z"
-                        />
-                      </svg>
-                    ) : (
-                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 20h9" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 20l1-4 7.5-7.5" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.5 5.5l4 4" />
-                      </svg>
-                    )}
-                  </button>
+                  <Tooltip disabled={!editableHasFormula} content={t('table.lockedByEditableIf')}>
+                    <button
+                      type="button"
+                      onClick={handleToggleEditable}
+                      data-reorder-button="true"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className={`p-0.5 border-l flex items-center justify-center ${editableHasFormula ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      style={{
+                        borderColor: 'var(--border)',
+                        backgroundColor: editableState === 'false' ? 'transparent' : 'var(--section-bg-active)',
+                        color: editableState === 'true' ? '#4ade80' : editableState === 'unset' ? 'var(--text-primary)' : 'var(--text-muted)',
+                      }}
+                      aria-label={
+                        editableHasFormula
+                          ? labelEnJa('Editable toggle locked by Editable_If', 'Editable_Ifでロック中（編集トグル変更不可）')
+                          : `${t('table.toggleEditable')}: ${editableState === 'true' ? 'TRUE' : editableState === 'false' ? 'FALSE' : 'Unset'}`
+                      }
+                    >
+                      {editableState === 'false' ? (
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 20h9" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 20l1-4 7.5-7.5" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.5 5.5l4 4" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 20h9" />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z"
+                          />
+                        </svg>
+                      )}
+                    </button>
+                  </Tooltip>
                 </div>
               </div>
 
               <div className="flex flex-col border-l self-stretch" style={{ borderColor: 'var(--border)' }}>
-                <button
-                  type="button"
-                  onClick={handleToggleRequired}
-                  data-reorder-button="true"
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  className="p-0.5 flex-1 flex items-center justify-center"
-                  style={{
-                    backgroundColor: isRequired ? 'var(--section-bg-active)' : 'transparent',
-                    color: isRequired ? 'var(--text-primary)' : 'var(--text-muted)',
-                  }}
-                  title={t('table.toggleRequired')}
-                  aria-label={`${t('table.toggleRequired')}: ${isRequired ? t('common.on') : t('common.off')}`}
-                >
-                  <span className="text-[10px] font-bold leading-none" aria-hidden="true">*</span>
-                </button>
+                <Tooltip disabled={!requiredIfNonEmpty} content={t('table.lockedByRequiredIf')}>
+                  <button
+                    type="button"
+                    onClick={handleToggleRequired}
+                    data-reorder-button="true"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className={`p-0.5 flex-1 flex items-center justify-center ${requiredIfNonEmpty ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    style={{
+                      backgroundColor: isRequired ? 'var(--section-bg-active)' : 'transparent',
+                      color: isRequired ? 'var(--text-primary)' : 'var(--text-muted)',
+                    }}
+                    aria-label={
+                      requiredIfNonEmpty
+                        ? labelEnJa('Required toggle locked by Required_If', 'Required_Ifでロック中（必須トグル変更不可）')
+                        : `${t('table.toggleRequired')}: ${isRequired ? t('common.on') : t('common.off')}`
+                    }
+                  >
+                    <span className="text-[10px] font-bold leading-none" aria-hidden="true">*</span>
+                  </button>
+                </Tooltip>
 
                 <button
                   type="button"

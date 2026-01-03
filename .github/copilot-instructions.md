@@ -69,7 +69,6 @@
 
 ## 4. コンテキストのヒント
 - **シミュレーターの挙動**で迷った際は、「AppSheetではどう振る舞うか？」を基準に考え、`docs/AppSheet/` を確認してください。
-- **コードの実装**で迷った際は、`references/XppSheetSimulator/` の既存ロジックを確認してください。
 - **AppFormula関数**のサポート状況は `docs/SIMULATOR_APPFORMULA_SUPPORTED_FUNCTIONS.md` を参照してください。
 
 ## 5. データ互換性ルール

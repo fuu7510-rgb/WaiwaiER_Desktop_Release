@@ -149,6 +149,9 @@
     "toggleShow": "SHOW を切り替え",
     "toggleEditable": "編集可能 を切り替え",
     "toggleRequired": "必須 を切り替え",
+    "lockedByShowIf": "Show_Ifに式があるため変更できません",
+    "lockedByEditableIf": "Editable_Ifに式があるため変更できません",
+    "lockedByRequiredIf": "Required_Ifに式があるため変更できません",
     "deleteColumnArmedHint": "もう一回クリックでカラムの削除",
     "constraints": "制約",
     "deleteTable": "テーブルを削除",
@@ -267,7 +270,15 @@
       "title": "Note Parameters 出力設定",
       "description": "Excelエクスポート時にヘッダーセルのNoteに出力するパラメーターを選択します。AppSheet側で対応状況が確認済みのパラメーターのみ出力することを推奨します。",
       "resetToDefault": "デフォルトに戻す",
-      "hint": "✅確認済み・⚠️不安定のパラメーターは比較的安全に出力できます。🔍未検証・❌未対応のパラメーターは、AppSheet側で正しく認識されない可能性があります。"
+      "hint": "☑は確認済み、✗は未対応/反映されないを示します。",
+      "tableHeaders": {
+        "import": "取込",
+        "regenerate": "再生成",
+        "output": "出力",
+        "keyName": "キー名",
+        "note": "備考"
+      },
+      "legend": "凡例：✓=AppSheetに反映される可能性が高い（確認済み/不安定）、✕=反映されない/未検証（未対応/未検証）"
     },
     "tableCreationRules": {
       "title": "新規作成時のルール"

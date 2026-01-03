@@ -4,6 +4,8 @@ use serde_json::Value;
 use std::collections::HashMap;
 
 const RAW_NOTE_OVERRIDE_KEY: &str = "__AppSheetNoteOverride";
+const NOTE_PARAM_DEFAULT_KEY: &str = "Default";
+const NOTE_PARAM_DEFAULT_KEY_LEGACY: &str = "DEFAULT";
 
 // フロントエンドから受け取るカラム制約の型
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -122,18 +124,20 @@ fn get_note_param_status(key: &str) -> NoteParamStatus {
     match key {
         // 基本設定
         "Type" => NoteParamStatus::Verified,
-        "IsRequired" => NoteParamStatus::Untested,
-        "Required_If" => NoteParamStatus::Untested,
-        "IsHidden" => NoteParamStatus::Untested,
-        "Show_If" => NoteParamStatus::Untested,
-        "DisplayName" => NoteParamStatus::Untested,
-        "Description" => NoteParamStatus::Untested,
-        "DEFAULT" => NoteParamStatus::Untested,
-        "AppFormula" => NoteParamStatus::Untested,
+        "IsRequired" => NoteParamStatus::Verified,
+        "Required_If" => NoteParamStatus::Verified,
+        "IsHidden" => NoteParamStatus::Unstable,
+        "Show_If" => NoteParamStatus::Verified,
+        "DisplayName" => NoteParamStatus::Unstable,
+        "Description" => NoteParamStatus::Verified,
+        // NOTE: Key names are case-sensitive in AppSheet.
+        // `Default` is correct; `DEFAULT` is a legacy mistake kept for backward compatibility.
+        NOTE_PARAM_DEFAULT_KEY | NOTE_PARAM_DEFAULT_KEY_LEGACY => NoteParamStatus::Verified,
+        "AppFormula" => NoteParamStatus::Verified,
         
         // 識別・検索設定
         "IsKey" => NoteParamStatus::Verified,
-        "IsLabel" => NoteParamStatus::Unstable, // 環境によって反映されないケースあり
+        "IsLabel" => NoteParamStatus::Unsupported,
         "IsScannable" => NoteParamStatus::Unsupported,
         "IsNfcScannable" => NoteParamStatus::Unsupported,
         "Searchable" => NoteParamStatus::Unsupported,
@@ -143,8 +147,8 @@ fn get_note_param_status(key: &str) -> NoteParamStatus {
         "Valid_If" => NoteParamStatus::Untested,
         "Error_Message_If_Invalid" => NoteParamStatus::Untested,
         "Suggested_Values" => NoteParamStatus::Untested,
-        "Editable_If" => NoteParamStatus::Untested,
-        "Reset_If" => NoteParamStatus::Untested,
+        "Editable_If" => NoteParamStatus::Verified,
+        "Reset_If" => NoteParamStatus::Verified,
         
         // 数値型設定
         "MinValue" => NoteParamStatus::Untested,
@@ -201,6 +205,20 @@ fn should_output_note_param(key: &str, user_settings: Option<&HashMap<String, bo
     if let Some(settings) = user_settings {
         // 保存された設定を最優先する。
         // 未定義キーは「未チェック（false）」として扱い、新しいデフォルトにフォールバックしない。
+        if key == NOTE_PARAM_DEFAULT_KEY {
+            return settings
+                .get(NOTE_PARAM_DEFAULT_KEY)
+                .or_else(|| settings.get(NOTE_PARAM_DEFAULT_KEY_LEGACY))
+                .copied()
+                .unwrap_or(false);
+        }
+        if key == NOTE_PARAM_DEFAULT_KEY_LEGACY {
+            return settings
+                .get(NOTE_PARAM_DEFAULT_KEY)
+                .or_else(|| settings.get(NOTE_PARAM_DEFAULT_KEY_LEGACY))
+                .copied()
+                .unwrap_or(false);
+        }
         return settings.get(key).copied().unwrap_or(false);
     }
     // デフォルト: Verified のみ + ホワイトリスト
@@ -228,6 +246,64 @@ fn has_user_note_override(column: &Column) -> bool {
         .is_some_and(|s| !s.trim().is_empty())
 }
 
+fn parse_type_aux_data_object_from_str(s: &str) -> Option<serde_json::Map<String, Value>> {
+    let trimmed = s.trim();
+    if trimmed.is_empty() {
+        return Some(serde_json::Map::new());
+    }
+
+    // Case 1: raw JSON object text: {"Show_If":"..."}
+    if let Ok(Value::Object(obj)) = serde_json::from_str::<Value>(trimmed) {
+        return Some(obj);
+    }
+
+    // Case 2: already-escaped JSON object text copied from docs:
+    // {\"Show_If\":\"context(\\\"ViewType\\\") = \\\"Table\\\"\"}
+    // Wrap as a JSON string literal to unescape, then parse again.
+    if let Ok(unescaped) = serde_json::from_str::<String>(&format!("\"{}\"", trimmed)) {
+        if let Ok(Value::Object(obj)) = serde_json::from_str::<Value>(&unescaped) {
+            return Some(obj);
+        }
+    }
+
+    None
+}
+
+fn normalize_formula_key_into_type_aux_data(data: &mut serde_json::Map<String, Value>, key: &str) {
+    let raw = data.remove(key);
+    let formula = match raw {
+        None | Some(Value::Null) => return,
+        Some(Value::String(s)) => {
+            if s.trim().is_empty() {
+                return;
+            }
+            s
+        }
+        Some(other) => other.to_string(),
+    };
+
+    let mut aux_obj = match data.get("TypeAuxData") {
+        Some(Value::String(s)) => parse_type_aux_data_object_from_str(s).unwrap_or_else(serde_json::Map::new),
+        Some(Value::Object(obj)) => obj.clone(),
+        _ => serde_json::Map::new(),
+    };
+
+    aux_obj.insert(key.to_string(), Value::String(formula));
+
+    // TypeAuxData must be a JSON string value in Note Parameters.
+    let aux_str = serde_json::to_string(&Value::Object(aux_obj)).unwrap_or_else(|_| "{}".to_string());
+    data.insert("TypeAuxData".to_string(), Value::String(aux_str));
+}
+
+fn normalize_formulas_into_type_aux_data(data: &mut serde_json::Map<String, Value>) {
+    // docs/AppSheet/MEMO_SETUP.md の推奨に合わせ、数式系キーは TypeAuxData（JSON文字列）へ入れる。
+    // （トップレベルの式キーは環境によって不安定なケースがある）
+    normalize_formula_key_into_type_aux_data(data, "Show_If");
+    normalize_formula_key_into_type_aux_data(data, "Required_If");
+    normalize_formula_key_into_type_aux_data(data, "Editable_If");
+    normalize_formula_key_into_type_aux_data(data, "Reset_If");
+}
+
 // カラム設定のメモ内容を生成
 fn generate_column_note(column: &Column, tables: &[Table], user_settings: Option<&HashMap<String, bool>>) -> String {
     // docs/AppSheet/MEMO_SETUP.md に従い、AppSheet Note Parameters の形式で出力する
@@ -248,7 +324,16 @@ fn generate_column_note(column: &Column, tables: &[Table], user_settings: Option
 
     let mut data = serde_json::Map::<String, Value>::new();
 
-    let user_has = |k: &str| -> bool { user.map(|m| m.contains_key(k)).unwrap_or(false) };
+    let user_has = |k: &str| -> bool {
+        user.map(|m| {
+            if k == NOTE_PARAM_DEFAULT_KEY {
+                m.contains_key(NOTE_PARAM_DEFAULT_KEY) || m.contains_key(NOTE_PARAM_DEFAULT_KEY_LEGACY)
+            } else {
+                m.contains_key(k)
+            }
+        })
+        .unwrap_or(false)
+    };
 
     // Spec: If Required_If is present (non-empty), Require? (IsRequired) should not be output.
     let user_required_if_non_empty = user
@@ -278,11 +363,14 @@ fn generate_column_note(column: &Column, tables: &[Table], user_settings: Option
         data.insert("IsRequired".to_string(), Value::Bool(true));
     }
 
-    // 初期値 (🔍 Untested)
-    if should_output_note_param("DEFAULT", user_settings) && !user_has("DEFAULT") {
+    // 初期値 (✅ Verified)
+    if should_output_note_param(NOTE_PARAM_DEFAULT_KEY, user_settings) && !user_has(NOTE_PARAM_DEFAULT_KEY) {
         if let Some(ref default_value) = column.constraints.default_value {
             if !default_value.is_empty() {
-                data.insert("DEFAULT".to_string(), Value::String(default_value.clone()));
+                data.insert(
+                    NOTE_PARAM_DEFAULT_KEY.to_string(),
+                    Value::String(default_value.clone()),
+                );
             }
         }
     }
@@ -398,22 +486,36 @@ fn generate_column_note(column: &Column, tables: &[Table], user_settings: Option
         }
     }
 
+    // 式系キーは TypeAuxData へ移動するため、should_output_note_param のチェックをバイパスする
+    let formula_keys: std::collections::HashSet<&str> = ["Show_If", "Required_If", "Editable_If", "Reset_If"].iter().cloned().collect();
+
     // user指定を最後にマージ（上書き/追加）
     // ただし、ユーザー設定で無効化されたキーはフィルタリングする
     if let Some(user_map) = user {
         for (k, v) in user_map {
-            if k == "IsRequired" && user_required_if_non_empty {
+            let normalized_key: &str = if k == NOTE_PARAM_DEFAULT_KEY_LEGACY {
+                NOTE_PARAM_DEFAULT_KEY
+            } else {
+                k
+            };
+            if normalized_key == "IsRequired" && user_required_if_non_empty {
                 // Required_If takes precedence; do not output IsRequired even if explicitly set.
                 continue;
             }
             if v.is_null() {
-                data.remove(k);
-            } else if should_output_note_param(k, user_settings) {
+                data.remove(normalized_key);
+            } else if formula_keys.contains(normalized_key) {
+                // 式系キーは常にマージ（後で TypeAuxData に移動される）
+                data.insert(normalized_key.to_string(), v.clone());
+            } else if should_output_note_param(normalized_key, user_settings) {
                 // ユーザー設定で有効なキーのみマージ
-                data.insert(k.clone(), v.clone());
+                data.insert(normalized_key.to_string(), v.clone());
             }
         }
     }
+
+    // docs/AppSheet/MEMO_SETUP.md の推奨に合わせ、式キーは TypeAuxData（JSON文字列）へ入れる。
+    normalize_formulas_into_type_aux_data(&mut data);
 
     let body = serialize_note_parameters_object(&data);
     if body == "{}" {
@@ -550,7 +652,7 @@ mod tests {
     
     #[test]
     fn test_generate_column_note_verified_only() {
-        // appSheet未設定の場合は、自動生成される Verified キー（現状 Type）のみが出力される
+        // appSheet未設定の場合は、自動生成される Verified キーのみが出力される
         let column = Column {
             id: "col1".to_string(),
             name: "Name".to_string(),
@@ -579,8 +681,9 @@ mod tests {
         assert!(note.starts_with("AppSheet:"));
         // Type は Verified なので出力される
         assert!(note.contains("\"Type\":\"Text\""));
-        // IsKey, IsLabel, IsRequired, Description は Untested なので出力されない
-        assert!(!note.contains("\"IsKey\""));
+        // IsKey は Verified なので出力される
+        assert!(note.contains("\"IsKey\":true"));
+        // IsLabel, IsRequired, Description はデフォルトでは出力されない
         assert!(!note.contains("\"IsLabel\""));
         assert!(!note.contains("\"IsRequired\""));
         assert!(!note.contains("\"Description\""));
@@ -665,19 +768,20 @@ mod tests {
 
     #[test]
     fn test_generate_column_note_with_user_settings() {
-        // ユーザー設定でIsKeyを有効にした場合
+        // Default のキー名は `Default`（大文字小文字を区別）。
+        // 旧実装の誤り `DEFAULT` が user/app_sheet/settings に残っていても、出力は `Default` に正規化する。
         let column = Column {
             id: "col1".to_string(),
             name: "Name".to_string(),
             column_type: "Text".to_string(),
-            is_key: true,
+            is_key: false,
             is_label: false,
             description: None,
             app_sheet: None,
             constraints: ColumnConstraints {
                 required: None,
                 unique: None,
-                default_value: None,
+                default_value: Some("ABC".to_string()),
                 min_value: None,
                 max_value: None,
                 min_length: None,
@@ -690,16 +794,21 @@ mod tests {
             order: 0,
         };
 
-        // デフォルト設定（IsKey無効）
-        let note_default = generate_column_note(&column, &[], None);
-        assert!(!note_default.contains("\"IsKey\""));
-
-        // ユーザー設定でIsKeyを有効に
+        // ユーザー設定で Default を有効に
         let mut user_settings = HashMap::new();
         user_settings.insert("Type".to_string(), true);
-        user_settings.insert("IsKey".to_string(), true);
-        let note_with_key = generate_column_note(&column, &[], Some(&user_settings));
-        assert!(note_with_key.contains("\"IsKey\":true"));
+        user_settings.insert(NOTE_PARAM_DEFAULT_KEY.to_string(), true);
+        let note = generate_column_note(&column, &[], Some(&user_settings));
+        assert!(note.contains("\"Default\":\"ABC\""));
+        assert!(!note.contains("\"DEFAULT\""));
+
+        // 旧キー名 `DEFAULT` を設定していても、出力は `Default`
+        let mut legacy_settings = HashMap::new();
+        legacy_settings.insert("Type".to_string(), true);
+        legacy_settings.insert(NOTE_PARAM_DEFAULT_KEY_LEGACY.to_string(), true);
+        let note_legacy = generate_column_note(&column, &[], Some(&legacy_settings));
+        assert!(note_legacy.contains("\"Default\":\"ABC\""));
+        assert!(!note_legacy.contains("\"DEFAULT\""));
     }
 
     #[test]
@@ -707,7 +816,7 @@ mod tests {
         // Type は Verified
         assert_eq!(get_note_param_status("Type"), NoteParamStatus::Verified);
         // IsLabel は Unstable
-        assert_eq!(get_note_param_status("IsLabel"), NoteParamStatus::Unstable);
+        assert_eq!(get_note_param_status("IsLabel"), NoteParamStatus::Unsupported);
         // 未知のキーは Untested
         assert_eq!(get_note_param_status("UnknownKey"), NoteParamStatus::Untested);
     }
@@ -720,8 +829,8 @@ mod tests {
         assert!(!should_output_note_param("IsLabel", None));
         // Unsupported は false
         assert!(!should_output_note_param("IsScannable", None));
-        // Untested は false
-        assert!(!should_output_note_param("IsKey", None));
+        // Verified は true
+        assert!(should_output_note_param("IsKey", None));
 
         // ユーザー設定で有効にした場合
         let mut user_settings = HashMap::new();

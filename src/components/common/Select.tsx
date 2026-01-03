@@ -11,6 +11,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ className = '', label, error, options, id, ...props }, ref) => {
     const generatedId = useId();
     const selectId = id ?? `select-${generatedId}`;
+    const isDisabled = !!props.disabled;
     
     return (
       <div className="w-full">
@@ -29,13 +30,14 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           className={`
             w-full px-2.5 py-1.5 text-xs border rounded
             focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500
-            transition-colors cursor-pointer
+            transition-colors ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}
             ${className}
           `}
           style={{
-            backgroundColor: 'var(--input-bg)',
+            backgroundColor: isDisabled ? 'var(--muted)' : 'var(--input-bg)',
             borderColor: error ? 'var(--destructive)' : 'var(--input-border)',
-            color: 'var(--text-primary)',
+            color: isDisabled ? 'var(--text-muted)' : 'var(--text-primary)',
+            opacity: isDisabled ? 0.75 : 1,
           }}
           {...props}
         >

@@ -167,6 +167,9 @@
     "toggleShow": "Toggle SHOW",
     "toggleEditable": "Toggle Editable",
     "toggleRequired": "Toggle Required",
+    "lockedByShowIf": "Cannot change because Show_If has a formula",
+    "lockedByEditableIf": "Cannot change because Editable_If has a formula",
+    "lockedByRequiredIf": "Cannot change because Required_If has a formula",
     "deleteColumnArmedHint": "Click again to delete column",
     "constraints": "Constraints",
     "deleteTable": "Delete Table",
@@ -284,7 +287,15 @@
       "title": "Note Parameters Output Settings",
       "description": "Select which parameters to output in the header cell Notes when exporting to Excel. It is recommended to output only parameters that have been verified to work on the AppSheet side.",
       "resetToDefault": "Reset to Default",
-      "hint": "✅Verified and ⚠️Unstable parameters are relatively safe to output. 🔍Untested and ❌Unsupported parameters may not be recognized correctly by AppSheet."
+      "hint": "☑ indicates verified, ✗ indicates unsupported/not applied.",
+      "tableHeaders": {
+        "import": "Import",
+        "regenerate": "Regen",
+        "output": "Output",
+        "keyName": "Key Name",
+        "note": "Note"
+      },
+      "legend": "Legend: ✓=Likely applied in AppSheet (Verified/Unstable), ✕=Not applied or untested (Unsupported/Untested)"
     },
     "tableCreationRules": {
       "title": "Table creation rules"

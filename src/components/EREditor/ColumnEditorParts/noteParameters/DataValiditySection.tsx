@@ -1,4 +1,4 @@
-import { CollapsibleSection, Input, Select } from '../../../common';
+import { CollapsibleSection, InfoTooltip, Input, Select } from '../../../common';
 
 import type { Column, ColumnConstraints } from '../../../../types';
 
@@ -13,7 +13,6 @@ type Props = {
   getAppSheetString: (key: string) => string;
 
   getTriState: (key: string) => '' | 'true' | 'false';
-  setTriState: (key: string, raw: string) => void;
   appSheetTriStateOptions: { value: string; label: string }[];
 };
 
@@ -22,9 +21,9 @@ export function DataValiditySection({
   handleConstraintUpdate,
   labelEnJa,
   setAppSheetValue,
+  setAppSheetValues,
   getAppSheetString,
   getTriState,
-  setTriState,
   appSheetTriStateOptions,
 }: Props) {
   const requiredIf = getAppSheetString('Required_If');
@@ -52,6 +51,26 @@ export function DataValiditySection({
           label={
             <span className="inline-flex items-center">
               {labelEnJa('Require? (toggle)', '必須（トグル）')}
+              <InfoTooltip
+                content={
+                  <div>
+                    <div>
+                      {labelEnJa(
+                        'Sets required-ness as a tri-state toggle (writes IsRequired). Use Required_If to decide by expression.',
+                        '必須設定を3値トグルで指定します（IsRequiredを書き出します）。Required_Ifで数式指定もできます。'
+                      )}
+                    </div>
+                    {requiredIfNonEmpty && (
+                      <div className="mt-2 font-medium">
+                        {labelEnJa(
+                          "Disabled because 'Required_If' is set. Clear the expression to change this toggle.",
+                          'Required_If（数式）が設定されているため変更できません。数式を削除すると変更できます。'
+                        )}
+                      </div>
+                    )}
+                  </div>
+                }
+              />
             </span>
           }
           value={isRequiredTriState}
@@ -62,10 +81,14 @@ export function DataValiditySection({
 
             // Toggle and formula are mutually exclusive.
             if (raw === 'true' || raw === 'false') {
-              setAppSheetValue('Required_If', undefined);
+              setAppSheetValues({
+                Required_If: undefined,
+                IsRequired: raw === 'true',
+              });
+            } else {
+              // Empty = inherit (no explicit IsRequired)
+              setAppSheetValues({ IsRequired: undefined });
             }
-
-            setTriState('IsRequired', raw);
             handleConstraintUpdate({ required: raw === 'true' });
           }}
         />
@@ -74,12 +97,17 @@ export function DataValiditySection({
           value={requiredIf}
           onChange={(e) => {
             const v = e.target.value;
-            setAppSheetValue('Required_If', v);
             if (v.trim().length > 0) {
+              // NOTE: Must update atomically; otherwise subsequent AppSheet updates
+              // computed from stale selectedColumn.appSheet can wipe out Required_If.
+              setAppSheetValues({ Required_If: v, IsRequired: undefined });
               handleConstraintUpdate({ required: false });
               // Required_If is present => Require? must not be output.
-              setTriState('IsRequired', '');
+              return;
             }
+
+            // Empty string should delete the key.
+            setAppSheetValue('Required_If', v);
           }}
         />
       </div>
