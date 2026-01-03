@@ -34,6 +34,8 @@ pub struct Column {
     pub column_type: String,
     pub is_key: bool,
     pub is_label: bool,
+    #[serde(default)]
+    pub is_virtual: bool,
     pub description: Option<String>,
     #[serde(default)]
     pub app_sheet: Option<serde_json::Map<String, Value>>,
@@ -81,7 +83,11 @@ pub fn preview_column_notes(request: &ExportRequest) -> HashMap<String, HashMap<
 
         let mut by_column: HashMap<String, String> = HashMap::new();
         for column in &table.columns {
-            let mut column_for_note = column.clone();
+            if column.is_virtual {
+                by_column.insert(column.id.clone(), String::new());
+                continue;
+            }
+            let mut column_for_note = (*column).clone();
             column_for_note.is_label = effective_label_column_id
                 .is_some_and(|id| id == column_for_note.id);
 
@@ -590,25 +596,28 @@ pub fn export_to_excel(request: &ExportRequest, file_path: &str) -> Result<(), X
     for table in &request.tables {
         let effective_label_column_id = pick_effective_label_column_id(table);
 
+        let export_columns: Vec<&Column> = table.columns.iter().filter(|c| !c.is_virtual).collect();
+
         let worksheet = workbook.add_worksheet();
         worksheet.set_name(&table.name)?;
         
         // カラム幅を調整
-        for (col_idx, column) in table.columns.iter().enumerate() {
+        for (col_idx, column) in export_columns.iter().enumerate() {
             let width = std::cmp::max(column.name.len(), 12) as f64;
             worksheet.set_column_width(col_idx as u16, width)?;
         }
         
         // ヘッダー行を作成
-        for (col_idx, column) in table.columns.iter().enumerate() {
+        for (col_idx, column) in export_columns.iter().enumerate() {
             let col = col_idx as u16;
+            let column = *column;
             
             // ヘッダーテキストを書き込み
             worksheet.write_string_with_format(0, col, &column.name, &header_format)?;
             
             // カラム設定をメモとして追加
             // 【重要】write_noteを使用（write_commentではなくGoogleスプレッドシート互換）
-            let mut column_for_note = column.clone();
+            let mut column_for_note = (*column).clone();
             column_for_note.is_label = effective_label_column_id
                 .is_some_and(|id| id == column_for_note.id);
 
@@ -629,7 +638,7 @@ pub fn export_to_excel(request: &ExportRequest, file_path: &str) -> Result<(), X
                 for (row_idx, row) in rows.iter().enumerate() {
                     let excel_row = (row_idx + 1) as u32; // ヘッダーの次から
                     
-                    for (col_idx, column) in table.columns.iter().enumerate() {
+                    for (col_idx, column) in export_columns.iter().enumerate() {
                         let col = col_idx as u16;
                         
                         if let Some(value) = row.values.get(&column.id) {

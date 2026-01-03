@@ -95,6 +95,11 @@ export interface Column {
   type: ColumnType;
   isKey: boolean;
   isLabel: boolean;
+  /**
+   * AppSheetのVirtual Column相当。
+   * 物理データソース(Excel/Sheets)には存在せず、主にAppFormulaで表示する列。
+   */
+  isVirtual?: boolean;
   description?: string;
   /**
    * AppSheet Note Parameters（ヘッダーセルのNoteに入れるJSON）の追加設定。

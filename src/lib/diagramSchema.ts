@@ -8,11 +8,16 @@ import type { Column, ERDiagram, Memo, Relation, Table } from '../types';
  * - サポート対象は「直近2世代」(current と current-1 と current-2)。
  */
 
-export const DIAGRAM_SCHEMA_VERSION = 1 as const;
+export const DIAGRAM_SCHEMA_VERSION = 2 as const;
 export const MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION = Math.max(0, DIAGRAM_SCHEMA_VERSION - 2);
 
 export type DiagramEnvelopeV1 = {
   schemaVersion: 1;
+  diagram: ERDiagram;
+};
+
+export type DiagramEnvelopeV2 = {
+  schemaVersion: 2;
   diagram: ERDiagram;
 };
 
@@ -52,6 +57,7 @@ function normalizeColumn(raw: unknown, index: number): Column {
     type: (typeof obj.type === 'string' ? (obj.type as Column['type']) : 'Text'),
     isKey: typeof obj.isKey === 'boolean' ? obj.isKey : false,
     isLabel: typeof obj.isLabel === 'boolean' ? obj.isLabel : false,
+    isVirtual: typeof obj.isVirtual === 'boolean' ? obj.isVirtual : false,
     description: typeof obj.description === 'string' ? obj.description : undefined,
     appSheet,
     dummyValues: Array.isArray(obj.dummyValues) ? (obj.dummyValues as string[]) : undefined,
@@ -149,7 +155,14 @@ function migrateV0ToV1(legacy: ERDiagram): DiagramEnvelopeV1 {
   };
 }
 
-export function encodeDiagramEnvelope(diagram: ERDiagram): DiagramEnvelopeV1 {
+function migrateV1ToV2(v1: DiagramEnvelopeV1): DiagramEnvelopeV2 {
+  return {
+    schemaVersion: 2,
+    diagram: normalizeDiagram(v1.diagram),
+  };
+}
+
+export function encodeDiagramEnvelope(diagram: ERDiagram): DiagramEnvelopeV2 {
   // 書き込みは常に最新
   return {
     schemaVersion: DIAGRAM_SCHEMA_VERSION,
@@ -181,12 +194,20 @@ export function decodeAndMigrateDiagram(value: unknown): ERDiagram | null {
       throw new Error('このデータは古すぎるため、このバージョンでは読み込めません。中間バージョンを経由してアップデートしてください。');
     }
 
-    // 現状: v1のみ（今後 v2, v3 を足していく）
-    if (fromVersion === 1) {
+    // v2
+    if (fromVersion === 2) {
       if (!isLegacyDiagram(value.diagram)) {
         return null;
       }
       return normalizeDiagram(value.diagram);
+    }
+
+    // v1
+    if (fromVersion === 1) {
+      if (!isLegacyDiagram(value.diagram)) {
+        return null;
+      }
+      return migrateV1ToV2({ schemaVersion: 1, diagram: value.diagram }).diagram;
     }
 
     if (fromVersion === 0) {

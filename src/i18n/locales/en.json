@@ -196,6 +196,7 @@
     "initialValuePlaceholder": "Initial Value",
     "displayName": "Display Name",
     "displayNamePlaceholder": "Display Name",
+    "virtualColumn": "Virtual column",
     "descriptionPlaceholder": "Description",
     "constraints": {
       "required": "Required",

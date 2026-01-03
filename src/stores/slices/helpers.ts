@@ -301,6 +301,7 @@ export function applyCommonColumnsToTableInPlace(table: Table, defs: CommonColum
       type: def.type,
       isKey: false,
       isLabel: false,
+      isVirtual: false,
       constraints: def.constraints ?? {},
       appSheet: def.appSheet,
       order: -1,

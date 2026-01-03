@@ -179,6 +179,7 @@
     "initialValuePlaceholder": "初期値",
     "displayName": "表示名",
     "displayNamePlaceholder": "表示名",
+    "virtualColumn": "バーチャルカラム",
     "descriptionPlaceholder": "説明",
     "constraints": {
       "required": "必須",

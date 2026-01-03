@@ -48,6 +48,17 @@ export function ColumnHeaderAndNameSection({ selectedColumn, handleUpdate, label
         value={selectedColumn.name}
         onChange={(e) => handleUpdate({ name: e.target.value })}
       />
+
+      <label className="flex items-center gap-2 text-xs select-none">
+        <input
+          type="checkbox"
+          checked={Boolean(selectedColumn.isVirtual)}
+          onChange={(e) => handleUpdate({ isVirtual: e.target.checked })}
+          aria-label={labelKey('column.virtualColumn')}
+          title={labelKey('column.virtualColumn')}
+        />
+        <span style={{ color: 'var(--text-secondary)' }}>{labelKey('column.virtualColumn')}</span>
+      </label>
     </>
   );
 }

@@ -88,10 +88,10 @@ export const createSampleDataSlice: SliceCreator<SampleDataSlice> = (set, get) =
     const table = get().tables.find((t) => t.id === tableId);
     if (!table) return;
 
-    // AppFormula列はユーザー編集・保存対象にしない（表示時に計算する）
+    // AppFormula列/Virtual Columnはユーザー編集・保存対象にしない（表示時に計算する）
     const appFormulaColumnIds = new Set(
       table.columns
-        .filter((c) => typeof c.appSheet?.AppFormula === 'string' && String(c.appSheet?.AppFormula ?? '').trim().length > 0)
+        .filter((c) => Boolean(c.isVirtual) || (typeof c.appSheet?.AppFormula === 'string' && String(c.appSheet?.AppFormula ?? '').trim().length > 0))
         .map((c) => c.id)
     );
 
