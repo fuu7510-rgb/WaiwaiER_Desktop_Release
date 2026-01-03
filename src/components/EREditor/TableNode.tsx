@@ -115,7 +115,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
     <div
       className={`
         rounded-md shadow-lg min-w-[180px] max-w-[280px]
-        border transition-all duration-200
+        border-2 transition-all duration-200
         ${isSelected ? 'ring-2 ring-indigo-400/50 ring-offset-1' : isRelated ? 'ring-1 ring-indigo-300/40' : 'hover:shadow-xl'}
         ${isUpstream && !isDownstream ? 'border-dashed' : ''}
         ${isDownstream && !isUpstream ? 'border-solid' : ''}
@@ -158,7 +158,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
           type="target"
           position={Position.Left}
           id={`${table.id}__addColumn`}
-          className="!w-3 !h-3 !bg-green-400 !border-[1.5px] !border-white !-left-1.5 !rounded-full"
+          className="!w-2 !h-2 !bg-green-400 !border !border-white !-left-1 !rounded-full"
           title="ここに接続すると新しいカラムを作成"
         />
         <button
@@ -672,7 +672,7 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
         className={
           showRetargetOverlay
             ? '!w-px !h-px !bg-transparent !border-0 !opacity-0 !pointer-events-none !-left-1.5'
-            : '!w-3 !h-3 !bg-zinc-400 !border-[1.5px] !border-white !-left-1.5 !rounded-full'
+            : '!w-2 !h-2 !bg-zinc-400 !border !border-white !-left-1 !rounded-full'
         }
         onPointerDown={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
@@ -683,14 +683,14 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
         <div
           className="absolute z-30"
           style={{
-            width: 14,
-            height: 14,
+            width: 10,
+            height: 10,
             borderRadius: 9999,
             boxSizing: 'border-box',
             backgroundColor: 'var(--primary)',
-            border: '1.5px solid #fff',
+            border: '1px solid #fff',
             cursor: 'default',
-            left: -7,
+            left: -5,
             top: '50%',
             transform: 'translateY(-50%)',
           }}
@@ -1162,7 +1162,7 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
           type="source"
           position={Position.Right}
           id={`${column.id}__source`}
-          className="!w-3 !h-3 !bg-amber-400 !border-[1.5px] !border-white hover:!bg-amber-500 cursor-crosshair !-right-1.5 !rounded-full"
+          className="!w-2 !h-2 !bg-amber-400 !border !border-white hover:!bg-amber-500 cursor-crosshair !-right-1 !rounded-full"
           title="ドラッグして他のテーブルのカラムに接続"
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
