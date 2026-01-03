@@ -63,13 +63,20 @@ export function InfoTooltip({ content, className = '', ariaLabel }: InfoTooltipP
   }, [isOpen]);
 
   return (
-    <div className={`relative inline-flex items-center ${className}`}>
+    <div
+      className={`relative inline-flex items-center ${className}`}
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+    >
       <button
         ref={buttonRef}
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="ml-1.5 text-zinc-400 hover:text-zinc-600 focus:outline-none focus:text-indigo-500 transition-colors"
+        onClick={() => setIsOpen((prev) => !prev)}
+        onFocus={() => setIsOpen(true)}
+        onBlur={() => setIsOpen(false)}
+        className="ml-1.5 focus:outline-none transition-colors"
         aria-label={ariaLabel ?? t('common.help')}
+        style={{ color: 'var(--text-muted)' }}
       >
         <svg
           className="w-3.5 h-3.5"
@@ -89,7 +96,8 @@ export function InfoTooltip({ content, className = '', ariaLabel }: InfoTooltipP
       {isOpen && (
         <div
           ref={tooltipRef}
-          className="fixed z-[9999] w-72 p-3 bg-white border border-zinc-200 rounded-lg shadow-xl text-xs text-zinc-600 leading-relaxed invisible"
+          className="fixed z-[9999] w-72 p-3 rounded-lg shadow-xl text-xs leading-relaxed invisible"
+          style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
         >
           {content}
         </div>

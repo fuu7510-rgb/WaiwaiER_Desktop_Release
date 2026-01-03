@@ -24,11 +24,13 @@
 
 ## 変更点
 ### 追加
-- テーマ: ダークテーマ（ダークモード）を追加
+- 共通: ツールチップ（InfoTooltip）のテーマ表示・操作性を改善（ホバー/フォーカスで表示、配色をCSS変数に統一）
+- 共通: Selectのdisabled表示を改善（背景/文字色/カーソル）
 - 設定: テーマ設定（ライト/ダーク/システム）を追加
-  - 「システム」選択時はOSのダークモード設定に自動追従
 
 ### 改善
+- ERエディタ: カラム行ミニツールバーのトグル（SHOW/Editable/必須）が、`Show_If`/`Editable_If`/`Required_If` 設定時に変更できてしまう問題を修正
+  - ロック中である旨をツールチップで表示
 - 全コンポーネントをCSS変数ベースのテーマシステムに移行
   - 共通コンポーネント（Dialog, Input, Select, Button, CollapsibleSection）
   - レイアウト（MainLayout, Header, Sidebar）

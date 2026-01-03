@@ -4,6 +4,7 @@ export { Select } from './Select';
 export { Dialog } from './Dialog';
 export { ConfirmDialog } from './ConfirmDialog';
 export { InfoTooltip } from './InfoTooltip';
+export { Tooltip } from './Tooltip';
 export { ResizableSplitter } from './ResizableSplitter';
 export { CollapsibleSection } from './CollapsibleSection';
 export { ToastContainer } from './ToastContainer';

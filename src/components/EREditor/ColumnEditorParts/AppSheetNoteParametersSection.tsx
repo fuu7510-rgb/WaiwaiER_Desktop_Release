@@ -71,6 +71,8 @@ export function AppSheetNoteParametersSection({
   const { settings } = useUIStore();
   const noteParamOutputSettings = settings.noteParamOutputSettings;
 
+  const showIfNonEmpty = getAppSheetString('Show_If').trim().length > 0;
+
   const RAW_NOTE_OVERRIDE_KEY = '__AppSheetNoteOverride';
 
   // ノートパラメーターのプレビュー
@@ -160,16 +162,30 @@ export function AppSheetNoteParametersSection({
               <span className="inline-flex items-center">
                 {labelEnJa('Show?', '表示?')}
                 <InfoTooltip
-                  content={helpText(
-                    "Is this column visible in the app? You can also provide a 'Show_If' expression to decide.",
-                    'このカラムはアプリ上で表示されますか？Show_If の式で表示条件を指定することもできます。'
-                  )}
+                  content={
+                    <div>
+                      <div>
+                        {helpText(
+                          "Is this column visible in the app? You can also provide a 'Show_If' expression to decide.",
+                          'このカラムはアプリ上で表示されますか？Show_If の式で表示条件を指定することもできます。'
+                        )}
+                      </div>
+                      {showIfNonEmpty && (
+                        <div className="mt-2 font-medium">
+                          {helpText(
+                            "Disabled because 'Show_If' is set. Clear the expression to change this toggle.",
+                            'Show_If（数式）が設定されているため変更できません。数式を削除すると変更できます。'
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  }
                 />
               </span>
             }
             // If Show_If (formula) is present, Show? must be Unset.
             value={
-              getAppSheetString('Show_If').trim().length > 0
+              showIfNonEmpty
                 ? ''
                 : (() => {
                     // Tri-state for Show? is represented via IsHidden (inverse semantics).
@@ -179,7 +195,7 @@ export function AppSheetNoteParametersSection({
                   })()
             }
             options={appSheetTriStateOptions}
-            disabled={getAppSheetString('Show_If').trim().length > 0}
+            disabled={showIfNonEmpty}
             onChange={(e) => {
               const raw = e.target.value;
 
