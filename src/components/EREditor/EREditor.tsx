@@ -349,6 +349,17 @@ function EREditorInner() {
     };
   }, [isRelationHighlightEnabled, relations, selectedTableId]);
 
+  // 選択されたテーブルは常に最前面（zIndex最大）になるようにする。
+  // これにより、選択時に表示されるミニツールバーが他テーブルの下に潜ってクリック不能になる問題を回避する。
+  const zIndexCounterRef = useRef(1);
+  const [tableNodeZIndexMap, setTableNodeZIndexMap] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!selectedTableId) return;
+    const nextZIndex = zIndexCounterRef.current++;
+    setTableNodeZIndexMap((prev) => ({ ...prev, [selectedTableId]: nextZIndex }));
+  }, [selectedTableId]);
+
   // テーブルをReact Flowノードに変換
   const tableToNode = useCallback((table: Table): Node => {
     const isGraphSelected = selectedTableId === table.id;
@@ -356,11 +367,13 @@ function EREditorInner() {
     const isDownstream = relatedGraph.hasSelection && relatedGraph.downstreamTableIds.has(table.id);
     const isRelated = isGraphSelected || isUpstream || isDownstream;
     const isDimmed = relatedGraph.hasSelection && !isRelated;
+    const zIndex = tableNodeZIndexMap[table.id] ?? 0;
 
     return {
       id: table.id,
       type: 'tableNode',
       position: table.position,
+      zIndex,
       data: {
         table,
         highlight: {
@@ -372,7 +385,7 @@ function EREditorInner() {
         },
       },
     };
-  }, [relatedGraph, selectedTableId]);
+  }, [relatedGraph, selectedTableId, tableNodeZIndexMap]);
 
   const memoToNode = useCallback((memo: Memo): Node => {
     return {
