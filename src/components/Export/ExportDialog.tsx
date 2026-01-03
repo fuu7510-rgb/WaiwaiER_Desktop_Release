@@ -9,6 +9,7 @@ import {
   getNoteParamsByStatus,
   type NoteParamInfo,
 } from '../../lib/appsheet/noteParameters';
+import { filterDiagramForExport, filterTablesForExport } from '../../lib/exportFilter';
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -41,7 +42,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
   const handleExportJSON = useCallback(async () => {
     try {
       setIsExporting(true);
-      const diagram = exportDiagram();
+      const diagram = filterDiagramForExport(exportDiagram(), 'json');
       const jsonString = JSON.stringify(diagram, null, 2);
 
       // JSON形式は「ファイル保存」ではなく、コピー用テキストとして表示する
@@ -84,6 +85,8 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
   const handleExportExcel = useCallback(async () => {
     try {
       setIsExporting(true);
+
+      const exportTables = filterTablesForExport(tables, 'excel');
       
       const filePath = await save({
         defaultPath: `${currentProject?.name || 'diagram'}.xlsx`,
@@ -104,7 +107,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
       // サンプルデータを生成
       const sampleData: Record<string, Record<string, unknown>[]> = {};
       if (includeData) {
-        tables.forEach((table) => {
+        exportTables.forEach((table) => {
           sampleData[table.id] = (latestSampleDataByTableId[table.id] ?? []).slice(0, 5);
         });
       }
@@ -112,7 +115,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
       // Rust側のコマンドを呼び出し
       await invoke('export_excel', {
         request: {
-          tables: tables,
+          tables: exportTables,
           sampleData: sampleData,
           includeData: includeData,
           noteParamOutputSettings: noteParamOutputSettings,

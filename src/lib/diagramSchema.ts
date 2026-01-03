@@ -1,5 +1,18 @@
 import type { Column, ERDiagram, Memo, Relation, Table } from '../types';
 
+const ALL_EXPORT_TARGETS = ['excel', 'json', 'package'] as const;
+
+function normalizeExportTargets(raw: unknown): Table['exportTargets'] {
+  if (!Array.isArray(raw)) return [...ALL_EXPORT_TARGETS];
+  const allowed = new Set<string>(ALL_EXPORT_TARGETS);
+  const out: string[] = [];
+  for (const v of raw) {
+    if (typeof v === 'string' && allowed.has(v) && !out.includes(v)) out.push(v);
+  }
+  // 空配列は「どこにもエクスポートしない」を表すため、そのまま許可する。
+  return out as Table['exportTargets'];
+}
+
 /**
  * ER図(ダイアグラム)の保存スキーマ互換レイヤー。
  *
@@ -84,6 +97,7 @@ function normalizeTable(raw: unknown, index: number, fallbackNow: string): Table
     columns: columnsRaw.map((c, i) => normalizeColumn(c, i)),
     position,
     color: typeof obj.color === 'string' ? obj.color : undefined,
+    exportTargets: normalizeExportTargets(obj.exportTargets),
     syncGroupId: typeof obj.syncGroupId === 'string' ? obj.syncGroupId : undefined,
     createdAt: (typeof obj.createdAt === 'string' && obj.createdAt) || fallbackNow,
     updatedAt: (typeof obj.updatedAt === 'string' && obj.updatedAt) || fallbackNow,

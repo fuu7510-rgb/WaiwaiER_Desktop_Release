@@ -43,6 +43,7 @@ export function createDefaultTable(name: string, position: { x: number; y: numbe
     name,
     columns: [createDefaultColumn(0, keyColumnName)],
     position,
+    exportTargets: ['excel', 'json', 'package'],
     createdAt: now,
     updatedAt: now,
   };

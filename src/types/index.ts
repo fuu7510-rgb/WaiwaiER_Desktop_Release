@@ -137,12 +137,16 @@ export interface TablePosition {
   y: number;
 }
 
+export type ExportTarget = 'excel' | 'json' | 'package';
+
 export interface Table {
   id: string;
   name: string;
   columns: Column[];
   position: TablePosition;
   color?: string;
+  /** テーブルごとのエクスポート先（未指定は全てにエクスポート） */
+  exportTargets?: ExportTarget[];
   syncGroupId?: string;
   createdAt: string;
   updatedAt: string;

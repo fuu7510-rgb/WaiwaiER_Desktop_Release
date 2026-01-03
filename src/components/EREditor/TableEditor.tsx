@@ -5,6 +5,8 @@ import { Button, Input, ConfirmDialog } from '../common';
 import { TABLE_COLOR_PALETTE, TABLE_COLOR_PICKER_CLASSES } from '../../lib/constants';
 import type { Table } from '../../types';
 
+const ALL_EXPORT_TARGETS = ['excel', 'json', 'package'] as const;
+
 export function TableEditor() {
   const { t } = useTranslation();
   const { tables, selectedTableId, updateTable, deleteTable, duplicateTable, applyCommonColumnsToTable } = useERStore();
@@ -36,6 +38,14 @@ export function TableEditor() {
     if (!selectedTableId) return;
     applyCommonColumnsToTable(selectedTableId);
   }, [selectedTableId, applyCommonColumnsToTable]);
+
+  const exportTargets = selectedTable?.exportTargets ?? [...ALL_EXPORT_TARGETS];
+
+  const handleToggleExportTarget = useCallback((target: (typeof ALL_EXPORT_TARGETS)[number]) => {
+    const current = selectedTable?.exportTargets ?? [...ALL_EXPORT_TARGETS];
+    const next = current.includes(target) ? current.filter((t) => t !== target) : [...current, target];
+    handleUpdate({ exportTargets: next });
+  }, [handleUpdate, selectedTable?.exportTargets]);
 
   if (!selectedTable) {
     return null;
@@ -78,6 +88,53 @@ export function TableEditor() {
               aria-label={color}
             />
           ))}
+        </div>
+      </div>
+
+      {/* エクスポート先 */}
+      <div>
+        <label
+          className="block text-xs font-medium mb-1.5"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          {t('table.exportTargets')}
+        </label>
+        <div className="space-y-1">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={exportTargets.includes('excel')}
+              onChange={() => handleToggleExportTarget('excel')}
+              className="w-3.5 h-3.5 rounded"
+            />
+            <span className="text-xs" style={{ color: 'var(--text-primary)' }}>
+              {t('export.formats.excel')}
+            </span>
+          </label>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={exportTargets.includes('json')}
+              onChange={() => handleToggleExportTarget('json')}
+              className="w-3.5 h-3.5 rounded"
+            />
+            <span className="text-xs" style={{ color: 'var(--text-primary)' }}>
+              {t('export.formats.json')}
+            </span>
+          </label>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={exportTargets.includes('package')}
+              onChange={() => handleToggleExportTarget('package')}
+              className="w-3.5 h-3.5 rounded"
+            />
+            <span className="text-xs" style={{ color: 'var(--text-primary)' }}>
+              {t('export.formats.package')}
+            </span>
+          </label>
         </div>
       </div>
       

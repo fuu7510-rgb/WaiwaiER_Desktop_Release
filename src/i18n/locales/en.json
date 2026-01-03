@@ -177,7 +177,8 @@
     "duplicateTable": "Duplicate Table",
     "color": "Color",
     "createdAt": "Created",
-    "updatedAt": "Updated"
+    "updatedAt": "Updated",
+    "exportTargets": "Export targets"
   },
   "column": {
     "column": "Column",

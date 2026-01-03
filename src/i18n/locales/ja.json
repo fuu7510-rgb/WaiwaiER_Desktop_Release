@@ -160,7 +160,8 @@
     "color": "色",
     "hasIncomingRelation": "他テーブルから参照されています",
     "createdAt": "作成日",
-    "updatedAt": "更新日"
+    "updatedAt": "更新日",
+    "exportTargets": "エクスポート先"
   },
   "column": {
     "column": "カラム",

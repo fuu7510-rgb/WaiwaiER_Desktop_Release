@@ -115,6 +115,7 @@ export const createTableSlice: SliceCreator<TableSlice> = (set, get) => ({
       id: uuidv4(),
     }));
     newTable.color = source.color;
+    newTable.exportTargets = source.exportTargets ? [...source.exportTargets] : undefined;
 
     set((state) => {
       state.tables.push(newTable);

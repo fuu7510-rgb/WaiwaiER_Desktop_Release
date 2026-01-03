@@ -4,4 +4,5 @@ export * from './backup';
 export * from './crypto';
 export * from './license';
 export * from './package';
+export * from './exportFilter';
 export { cn } from './cn';
