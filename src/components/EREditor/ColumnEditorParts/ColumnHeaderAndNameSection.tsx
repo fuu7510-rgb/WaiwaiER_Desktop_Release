@@ -57,7 +57,18 @@ export function ColumnHeaderAndNameSection({ selectedColumn, handleUpdate, label
           aria-label={labelKey('column.virtualColumn')}
           title={labelKey('column.virtualColumn')}
         />
-        <span style={{ color: 'var(--text-secondary)' }}>{labelKey('column.virtualColumn')}</span>
+        <span className="inline-flex items-center" style={{ color: 'var(--text-secondary)' }}>
+          {labelKey('column.virtualColumn')}
+          <InfoTooltip
+            ariaLabel={labelKey('column.virtualColumnExcelWarningTitle')}
+            content={
+              <div>
+                <div className="font-medium mb-1">{labelKey('column.virtualColumnExcelWarningTitle')}</div>
+                <p style={{ color: 'var(--text-secondary)' }}>{labelKey('column.virtualColumnExcelWarningBody')}</p>
+              </div>
+            }
+          />
+        </span>
       </label>
     </>
   );

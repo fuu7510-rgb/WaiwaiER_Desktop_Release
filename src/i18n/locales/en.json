@@ -198,6 +198,8 @@
     "displayName": "Display Name",
     "displayNamePlaceholder": "Display Name",
     "virtualColumn": "Virtual column",
+    "virtualColumnExcelWarningTitle": "Excel export warning",
+    "virtualColumnExcelWarningBody": "Virtual columns are not included in Excel exports (when enabled).",
     "descriptionPlaceholder": "Description",
     "constraints": {
       "required": "Required",

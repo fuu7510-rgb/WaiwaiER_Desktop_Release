@@ -181,6 +181,8 @@
     "displayName": "表示名",
     "displayNamePlaceholder": "表示名",
     "virtualColumn": "バーチャルカラム",
+    "virtualColumnExcelWarningTitle": "Excelエクスポートの注意",
+    "virtualColumnExcelWarningBody": "バーチャルカラムはExcelエクスポート時に出力されません（ONの場合）。",
     "descriptionPlaceholder": "説明",
     "constraints": {
       "required": "必須",
