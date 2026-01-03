@@ -11,6 +11,8 @@ import { getDefaultNoteParamOutputSettings } from './noteParameters';
 type AppSheetRecord = Record<string, unknown>;
 
 const RAW_NOTE_OVERRIDE_KEY = '__AppSheetNoteOverride';
+const NOTE_PARAM_DEFAULT_KEY = 'Default';
+const NOTE_PARAM_DEFAULT_KEY_LEGACY = 'DEFAULT';
 
 function parseTypeAuxDataObject(value: unknown): Record<string, unknown> {
   if (!value) return {};
@@ -63,22 +65,36 @@ function normalizeFormulasIntoTypeAuxData(data: Record<string, unknown>): void {
   normalizeFormulaKeyIntoTypeAuxData(data, 'Show_If');
   normalizeFormulaKeyIntoTypeAuxData(data, 'Required_If');
   normalizeFormulaKeyIntoTypeAuxData(data, 'Editable_If');
+  normalizeFormulaKeyIntoTypeAuxData(data, 'Reset_If');
 }
 
 function shouldOutputNoteParam(key: string, userSettings: NoteParamOutputSettings | undefined): boolean {
   // 保存された設定を最優先する。
   // userSettings が存在する場合、未定義キーは false として扱い、最新デフォルトにフォールバックしない。
   if (userSettings) {
+    if (key === NOTE_PARAM_DEFAULT_KEY) {
+      return (userSettings[NOTE_PARAM_DEFAULT_KEY] ?? userSettings[NOTE_PARAM_DEFAULT_KEY_LEGACY] ?? false) as boolean;
+    }
     return userSettings[key] ?? false;
   }
 
   // 未保存（設定なし）の場合のみデフォルト設定を使用
   const defaultSettings = getDefaultNoteParamOutputSettings();
+  if (key === NOTE_PARAM_DEFAULT_KEY) {
+    return (defaultSettings[NOTE_PARAM_DEFAULT_KEY] ?? defaultSettings[NOTE_PARAM_DEFAULT_KEY_LEGACY] ?? false) as boolean;
+  }
   return defaultSettings[key] ?? false;
 }
 
 function userHas(appSheet: AppSheetRecord | undefined, key: string): boolean {
-  return Boolean(appSheet && Object.prototype.hasOwnProperty.call(appSheet, key));
+  if (!appSheet) return false;
+  if (key === NOTE_PARAM_DEFAULT_KEY) {
+    return (
+      Object.prototype.hasOwnProperty.call(appSheet, NOTE_PARAM_DEFAULT_KEY) ||
+      Object.prototype.hasOwnProperty.call(appSheet, NOTE_PARAM_DEFAULT_KEY_LEGACY)
+    );
+  }
+  return Object.prototype.hasOwnProperty.call(appSheet, key);
 }
 
 function pickEffectiveLabelColumnId(table: Table): string | null {
@@ -124,11 +140,11 @@ function generateColumnNote(column: Table['columns'][number], userSettings: Note
     data['IsRequired'] = true;
   }
 
-  // DEFAULT (🔍 Untested)
-  if (shouldOutputNoteParam('DEFAULT', userSettings) && !userHas(appSheet, 'DEFAULT')) {
+  // Default (✅ Verified)
+  if (shouldOutputNoteParam(NOTE_PARAM_DEFAULT_KEY, userSettings) && !userHas(appSheet, NOTE_PARAM_DEFAULT_KEY)) {
     const defaultValue = column.constraints?.defaultValue;
     if (defaultValue && defaultValue.length > 0) {
-      data['DEFAULT'] = defaultValue;
+      data[NOTE_PARAM_DEFAULT_KEY] = defaultValue;
     }
   }
 
@@ -163,16 +179,25 @@ function generateColumnNote(column: Table['columns'][number], userSettings: Note
     }
   }
 
+  // 式系キーは TypeAuxData へ移動するため、shouldOutputNoteParam のチェックをバイパスする
+  const formulaKeys = new Set(['Show_If', 'Required_If', 'Editable_If', 'Reset_If']);
+
   // user指定を最後にマージ（ユーザー設定で有効なキーのみ）
   if (appSheet) {
     for (const [key, value] of Object.entries(appSheet)) {
+      const normalizedKey = key === NOTE_PARAM_DEFAULT_KEY_LEGACY ? NOTE_PARAM_DEFAULT_KEY : key;
       if (key === 'IsRequired' && userRequiredIfNonEmpty) continue;
       if (value === null) {
-        delete data[key];
+        delete data[normalizedKey];
         continue;
       }
-      if (shouldOutputNoteParam(key, userSettings)) {
-        data[key] = value;
+      // 式系キーは常にマージ（後で TypeAuxData に移動される）
+      if (formulaKeys.has(normalizedKey)) {
+        data[normalizedKey] = value;
+        continue;
+      }
+      if (shouldOutputNoteParam(normalizedKey, userSettings)) {
+        data[normalizedKey] = value;
       }
     }
   }

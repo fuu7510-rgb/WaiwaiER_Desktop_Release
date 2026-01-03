@@ -25,8 +25,22 @@ export function UpdateBehaviorSection({
   getTriState,
   appSheetTriStateOptions,
 }: Props) {
-  const editableIfTrimmed = getAppSheetString('Editable_If').trim();
-  const editableIfNonEmpty = editableIfTrimmed.length > 0;
+  const editableIfRaw = getAppSheetString('Editable_If');
+  const editableIfTrimmed = editableIfRaw.trim();
+  const editableUpper = editableIfTrimmed.toUpperCase();
+  const editableIsBoolean = editableUpper === 'TRUE' || editableUpper === 'FALSE';
+  const editableHasFormula = editableIfTrimmed.length > 0 && !editableIsBoolean;
+  const editableTriState: '' | 'true' | 'false' =
+    editableIfTrimmed.length === 0
+      ? ''
+      : editableUpper === 'TRUE'
+        ? 'true'
+        : editableUpper === 'FALSE'
+          ? 'false'
+          : '';
+
+  const editableFallbackTriState = getTriState('Editable');
+  const editableUiTriState: '' | 'true' | 'false' = editableTriState !== '' ? editableTriState : editableFallbackTriState;
 
   const resetIfRaw = getAppSheetString('Reset_If');
   const resetIfTrimmed = resetIfRaw.trim();
@@ -63,15 +77,15 @@ export function UpdateBehaviorSection({
                   <div>
                     <div>
                       {helpText(
-                        'Can users (or automatic app formulas) modify data in this column? You can also provide an Editable_If expression to decide.',
-                        'ユーザー（または自動アプリ数式）がこのカラムのデータを変更できますか？Editable_If式で条件を指定することもできます。'
+                        'Can users (or automatic app formulas) modify data in this column? This toggle sets Editable_If to TRUE/FALSE (or clears it). You can also enter an Editable_If expression.',
+                        'ユーザー（または自動アプリ数式）がこのカラムのデータを変更できますか？このトグルは Editable_If を TRUE/FALSE（または空欄）に設定します。Editable_If の式も入力できます。'
                       )}
                     </div>
-                    {editableIfNonEmpty && (
+                    {editableHasFormula && (
                       <div className="mt-2 font-medium">
                         {helpText(
-                          "Disabled because 'Editable_If' is set. Clear the expression to change this toggle.",
-                          'Editable_If（数式）が設定されているため変更できません。数式を削除すると変更できます。'
+                          "Disabled because 'Editable_If' contains an expression (not TRUE/FALSE). Clear the expression to change this toggle.",
+                          'Editable_If に TRUE/FALSE 以外の式が入っているため変更できません。式を削除すると変更できます。'
                         )}
                       </div>
                     )}
@@ -80,25 +94,25 @@ export function UpdateBehaviorSection({
               />
             </span>
           }
-          value={editableIfNonEmpty ? '' : getTriState('Editable')}
+          value={editableHasFormula ? '' : editableUiTriState}
           options={appSheetTriStateOptions}
-          disabled={editableIfNonEmpty}
+          disabled={editableHasFormula}
           onChange={(e) => {
             const raw = e.target.value;
 
             if (raw === '') {
-              // Unset (default): remove explicit Editable toggle.
-              setAppSheetValues({ Editable: undefined });
+              // Unset: clear boolean Editable_If, and also clear legacy Editable to avoid conflicts.
+              setAppSheetValues({ Editable_If: undefined, Editable: undefined });
               return;
             }
 
-            // Explicit toggle: keep consistent by clearing Editable_If.
-            setAppSheetValues({ Editable: raw === 'true', Editable_If: undefined });
+            // Explicit toggle: set boolean constant into Editable_If.
+            setAppSheetValues({ Editable_If: raw === 'true' ? 'TRUE' : 'FALSE', Editable: undefined });
           }}
         />
         <Input
           label={labelEnJa('Editable_If', '編集可能条件（数式）')}
-          value={getAppSheetString('Editable_If')}
+          value={editableIfRaw}
           onChange={(e) => {
             const v = e.target.value;
             if (v.trim().length > 0) {
@@ -150,9 +164,8 @@ export function UpdateBehaviorSection({
               return;
             }
 
-            // true: keep current expression if present; otherwise default to TRUE.
-            const next = resetIfTrimmed.length > 0 ? resetIfRaw : 'TRUE';
-            setAppSheetValues({ Reset_If: next });
+            // true: always set TRUE (not keep old value which could be FALSE)
+            setAppSheetValues({ Reset_If: 'TRUE' });
           }}
         />
 

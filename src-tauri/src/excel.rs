@@ -124,20 +124,20 @@ fn get_note_param_status(key: &str) -> NoteParamStatus {
     match key {
         // 基本設定
         "Type" => NoteParamStatus::Verified,
-        "IsRequired" => NoteParamStatus::Untested,
-        "Required_If" => NoteParamStatus::Untested,
-        "IsHidden" => NoteParamStatus::Untested,
-        "Show_If" => NoteParamStatus::Untested,
-        "DisplayName" => NoteParamStatus::Untested,
-        "Description" => NoteParamStatus::Untested,
+        "IsRequired" => NoteParamStatus::Verified,
+        "Required_If" => NoteParamStatus::Verified,
+        "IsHidden" => NoteParamStatus::Unstable,
+        "Show_If" => NoteParamStatus::Verified,
+        "DisplayName" => NoteParamStatus::Unstable,
+        "Description" => NoteParamStatus::Verified,
         // NOTE: Key names are case-sensitive in AppSheet.
         // `Default` is correct; `DEFAULT` is a legacy mistake kept for backward compatibility.
         NOTE_PARAM_DEFAULT_KEY | NOTE_PARAM_DEFAULT_KEY_LEGACY => NoteParamStatus::Verified,
-        "AppFormula" => NoteParamStatus::Untested,
+        "AppFormula" => NoteParamStatus::Verified,
         
         // 識別・検索設定
         "IsKey" => NoteParamStatus::Verified,
-        "IsLabel" => NoteParamStatus::Unstable, // 環境によって反映されないケースあり
+        "IsLabel" => NoteParamStatus::Unsupported,
         "IsScannable" => NoteParamStatus::Unsupported,
         "IsNfcScannable" => NoteParamStatus::Unsupported,
         "Searchable" => NoteParamStatus::Unsupported,
@@ -147,8 +147,8 @@ fn get_note_param_status(key: &str) -> NoteParamStatus {
         "Valid_If" => NoteParamStatus::Untested,
         "Error_Message_If_Invalid" => NoteParamStatus::Untested,
         "Suggested_Values" => NoteParamStatus::Untested,
-        "Editable_If" => NoteParamStatus::Untested,
-        "Reset_If" => NoteParamStatus::Untested,
+        "Editable_If" => NoteParamStatus::Verified,
+        "Reset_If" => NoteParamStatus::Verified,
         
         // 数値型設定
         "MinValue" => NoteParamStatus::Untested,
@@ -301,6 +301,7 @@ fn normalize_formulas_into_type_aux_data(data: &mut serde_json::Map<String, Valu
     normalize_formula_key_into_type_aux_data(data, "Show_If");
     normalize_formula_key_into_type_aux_data(data, "Required_If");
     normalize_formula_key_into_type_aux_data(data, "Editable_If");
+    normalize_formula_key_into_type_aux_data(data, "Reset_If");
 }
 
 // カラム設定のメモ内容を生成
@@ -485,6 +486,9 @@ fn generate_column_note(column: &Column, tables: &[Table], user_settings: Option
         }
     }
 
+    // 式系キーは TypeAuxData へ移動するため、should_output_note_param のチェックをバイパスする
+    let formula_keys: std::collections::HashSet<&str> = ["Show_If", "Required_If", "Editable_If", "Reset_If"].iter().cloned().collect();
+
     // user指定を最後にマージ（上書き/追加）
     // ただし、ユーザー設定で無効化されたキーはフィルタリングする
     if let Some(user_map) = user {
@@ -500,6 +504,9 @@ fn generate_column_note(column: &Column, tables: &[Table], user_settings: Option
             }
             if v.is_null() {
                 data.remove(normalized_key);
+            } else if formula_keys.contains(normalized_key) {
+                // 式系キーは常にマージ（後で TypeAuxData に移動される）
+                data.insert(normalized_key.to_string(), v.clone());
             } else if should_output_note_param(normalized_key, user_settings) {
                 // ユーザー設定で有効なキーのみマージ
                 data.insert(normalized_key.to_string(), v.clone());
@@ -809,7 +816,7 @@ mod tests {
         // Type は Verified
         assert_eq!(get_note_param_status("Type"), NoteParamStatus::Verified);
         // IsLabel は Unstable
-        assert_eq!(get_note_param_status("IsLabel"), NoteParamStatus::Unstable);
+        assert_eq!(get_note_param_status("IsLabel"), NoteParamStatus::Unsupported);
         // 未知のキーは Untested
         assert_eq!(get_note_param_status("UnknownKey"), NoteParamStatus::Untested);
     }

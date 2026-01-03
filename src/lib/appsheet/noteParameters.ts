@@ -24,7 +24,12 @@ export type NoteParamCategory =
 
 export interface NoteParamInfo {
   key: string;
+  /** @deprecated 代わりに importStatus, regenerateStatus を使用 */
   status: NoteParamStatus;
+  /** 新規取り込み時のサポート状況 */
+  importStatus: NoteParamStatus;
+  /** 構造再生成（Regenerate schema）時のサポート状況 */
+  regenerateStatus: NoteParamStatus;
   category: NoteParamCategory;
   /** 日本語での説明（UI表示用） */
   labelJa: string;
@@ -32,8 +37,12 @@ export interface NoteParamInfo {
   labelEn: string;
   /** このパラメーターに関連するカラム設定フィールド（UI連携用） */
   relatedField?: string;
-  /** デフォルトで出力するか（verified/unstable は true, それ以外は false） */
+  /** デフォルトで出力するか（どちらかが verified/unstable なら true） */
   defaultEnabled?: boolean;
+  /** 備考（日本語） */
+  noteJa?: string;
+  /** 備考（英語） */
+  noteEn?: string;
 }
 
 /**
@@ -58,69 +67,83 @@ export interface NoteParamOutputSettings {
 }
 
 /**
+ * ステータスに基づいてデフォルト有効かどうかを判定
+ * どちらかが verified または unstable なら true
+ */
+function calcDefaultEnabled(importStatus: NoteParamStatus, regenerateStatus: NoteParamStatus): boolean {
+  const enabledStatuses: NoteParamStatus[] = ['verified', 'unstable'];
+  return enabledStatuses.includes(importStatus) || enabledStatuses.includes(regenerateStatus);
+}
+
+/**
  * Note Parameters サポート状況一覧
  *
  * Rust側 (excel.rs) の get_note_param_status() と同期を保つこと
+ *
+ * @see docs/AppSheet/NOTE_PARAMETERS_SUPPORT_STATUS.md
  */
 export const NOTE_PARAM_STATUS: NoteParamInfo[] = [
   // 基本設定
-  { key: 'Type', status: 'verified', category: 'basic', labelJa: 'カラム型', labelEn: 'Column Type', relatedField: 'type', defaultEnabled: true },
-  { key: 'IsRequired', status: 'untested', category: 'basic', labelJa: '必須フラグ', labelEn: 'Is Required', relatedField: 'required', defaultEnabled: false },
-  { key: 'Required_If', status: 'untested', category: 'basic', labelJa: '必須条件', labelEn: 'Required If', defaultEnabled: false },
-  { key: 'IsHidden', status: 'untested', category: 'basic', labelJa: '非表示フラグ', labelEn: 'Is Hidden', defaultEnabled: false },
-  { key: 'Show_If', status: 'untested', category: 'basic', labelJa: '表示条件', labelEn: 'Show If', defaultEnabled: false },
-  { key: 'DisplayName', status: 'untested', category: 'basic', labelJa: '表示名', labelEn: 'Display Name', defaultEnabled: false },
-  { key: 'Description', status: 'untested', category: 'basic', labelJa: '説明', labelEn: 'Description', relatedField: 'description', defaultEnabled: false },
-  { key: 'DEFAULT', status: 'untested', category: 'basic', labelJa: '初期値', labelEn: 'Default Value', relatedField: 'defaultValue', defaultEnabled: false },
-  { key: 'AppFormula', status: 'untested', category: 'basic', labelJa: 'アプリ数式', labelEn: 'App Formula', defaultEnabled: false },
+  { key: 'Type', status: 'verified', importStatus: 'verified', regenerateStatus: 'unsupported', category: 'basic', labelJa: 'カラム型', labelEn: 'Column Type', relatedField: 'type', defaultEnabled: true, noteJa: 'Regenerateでは反映されない', noteEn: 'Not applied on Regenerate' },
+  { key: 'IsRequired', status: 'verified', importStatus: 'verified', regenerateStatus: 'verified', category: 'basic', labelJa: '必須フラグ', labelEn: 'Is Required', relatedField: 'required', defaultEnabled: true },
+  { key: 'Required_If', status: 'verified', importStatus: 'verified', regenerateStatus: 'verified', category: 'basic', labelJa: '必須条件', labelEn: 'Required If', defaultEnabled: true, noteJa: '強制上書き', noteEn: 'Force overwrite' },
+  { key: 'IsHidden', status: 'unstable', importStatus: 'verified', regenerateStatus: 'unsupported', category: 'basic', labelJa: '非表示フラグ', labelEn: 'Is Hidden', defaultEnabled: true, noteJa: 'Regenerateでは反映されない', noteEn: 'Not applied on Regenerate' },
+  { key: 'Show_If', status: 'verified', importStatus: 'verified', regenerateStatus: 'verified', category: 'basic', labelJa: '表示条件', labelEn: 'Show If', defaultEnabled: true, noteJa: '強制上書き', noteEn: 'Force overwrite' },
+  { key: 'DisplayName', status: 'unstable', importStatus: 'verified', regenerateStatus: 'unsupported', category: 'basic', labelJa: '表示名', labelEn: 'Display Name', defaultEnabled: true, noteJa: 'Regenerateでは反映されない', noteEn: 'Not applied on Regenerate' },
+  { key: 'Description', status: 'verified', importStatus: 'verified', regenerateStatus: 'verified', category: 'basic', labelJa: '説明', labelEn: 'Description', relatedField: 'description', defaultEnabled: true, noteJa: '強制上書き', noteEn: 'Force overwrite' },
+  { key: 'Default', status: 'verified', importStatus: 'verified', regenerateStatus: 'verified', category: 'basic', labelJa: '初期値', labelEn: 'Default Value', relatedField: 'defaultValue', defaultEnabled: true, noteJa: '強制上書き', noteEn: 'Force overwrite' },
+  { key: 'AppFormula', status: 'verified', importStatus: 'verified', regenerateStatus: 'verified', category: 'basic', labelJa: 'アプリ数式', labelEn: 'App Formula', defaultEnabled: true },
 
   // 識別・検索設定
-  { key: 'IsKey', status: 'verified', category: 'identification', labelJa: 'キー', labelEn: 'Is Key', relatedField: 'isKey', defaultEnabled: true },
-  { key: 'IsLabel', status: 'unstable', category: 'identification', labelJa: 'ラベル', labelEn: 'Is Label', relatedField: 'isLabel', defaultEnabled: true },
-  { key: 'IsScannable', status: 'unsupported', category: 'identification', labelJa: 'スキャン可能', labelEn: 'Is Scannable', defaultEnabled: false },
-  { key: 'IsNfcScannable', status: 'unsupported', category: 'identification', labelJa: 'NFCスキャン可能', labelEn: 'Is NFC Scannable', defaultEnabled: false },
-  { key: 'Searchable', status: 'unsupported', category: 'identification', labelJa: '検索可能', labelEn: 'Searchable', defaultEnabled: false },
-  { key: 'IsSensitive', status: 'unsupported', category: 'identification', labelJa: '機密データ', labelEn: 'Is Sensitive', defaultEnabled: false },
+  { key: 'IsKey', status: 'verified', importStatus: 'verified', regenerateStatus: 'untested', category: 'identification', labelJa: 'キー', labelEn: 'Is Key', relatedField: 'isKey', defaultEnabled: true },
+  { key: 'IsLabel', status: 'unsupported', importStatus: 'unsupported', regenerateStatus: 'unsupported', category: 'identification', labelJa: 'ラベル', labelEn: 'Is Label', relatedField: 'isLabel', defaultEnabled: false, noteJa: 'Name/Drawing型で自動的に有効になる場合あり', noteEn: 'May be auto-enabled for Name/Drawing types' },
+  { key: 'IsScannable', status: 'unsupported', importStatus: 'unsupported', regenerateStatus: 'untested', category: 'identification', labelJa: 'スキャン可能', labelEn: 'Is Scannable', defaultEnabled: false },
+  { key: 'IsNfcScannable', status: 'unsupported', importStatus: 'unsupported', regenerateStatus: 'untested', category: 'identification', labelJa: 'NFCスキャン可能', labelEn: 'Is NFC Scannable', defaultEnabled: false },
+  { key: 'Searchable', status: 'unsupported', importStatus: 'unsupported', regenerateStatus: 'untested', category: 'identification', labelJa: '検索可能', labelEn: 'Searchable', defaultEnabled: false },
+  { key: 'IsSensitive', status: 'unsupported', importStatus: 'unsupported', regenerateStatus: 'untested', category: 'identification', labelJa: '機密データ', labelEn: 'Is Sensitive', defaultEnabled: false },
 
   // バリデーション設定
-  { key: 'Valid_If', status: 'untested', category: 'validation', labelJa: '有効条件', labelEn: 'Valid If', relatedField: 'pattern', defaultEnabled: false },
-  { key: 'Error_Message_If_Invalid', status: 'untested', category: 'validation', labelJa: '無効時エラーメッセージ', labelEn: 'Error Message If Invalid', defaultEnabled: false },
-  { key: 'Suggested_Values', status: 'untested', category: 'validation', labelJa: '推奨値', labelEn: 'Suggested Values', defaultEnabled: false },
-  { key: 'Editable_If', status: 'untested', category: 'validation', labelJa: '編集可能条件', labelEn: 'Editable If', defaultEnabled: false },
-  { key: 'Reset_If', status: 'untested', category: 'validation', labelJa: 'リセット条件', labelEn: 'Reset If', defaultEnabled: false },
+  { key: 'Valid_If', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'validation', labelJa: '有効条件', labelEn: 'Valid If', relatedField: 'pattern', defaultEnabled: false },
+  { key: 'Error_Message_If_Invalid', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'validation', labelJa: '無効時エラーメッセージ', labelEn: 'Error Message If Invalid', defaultEnabled: false },
+  { key: 'Suggested_Values', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'validation', labelJa: '推奨値', labelEn: 'Suggested Values', defaultEnabled: false },
+  { key: 'Editable_If', status: 'verified', importStatus: 'verified', regenerateStatus: 'verified', category: 'validation', labelJa: '編集可能条件', labelEn: 'Editable If', defaultEnabled: true, noteJa: '強制上書き', noteEn: 'Force overwrite' },
+  { key: 'Reset_If', status: 'verified', importStatus: 'verified', regenerateStatus: 'verified', category: 'validation', labelJa: 'リセット条件', labelEn: 'Reset If', defaultEnabled: true, noteJa: '強制上書き', noteEn: 'Force overwrite' },
 
   // 数値型設定
-  { key: 'MinValue', status: 'untested', category: 'numeric', labelJa: '最小値', labelEn: 'Min Value', relatedField: 'minValue', defaultEnabled: false },
-  { key: 'MaxValue', status: 'untested', category: 'numeric', labelJa: '最大値', labelEn: 'Max Value', relatedField: 'maxValue', defaultEnabled: false },
-  { key: 'DecimalDigits', status: 'untested', category: 'numeric', labelJa: '小数点以下桁数', labelEn: 'Decimal Digits', defaultEnabled: false },
-  { key: 'NumericDigits', status: 'untested', category: 'numeric', labelJa: '数値桁数', labelEn: 'Numeric Digits', defaultEnabled: false },
-  { key: 'ShowThousandsSeparator', status: 'untested', category: 'numeric', labelJa: '千の位区切り', labelEn: 'Show Thousands Separator', defaultEnabled: false },
-  { key: 'NumberDisplayMode', status: 'untested', category: 'numeric', labelJa: '表示モード', labelEn: 'Number Display Mode', defaultEnabled: false },
-  { key: 'StepValue', status: 'untested', category: 'numeric', labelJa: '増減ステップ値', labelEn: 'Step Value', defaultEnabled: false },
+  { key: 'MinValue', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'numeric', labelJa: '最小値', labelEn: 'Min Value', relatedField: 'minValue', defaultEnabled: false },
+  { key: 'MaxValue', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'numeric', labelJa: '最大値', labelEn: 'Max Value', relatedField: 'maxValue', defaultEnabled: false },
+  { key: 'DecimalDigits', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'numeric', labelJa: '小数点以下桁数', labelEn: 'Decimal Digits', defaultEnabled: false },
+  { key: 'NumericDigits', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'numeric', labelJa: '数値桁数', labelEn: 'Numeric Digits', defaultEnabled: false },
+  { key: 'ShowThousandsSeparator', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'numeric', labelJa: '千の位区切り', labelEn: 'Show Thousands Separator', defaultEnabled: false },
+  { key: 'NumberDisplayMode', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'numeric', labelJa: '表示モード', labelEn: 'Number Display Mode', defaultEnabled: false },
+  { key: 'StepValue', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'numeric', labelJa: '増減ステップ値', labelEn: 'Step Value', defaultEnabled: false },
 
   // Enum型設定
-  { key: 'EnumValues', status: 'untested', category: 'enum', labelJa: '選択肢', labelEn: 'Enum Values', relatedField: 'enumValues', defaultEnabled: false },
-  { key: 'BaseType', status: 'untested', category: 'enum', labelJa: 'ベース型', labelEn: 'Base Type', defaultEnabled: false },
-  { key: 'EnumInputMode', status: 'untested', category: 'enum', labelJa: '入力モード', labelEn: 'Enum Input Mode', defaultEnabled: false },
-  { key: 'AllowOtherValues', status: 'untested', category: 'enum', labelJa: 'その他の値を許可', labelEn: 'Allow Other Values', defaultEnabled: false },
-  { key: 'AutoCompleteOtherValues', status: 'untested', category: 'enum', labelJa: 'その他の値を自動補完', labelEn: 'Auto Complete Other Values', defaultEnabled: false },
-  { key: 'ReferencedRootTableName', status: 'untested', category: 'enum', labelJa: '参照テーブル名', labelEn: 'Referenced Root Table Name', defaultEnabled: false },
+  { key: 'EnumValues', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'enum', labelJa: '選択肢', labelEn: 'Enum Values', relatedField: 'enumValues', defaultEnabled: false },
+  { key: 'BaseType', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'enum', labelJa: 'ベース型', labelEn: 'Base Type', defaultEnabled: false },
+  { key: 'EnumInputMode', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'enum', labelJa: '入力モード', labelEn: 'Enum Input Mode', defaultEnabled: false },
+  { key: 'AllowOtherValues', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'enum', labelJa: 'その他の値を許可', labelEn: 'Allow Other Values', defaultEnabled: false },
+  { key: 'AutoCompleteOtherValues', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'enum', labelJa: 'その他の値を自動補完', labelEn: 'Auto Complete Other Values', defaultEnabled: false },
+  { key: 'ReferencedRootTableName', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'enum', labelJa: '参照テーブル名', labelEn: 'Referenced Root Table Name', defaultEnabled: false },
 
   // Ref型設定
-  { key: 'ReferencedTableName', status: 'untested', category: 'ref', labelJa: '参照先テーブル', labelEn: 'Referenced Table', relatedField: 'refTableId', defaultEnabled: false },
-  { key: 'ReferencedKeyColumn', status: 'untested', category: 'ref', labelJa: '参照先キー列', labelEn: 'Referenced Key Column', relatedField: 'refColumnId', defaultEnabled: false },
-  { key: 'ReferencedType', status: 'untested', category: 'ref', labelJa: '参照先の型', labelEn: 'Referenced Type', defaultEnabled: false },
-  { key: 'IsAPartOf', status: 'untested', category: 'ref', labelJa: 'パートオブ関係', labelEn: 'Is A Part Of', defaultEnabled: false },
-  { key: 'InputMode', status: 'untested', category: 'ref', labelJa: '入力モード', labelEn: 'Input Mode', defaultEnabled: false },
+  { key: 'ReferencedTableName', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'ref', labelJa: '参照先テーブル', labelEn: 'Referenced Table', relatedField: 'refTableId', defaultEnabled: false },
+  { key: 'ReferencedKeyColumn', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'ref', labelJa: '参照先キー列', labelEn: 'Referenced Key Column', relatedField: 'refColumnId', defaultEnabled: false },
+  { key: 'ReferencedType', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'ref', labelJa: '参照先の型', labelEn: 'Referenced Type', defaultEnabled: false },
+  { key: 'IsAPartOf', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'ref', labelJa: 'パートオブ関係', labelEn: 'Is A Part Of', defaultEnabled: false },
+  { key: 'InputMode', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'ref', labelJa: '入力モード', labelEn: 'Input Mode', defaultEnabled: false },
 
   // テキスト型設定
-  { key: 'LongTextFormatting', status: 'untested', category: 'text', labelJa: 'フォーマット', labelEn: 'Long Text Formatting', defaultEnabled: false },
-  { key: 'ItemSeparator', status: 'untested', category: 'text', labelJa: '項目区切り文字', labelEn: 'Item Separator', defaultEnabled: false },
+  { key: 'LongTextFormatting', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'text', labelJa: 'フォーマット', labelEn: 'Long Text Formatting', defaultEnabled: false },
+  { key: 'ItemSeparator', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'text', labelJa: '項目区切り文字', labelEn: 'Item Separator', defaultEnabled: false },
 
   // メタキー
-  { key: 'TypeAuxData', status: 'untested', category: 'meta', labelJa: 'データ型固有オプション', labelEn: 'Type Aux Data', defaultEnabled: false },
-  { key: 'BaseTypeQualifier', status: 'untested', category: 'meta', labelJa: 'ベース型修飾子', labelEn: 'Base Type Qualifier', defaultEnabled: false },
+  { key: 'TypeAuxData', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'meta', labelJa: 'データ型固有オプション', labelEn: 'Type Aux Data', defaultEnabled: false },
+  { key: 'BaseTypeQualifier', status: 'untested', importStatus: 'untested', regenerateStatus: 'untested', category: 'meta', labelJa: 'ベース型修飾子', labelEn: 'Base Type Qualifier', defaultEnabled: false },
 ];
+
+// エクスポート用: calcDefaultEnabled関数
+export { calcDefaultEnabled };
 
 /**
  * 指定されたキーのサポート状況を取得

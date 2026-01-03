@@ -214,7 +214,6 @@ WaiwaiER Desktop のカラム設定UIでは、AppSheetのベストプラクテ�
 
 - `Required_If` が非空 → Require? は Unset（変更不可）
 - `Show_If` が非空 → Show? は Unset（変更不可）
-- `Editable_If` が非空 → Editable? は Unset（変更不可）
 
 この状態でアプリが勝手に true/false へ変化することはありません。ユーザーが数式を削除（空に）してから、トグル/3値を変更できます。
 
@@ -227,6 +226,7 @@ WaiwaiER Desktop のカラム設定UIでは、AppSheetのベストプラクテ�
 - `Reset_If` が上記以外（任意の式）→ 3値UIは Unset（変更不可）
 
 （任意の式を使う場合は、`Reset_If` 入力欄に直接式を入力します。true/false を選びたい場合は式を消してから選択してください。）
+（`Editable_If`も同様）
 
 ### バリデーション設定
 
@@ -376,23 +376,194 @@ Note Parameter Workshop の資料では、`TypeAuxData` / `BaseTypeQualifier` �
 
 ### TypeAuxDataの例
 
-#### Ref型（他テーブルへの参照）
+`TypeAuxData` はメタキー（AppSheetエディタに直接対応しない）であり、データ型固有のオプションを **JSON文字列** として記述します。
+Note Parameters 内でネストしたJSONオブジェクトを表現するため、内部の `"` は `\"` にエスケープする必要があります。
+
+---
+
+## TypeAuxData 内で使用可能なキー一覧
+
+以下は `TypeAuxData` のJSON文字列内に書くことができるキーの一覧です。
+
+> **注意**: 基本的には「トップレベルキー」を先に試すことを推奨します（[重要: TypeAuxData を使うべきか？](#重要-typeauxdata-を使うべきか資料間の差分) 参照）。
+> トップレベルが効かない場合に `TypeAuxData` 形式を使用してください。
+
+### Ref型（参照）関連
+
+| TypeAuxData内キー | 説明 | 対応トップレベルキー |
+|-------------------|------|---------------------|
+| `RefTable` | 参照先テーブル名 | `ReferencedTableName` |
+| `RefKeyColumn` | 参照先キーカラム名 | `ReferencedKeyColumn` |
+| `RefType` | 参照先キーカラムの型 | `ReferencedType` |
+| `ReferencedTableName` | 参照先テーブル名（別表現） | 同名 |
+| `ReferencedKeyColumn` | 参照先キーカラム名（別表現） | 同名 |
+| `ReferencedType` | 参照先キーカラムの型（別表現） | 同名 |
+
+#### 例: Ref型（基本）
 
 ```json
 AppSheet:{"Type":"Ref","TypeAuxData":"{\"RefTable\":\"顧客\"}"}
 ```
 
-#### Enum型（選択肢）
+#### 例: Ref型（キーカラム指定）
+
+```json
+AppSheet:{"Type":"Ref","TypeAuxData":"{\"RefTable\":\"顧客\",\"RefKeyColumn\":\"顧客ID\",\"RefType\":\"Text\"}"}
+```
+
+---
+
+### Enum型（選択肢）関連
+
+| TypeAuxData内キー | 説明 | 対応トップレベルキー |
+|-------------------|------|---------------------|
+| `EnumValues` | 選択肢の配列（各項目はダブルクォート） | `EnumValues` |
+| `BaseType` | ベース型（Text, LongText など） | `BaseType` |
+| `ReferencedRootTableName` | 参照テーブル名（enum base type reference用） | `ReferencedRootTableName` |
+| `EnumInputMode` | 入力モード（Auto, Buttons, Stack, Dropdown） | `EnumInputMode` |
+| `AllowOtherValues` | その他の値を許可 | `AllowOtherValues` |
+| `AutoCompleteOtherValues` | その他の値の自動補完 | `AutoCompleteOtherValues` |
+
+#### 例: Enum型（選択肢リスト）
 
 ```json
 AppSheet:{"Type":"Enum","TypeAuxData":"{\"EnumValues\":[\"電子機器\",\"衣料品\",\"食品\"],\"BaseType\":\"LongText\"}"}
 ```
 
-#### Enum型（参照テーブルベース）
+#### 例: Enum型（ボタン入力モード）
+
+```json
+AppSheet:{"Type":"Enum","TypeAuxData":"{\"EnumValues\":[\"未処理\",\"処理中\",\"完了\"],\"BaseType\":\"Text\",\"EnumInputMode\":\"Buttons\"}"}
+```
+
+#### 例: Enum型（参照テーブルベース）
 
 ```json
 AppSheet:{"Type":"Enum","TypeAuxData":"{\"ReferencedRootTableName\":\"カテゴリマスタ\",\"BaseType\":\"Text\"}"}
 ```
+
+---
+
+### 数値型（Number, Decimal, Price, Percent）関連
+
+| TypeAuxData内キー | 説明 | 対応トップレベルキー |
+|-------------------|------|---------------------|
+| `MinValue` | 最小値 | `MinValue` |
+| `MaxValue` | 最大値 | `MaxValue` |
+| `DecimalDigits` | 小数点以下の桁数 | `DecimalDigits` |
+| `NumericDigits` | 数値桁数 | `NumericDigits` |
+| `StepValue` | 増減ステップ値 | `StepValue` |
+| `ShowThousandsSeparator` | 千の位区切りを表示 | `ShowThousandsSeparator` |
+| `NumberDisplayMode` | 表示モード（Auto, Standard, Range, Label） | `NumberDisplayMode` |
+| `UpdateMode` | 更新モード（Accumulate, Reset） | `UpdateMode` |
+
+#### 例: Number型（範囲指定）
+
+```json
+AppSheet:{"Type":"Number","TypeAuxData":"{\"MinValue\":0,\"MaxValue\":100,\"DecimalDigits\":2}"}
+```
+
+#### 例: Decimal型（ステップ値付き）
+
+```json
+AppSheet:{"Type":"Decimal","TypeAuxData":"{\"MinValue\":0,\"MaxValue\":1000,\"StepValue\":0.5,\"DecimalDigits\":2}"}
+```
+
+---
+
+### テキスト型（Text, LongText）関連
+
+| TypeAuxData内キー | 説明 | 対応トップレベルキー |
+|-------------------|------|---------------------|
+| `LongTextFormatting` | フォーマット（Plain Text, Markdown, HTML） | `LongTextFormatting` |
+| `ItemSeparator` | 項目区切り文字 | `ItemSeparator` |
+
+#### 例: LongText型（Markdown形式）
+
+```json
+AppSheet:{"Type":"LongText","TypeAuxData":"{\"LongTextFormatting\":\"Markdown\"}"}
+```
+
+---
+
+### 条件式・数式関連（WaiwaiER Desktop推奨形式）
+
+以下のキーは、トップレベルでは不安定な場合があり、`TypeAuxData` 内に入れることでAppSheetが認識するケースがあります。
+**WaiwaiER Desktop のエクスポートでは、これらの式キーを `TypeAuxData` 内に出力します。**
+
+| TypeAuxData内キー | 説明 | 対応トップレベルキー |
+|-------------------|------|---------------------|
+| `Show_If` | 表示条件（数式） | `Show_If` |
+| `Required_If` | 必須条件（数式） | `Required_If` |
+| `Editable_If` | 編集可能条件（数式） | `Editable_If` |
+| `Reset_If` | リセット条件（数式） | `Reset_If` |
+
+#### 例: Show_If（条件付き表示）
+
+```json
+AppSheet:{"Type":"Text","TypeAuxData":"{\"Show_If\":\"[ステータス]=\\\"処理中\\\"\"}"}
+```
+
+#### 例: Show_If（context関数使用）
+
+```json
+AppSheet:{"Type":"Text","TypeAuxData":"{\"Show_If\":\"context(\\\"ViewType\\\") = \\\"Table\\\"\"}"}
+```
+
+> **エスケープの注意**: `TypeAuxData` の中にさらに `"` を含む文字列（式の中の `"処理中"` など）がある場合、
+> 二重エスケープ `\\\"` が必要になります。
+
+#### 例: 複合設定（Show_If + LongTextFormatting）
+
+```json
+AppSheet:{"Type":"LongText","TypeAuxData":"{\"LongTextFormatting\":\"Plain Text\",\"Show_If\":\"context(\\\"ViewType\\\") = \\\"Table\\\"\"}"}
+```
+
+#### 例: Reset_If（編集時リセット条件）
+
+```json
+AppSheet:{"Type":"Text","TypeAuxData":"{\"Reset_If\":\"TRUE\"}"}
+```
+
+#### 例: Reset_If（条件付きリセット）
+
+```json
+AppSheet:{"Type":"Number","TypeAuxData":"{\"Reset_If\":\"[ステータス]=\\\"完了\\\"\"}"}
+```
+
+---
+
+### その他のキー
+
+| TypeAuxData内キー | 説明 | 対応トップレベルキー |
+|-------------------|------|---------------------|
+| `InputMode` | 入力モード（Auto, Buttons, Dropdown） | `InputMode` |
+
+---
+
+## TypeAuxData エスケープ早見表
+
+`TypeAuxData` はJSON文字列なので、内部の `"` をエスケープする必要があります。
+
+| レイヤー | エスケープ | 例 |
+|----------|-----------|-----|
+| トップレベルJSON | 不要 | `{"Type":"Text"}` |
+| TypeAuxData内（1層目） | `\"` | `"{\"RefTable\":\"顧客\"}"` |
+| TypeAuxData内の文字列（2層目） | `\\\"` | `"{\"Show_If\":\"[Status]=\\\"Active\\\"\"}"` |
+
+### 完全な例
+
+以下は、Note Parameters として最終的にセルのメモに入る形です：
+
+```
+AppSheet:{"Type":"Ref","TypeAuxData":"{\"RefTable\":\"顧客\",\"RefKeyColumn\":\"ID\"}"}
+```
+
+分解すると：
+
+1. 外側: `AppSheet:{...}` — Note Parametersのプレフィックス
+2. トップレベル: `{"Type":"Ref","TypeAuxData":"..."}` — JSON
+3. TypeAuxData値: `"{\"RefTable\":\"顧客\",\"RefKeyColumn\":\"ID\"}"` — エスケープされたJSON文字列
 
 ## 手順（Excel→AppSheet）
 

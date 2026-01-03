@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, Button, Input, Select } from '../common';
 import { useUIStore, useProjectStore } from '../../stores';
@@ -12,7 +12,6 @@ import {
   NOTE_PARAM_STATUS,
   NOTE_PARAM_CATEGORIES,
   getNoteParamsGroupedByCategory,
-  getStatusBadgeInfo,
   getDefaultNoteParamOutputSettings,
   type NoteParamCategory,
 } from '../../lib/appsheet/noteParameters';
@@ -276,6 +275,12 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
       const raw = obj.noteParamOutputSettings as Record<string, unknown>;
       const validKeys = NOTE_PARAM_STATUS.map((p) => p.key);
       const nextSettings: Record<string, boolean> = {};
+
+      // Backward compatibility: migrate legacy key `DEFAULT` -> `Default`
+      if (typeof raw.DEFAULT === 'boolean' && typeof raw.Default !== 'boolean') {
+        raw.Default = raw.DEFAULT;
+      }
+
       for (const key of validKeys) {
         if (typeof raw[key] === 'boolean') {
           nextSettings[key] = raw[key];
@@ -846,18 +851,6 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
             <div className="mt-2.5 space-y-3">
               <p className="text-[10px] theme-text-muted">{t('settings.noteParams.description')}</p>
 
-              {/* Status Legend */}
-              <div className="flex flex-wrap gap-2 text-[10px]">
-                {(['verified', 'unstable', 'untested', 'unsupported'] as const).map((status) => {
-                  const badge = getStatusBadgeInfo(status);
-                  return (
-                    <span key={status} className={`px-1.5 py-0.5 rounded ${badge.colorClass}`}>
-                      {badge.emoji} {isJapanese ? badge.labelJa : badge.labelEn}
-                    </span>
-                  );
-                })}
-              </div>
-
               {/* Reset Button */}
               <div className="flex justify-end">
                 <Button variant="secondary" size="sm" onClick={resetNoteParamOutputSettings}>
@@ -865,52 +858,120 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                 </Button>
               </div>
 
-              {/* Parameters by Category */}
-              <div className="space-y-3 max-h-64 overflow-y-auto border rounded p-2 theme-border theme-bg-card">
-                {(Object.keys(NOTE_PARAM_CATEGORIES) as NoteParamCategory[]).map((category) => {
-                  const params = getNoteParamsGroupedByCategory().get(category) ?? [];
-                  if (params.length === 0) return null;
-                  const categoryInfo = NOTE_PARAM_CATEGORIES[category];
-                  return (
-                    <div key={category}>
-                      <div className="text-[10px] font-semibold mb-1.5 theme-text-muted">
-                        {isJapanese ? categoryInfo.labelJa : categoryInfo.labelEn}
-                      </div>
-                      <div className="space-y-1">
-                        {params.map((param) => {
-                          const badge = getStatusBadgeInfo(param.status);
-                          const outputSettings = settings.noteParamOutputSettings ?? getDefaultNoteParamOutputSettings();
-                          const isEnabled = outputSettings[param.key] ?? false;
-                          return (
-                            <label
-                              key={param.key}
-                              className="flex items-center gap-2 cursor-pointer rounded px-1 py-0.5"
-                            >
-                              <span className={`px-1 py-0.5 rounded text-[9px] ${badge.colorClass}`} title={isJapanese ? badge.labelJa : badge.labelEn}>
-                                {badge.emoji}
-                              </span>
-                              <input
-                                type="checkbox"
-                                checked={isEnabled}
-                                onChange={(e) => updateNoteParamOutputSetting(param.key, e.target.checked)}
-                                className="w-3 h-3 rounded text-indigo-600 focus:ring-indigo-500/20 theme-input-border"
-                              />
-                              <span className="text-xs flex-1 truncate theme-text-primary" title={param.key}>
-                                {param.key}
-                                <span className="ml-1 theme-text-muted">
-                                  ({isJapanese ? param.labelJa : param.labelEn})
-                                </span>
-                              </span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
+              {/* Parameters Table */}
+              <div className="max-h-80 overflow-y-auto border rounded theme-border theme-bg-card">
+                <table className="w-full text-[10px]">
+                  <thead className="sticky top-0 theme-bg-card">
+                    <tr className="border-b theme-border">
+                      <th className="px-1.5 py-1 text-center w-10 theme-text-muted" title={isJapanese ? '新規取り込み時' : 'On Import'}>{t('settings.noteParams.tableHeaders.import')}</th>
+                      <th className="px-1.5 py-1 text-center w-10 theme-text-muted" title={isJapanese ? '構造再生成時' : 'On Regenerate'}>{t('settings.noteParams.tableHeaders.regenerate')}</th>
+                      <th className="px-1.5 py-1 text-center w-10 theme-text-muted">{t('settings.noteParams.tableHeaders.output')}</th>
+                      <th className="px-1.5 py-1 text-left theme-text-muted">{t('settings.noteParams.tableHeaders.keyName')}</th>
+                      <th className="px-1.5 py-1 text-left theme-text-muted">{t('settings.noteParams.tableHeaders.note')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(Object.keys(NOTE_PARAM_CATEGORIES) as NoteParamCategory[]).map((category) => {
+                      const params = getNoteParamsGroupedByCategory().get(category) ?? [];
+                      if (params.length === 0) return null;
+                      const categoryInfo = NOTE_PARAM_CATEGORIES[category];
+                      return (
+                        <React.Fragment key={category}>
+                          {/* Category Header Row */}
+                          <tr className="theme-bg-muted">
+                            <td colSpan={5} className="px-1.5 py-1 font-semibold theme-text-muted">
+                              {isJapanese ? categoryInfo.labelJa : categoryInfo.labelEn}
+                            </td>
+                          </tr>
+                          {/* Parameter Rows */}
+                          {params.map((param) => {
+                            const outputSettings = settings.noteParamOutputSettings ?? getDefaultNoteParamOutputSettings();
+                            const isEnabled = outputSettings[param.key] ?? false;
+                            const importOk = param.importStatus === 'verified' || param.importStatus === 'unstable';
+                            const regenerateOk = param.regenerateStatus === 'verified' || param.regenerateStatus === 'unstable';
+                            const noteText = isJapanese ? param.noteJa : param.noteEn;
+                            return (
+                              <tr key={param.key} className="border-b theme-border hover:theme-bg-muted/50">
+                                <td className="px-1.5 py-0.5 text-center">
+                                  <span
+                                    className={importOk ? 'text-xs font-semibold theme-text-primary' : 'text-xs font-semibold theme-text-muted'}
+                                    title={
+                                      isJapanese
+                                        ? importOk
+                                          ? '✓ 新規取り込みで反映される（確認済み/不安定）'
+                                          : '✕ 新規取り込みで反映されない（未対応/未検証）'
+                                        : importOk
+                                          ? '✓ Applied on Import (Verified/Unstable)'
+                                          : '✕ Not applied on Import (Unsupported/Untested)'
+                                    }
+                                    aria-label={
+                                      isJapanese
+                                        ? importOk
+                                          ? '新規取り込み: 反映される'
+                                          : '新規取り込み: 反映されない'
+                                        : importOk
+                                          ? 'Import: applied'
+                                          : 'Import: not applied'
+                                    }
+                                  >
+                                    {importOk ? '✓' : '✕'}
+                                  </span>
+                                </td>
+                                <td className="px-1.5 py-0.5 text-center">
+                                  <span
+                                    className={regenerateOk ? 'text-xs font-semibold theme-text-primary' : 'text-xs font-semibold theme-text-muted'}
+                                    title={
+                                      isJapanese
+                                        ? regenerateOk
+                                          ? '✓ 構造再生成で反映される（確認済み/不安定）'
+                                          : '✕ 構造再生成で反映されない（未対応/未検証）'
+                                        : regenerateOk
+                                          ? '✓ Applied on Regenerate (Verified/Unstable)'
+                                          : '✕ Not applied on Regenerate (Unsupported/Untested)'
+                                    }
+                                    aria-label={
+                                      isJapanese
+                                        ? regenerateOk
+                                          ? '構造再生成: 反映される'
+                                          : '構造再生成: 反映されない'
+                                        : regenerateOk
+                                          ? 'Regenerate: applied'
+                                          : 'Regenerate: not applied'
+                                    }
+                                  >
+                                    {regenerateOk ? '✓' : '✕'}
+                                  </span>
+                                </td>
+                                <td className="px-1.5 py-0.5 text-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={isEnabled}
+                                    onChange={(e) => updateNoteParamOutputSetting(param.key, e.target.checked)}
+                                    className="w-3 h-3 rounded text-indigo-600 focus:ring-indigo-500/20 theme-input-border"
+                                  />
+                                </td>
+                                <td className="px-1.5 py-0.5 theme-text-primary">
+                                  <span title={param.key}>
+                                    {param.key}
+                                    <span className="ml-1 theme-text-muted">
+                                      ({isJapanese ? param.labelJa : param.labelEn})
+                                    </span>
+                                  </span>
+                                </td>
+                                <td className="px-1.5 py-0.5 theme-text-muted truncate max-w-[120px]" title={noteText || ''}>
+                                  {noteText || '—'}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
 
-              <p className="text-[10px] theme-text-muted">{t('settings.noteParams.hint')}</p>
+              <p className="text-[10px] theme-text-muted">{t('settings.noteParams.legend')}</p>
             </div>
           )}
         </section>

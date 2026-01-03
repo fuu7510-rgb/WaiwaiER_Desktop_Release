@@ -31,6 +31,9 @@
 ### 改善
 - ERエディタ: カラム行ミニツールバーのトグル（SHOW/Editable/必須）が、`Show_If`/`Editable_If`/`Required_If` 設定時に変更できてしまう問題を修正
   - ロック中である旨をツールチップで表示
+- 設定: Note Parameters 出力設定のUIを改善
+  - 新規取り込み（Import）/構造再生成（Regenerate）での反映可否（✓/✕）と備考を一覧表示
+  - 旧キー `DEFAULT` を正しい `Default` に移行（後方互換）
 - 全コンポーネントをCSS変数ベースのテーマシステムに移行
   - 共通コンポーネント（Dialog, Input, Select, Button, CollapsibleSection）
   - レイアウト（MainLayout, Header, Sidebar）
@@ -60,6 +63,12 @@
 - ERエディタ: AppSheetメモ設定のトグル系（Show?/Editable?/Reset on edit?/Require?）を Unset/true/false の3値に対応
   - 数式（`Show_If`/`Editable_If`/`Required_If`/任意式の`Reset_If`）が入っている場合は、対応トグルは常に Unset かつ変更不可
   - 数式が入っている間に勝手に true/false へ変化しないよう、競合解決ロジックとUI制御を調整
+- ERエディタ: Editable? トグルの動作を改善
+  - `Editable_If` が `TRUE`/`FALSE` の場合はトグル操作可能（式が入っている場合のみロック）
+  - トグル操作は `Editable_If` を `TRUE`/`FALSE` に設定する方式へ統一（旧 `Editable` キーを整理）
+- Excelエクスポート/プレビュー: Note Parameters の `Default` キー名を正として扱う（旧 `DEFAULT` は後方互換で吸収）
+- Excelエクスポート: 式系キー（`Show_If`/`Required_If`/`Editable_If`/`Reset_If`）を `TypeAuxData` に正しく集約するため、ユーザー指定の式が出力設定により欠落しないよう修正
+- ドキュメント: AppSheetメモ（Note Parameters/TypeAuxData）の説明を拡充（TypeAuxDataのキー一覧、エスケープ早見表、サポート状況更新）
 - ERエディタ: ズーム中のカラム並び替え（ドラッグ&ドロップ）で移動量がズレる問題を修正
 - ERエディタ: カラムの接続ハンドル周辺のクリック/ドラッグの競合を軽減（イベント伝播の抑制、当たり判定・位置の微調整）
 - ERエディタ: 既存リレーションあり列のインジケータ（青紫）の枠線色がテーマで変化する問題を修正（常に白枠）

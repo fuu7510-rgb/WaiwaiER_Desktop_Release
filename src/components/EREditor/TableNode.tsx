@@ -255,14 +255,26 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
     return typeof v === 'string' && v.trim().length > 0;
   }, [column.appSheet]);
 
-  const isEditable = useMemo(() => {
-    const editableVal = (column.appSheet as Record<string, unknown> | undefined)?.Editable;
-    return editableVal !== false;
+  const editableState = useMemo((): 'unset' | 'true' | 'false' => {
+    const appSheet = column.appSheet as Record<string, unknown> | undefined;
+    const editableIf = typeof appSheet?.Editable_If === 'string' ? appSheet.Editable_If.trim() : '';
+    const editableUpper = editableIf.toUpperCase();
+    if (editableUpper === 'TRUE') return 'true';
+    if (editableUpper === 'FALSE') return 'false';
+    // Fallback to legacy Editable key for compatibility
+    const editableVal = appSheet?.Editable;
+    if (editableVal === true) return 'true';
+    if (editableVal === false) return 'false';
+    return 'unset';
   }, [column.appSheet]);
 
-  const editableIfNonEmpty = useMemo(() => {
+  const editableHasFormula = useMemo(() => {
     const v = (column.appSheet as Record<string, unknown> | undefined)?.Editable_If;
-    return typeof v === 'string' && v.trim().length > 0;
+    if (typeof v !== 'string') return false;
+    const trimmed = v.trim();
+    const upper = trimmed.toUpperCase();
+    // TRUE/FALSE are not formulas, only other non-empty strings are formulas
+    return trimmed.length > 0 && upper !== 'TRUE' && upper !== 'FALSE';
   }, [column.appSheet]);
 
   const isRequired = !!column.constraints.required;
@@ -494,26 +506,28 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
     setDeleteArmed(false);
     setDeleteHintPos(null);
 
+    if (editableHasFormula) {
+      // Keep consistent with ColumnEditor: when Editable_If contains an expression (not TRUE/FALSE), toggle is locked.
+      return;
+    }
+
     const appSheet = column.appSheet as Record<string, unknown> | undefined;
-    const editableIf = typeof appSheet?.Editable_If === 'string' ? appSheet.Editable_If.trim() : '';
-    if (editableIf.length > 0) {
-      // Keep consistent with ColumnEditor: when Editable_If is present, Editable? (toggle) must be Unset and immutable.
-      return;
-    }
-    const editableVal = appSheet?.Editable;
-    const currentlyEditable = editableVal !== false;
 
-    if (currentlyEditable) {
-      // Not editable: set Editable=false and avoid conflict with Editable_If.
-      const nextAppSheet = pruneAppSheet({ ...(appSheet ?? {}), Editable: false }, ['Editable_If']);
-      updateColumn(tableId, column.id, { appSheet: nextAppSheet });
-      return;
+    // Cycle through 3 states: unset → true → false → unset
+    let nextAppSheet: Record<string, unknown> | undefined;
+    if (editableState === 'unset') {
+      // unset → true
+      nextAppSheet = pruneAppSheet({ ...(appSheet ?? {}), Editable_If: 'TRUE' }, ['Editable']);
+    } else if (editableState === 'true') {
+      // true → false
+      nextAppSheet = pruneAppSheet({ ...(appSheet ?? {}), Editable_If: 'FALSE' }, ['Editable']);
+    } else {
+      // false → unset
+      nextAppSheet = pruneAppSheet(appSheet, ['Editable_If', 'Editable']);
     }
 
-    // Editable: set explicit boolean and keep Editable_If cleared.
-    const nextAppSheet = pruneAppSheet({ ...(appSheet ?? {}), Editable: true }, ['Editable_If']);
     updateColumn(tableId, column.id, { appSheet: nextAppSheet });
-  }, [column.appSheet, column.id, pruneAppSheet, tableId, updateColumn]);
+  }, [column.appSheet, column.id, editableHasFormula, editableState, pruneAppSheet, tableId, updateColumn]);
 
   const handleToggleRequired = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -812,26 +826,33 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
                     </svg>
                   </button>
 
-                  <Tooltip disabled={!editableIfNonEmpty} content={t('table.lockedByEditableIf')}>
+                  <Tooltip disabled={!editableHasFormula} content={t('table.lockedByEditableIf')}>
                     <button
                       type="button"
                       onClick={handleToggleEditable}
                       data-reorder-button="true"
                       onPointerDown={(e) => e.stopPropagation()}
                       onMouseDown={(e) => e.stopPropagation()}
-                      className={`p-0.5 border-l flex items-center justify-center ${editableIfNonEmpty ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      className={`p-0.5 border-l flex items-center justify-center ${editableHasFormula ? 'opacity-40 cursor-not-allowed' : ''}`}
                       style={{
                         borderColor: 'var(--border)',
-                        backgroundColor: isEditable ? 'var(--section-bg-active)' : 'transparent',
-                        color: isEditable ? 'var(--text-primary)' : 'var(--text-muted)',
+                        backgroundColor: editableState === 'false' ? 'transparent' : 'var(--section-bg-active)',
+                        color: editableState === 'true' ? '#4ade80' : editableState === 'unset' ? 'var(--text-primary)' : 'var(--text-muted)',
                       }}
                       aria-label={
-                        editableIfNonEmpty
+                        editableHasFormula
                           ? labelEnJa('Editable toggle locked by Editable_If', 'Editable_Ifでロック中（編集トグル変更不可）')
-                          : `${t('table.toggleEditable')}: ${isEditable ? t('common.on') : t('common.off')}`
+                          : `${t('table.toggleEditable')}: ${editableState === 'true' ? 'TRUE' : editableState === 'false' ? 'FALSE' : 'Unset'}`
                       }
                     >
-                      {isEditable ? (
+                      {editableState === 'false' ? (
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 20h9" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 20l1-4 7.5-7.5" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.5 5.5l4 4" />
+                        </svg>
+                      ) : (
                         <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 20h9" />
                           <path
@@ -840,13 +861,6 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
                             strokeWidth={2}
                             d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z"
                           />
-                        </svg>
-                      ) : (
-                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 20h9" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 20l1-4 7.5-7.5" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.5 5.5l4 4" />
                         </svg>
                       )}
                     </button>
