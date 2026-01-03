@@ -189,7 +189,10 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
         <div className="space-y-4">
           {/* Export Format Selection */}
           <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-2">
+            <label
+              className="block text-xs font-medium mb-2"
+              style={{ color: 'var(--text-primary)' }}
+            >
               {t('export.format')}
             </label>
             <div className="space-y-2">
@@ -211,8 +214,12 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
                     className="mt-0.5"
                   />
                   <div>
-                    <p className="text-xs font-medium text-zinc-700">{f.label}</p>
-                    <p className="text-[10px] text-zinc-400">{f.description}</p>
+                    <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
+                      {f.label}
+                    </p>
+                    <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                      {f.description}
+                    </p>
                   </div>
                 </label>
               ))}
@@ -229,7 +236,9 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
                   onChange={(e) => setIncludeData(e.target.checked)}
                   className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600"
                 />
-                <span className="text-xs text-zinc-600">{t('export.includeData')}</span>
+                <span className="text-xs" style={{ color: 'var(--text-primary)' }}>
+                  {t('export.includeData')}
+                </span>
               </label>
 
               {/* Note Parameters サポート状況パネル */}
@@ -238,10 +247,15 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
           )}
 
           {/* Info */}
-          <div className="bg-zinc-50 rounded p-2.5 text-[10px] text-zinc-500">
+          <div
+            className="rounded p-2.5 text-[10px]"
+            style={{ backgroundColor: 'var(--muted)', color: 'var(--text-secondary)' }}
+          >
             <p>
               {t('export.info.tablesCount')}:{' '}
-              <span className="font-medium text-zinc-700">{tables.length}</span>
+              <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                {tables.length}
+              </span>
             </p>
           </div>
 
