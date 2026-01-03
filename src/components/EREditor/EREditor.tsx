@@ -48,6 +48,8 @@ function EREditorInner() {
     toggleMemosVisible,
     settings,
   } = useUIStore();
+
+  const isEdgeAnimationEnabled = settings.edgeAnimationEnabled ?? true;
   const zoom = useReactFlowStore((state) => state.transform[2]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
@@ -451,7 +453,7 @@ function EREditorInner() {
       targetHandle: relation.targetColumnId,
       type: 'relationEdge',
       updatable: true,
-      animated: true,
+      animated: isEdgeAnimationEnabled,
       style: edgeStyle,
       data: {
         label: effectiveLabel,
@@ -462,7 +464,7 @@ function EREditorInner() {
         isDimmed,
       },
     };
-  }, [edgeOffsetMap, relatedGraph]);
+  }, [edgeOffsetMap, isEdgeAnimationEnabled, relatedGraph]);
 
   const [nodes, setNodes] = useNodesState([
     ...tables.map(tableToNode),

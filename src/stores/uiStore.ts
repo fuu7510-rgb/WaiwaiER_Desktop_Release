@@ -83,6 +83,7 @@ const defaultSettings: AppSettings = {
   language: 'ja',
   theme: 'system',
   fontSize: 'medium',
+  edgeAnimationEnabled: true,
   showNoteParamsSupportPanel: true,
   noteParamOutputSettings: getDefaultNoteParamOutputSettings(),
   autoBackupEnabled: true,

@@ -273,6 +273,9 @@ export interface AppSettings {
   theme: Theme;
   fontSize: FontSize;
 
+  /** ER図のリレーション線(エッジ)のアニメーション表示 */
+  edgeAnimationEnabled?: boolean;
+
   /** Excelエクスポート画面で Note Parameters の対応状況パネルを表示する */
   showNoteParamsSupportPanel: boolean;
 

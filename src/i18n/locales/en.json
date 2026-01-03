@@ -285,6 +285,12 @@
     "appearance": "Appearance",
     "backup": "Backup",
     "license": "License",
+    "editor": {
+      "edgeAnimation": {
+        "label": "Enable edge animation",
+        "hint": "Shows animation on relationship edges in the ER diagram."
+      }
+    },
     "export": {
       "title": "Export",
       "showNoteParamsSupportPanel": "Show Note Parameters support status",

@@ -211,6 +211,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     // boolean
     if (typeof obj.autoBackupEnabled === 'boolean') next.autoBackupEnabled = obj.autoBackupEnabled;
     if (typeof obj.showNoteParamsSupportPanel === 'boolean') next.showNoteParamsSupportPanel = obj.showNoteParamsSupportPanel;
+    if (typeof obj.edgeAnimationEnabled === 'boolean') next.edgeAnimationEnabled = obj.edgeAnimationEnabled;
 
     // number
     const autoBackupIntervalMinutes = coerceNumber(obj.autoBackupIntervalMinutes);
@@ -407,6 +408,19 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
               options={fontSizeOptions}
               onChange={(e) => setFontSize(e.target.value as FontSize)}
             />
+
+            <div>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.edgeAnimationEnabled ?? true}
+                  onChange={(e) => updateSettings({ edgeAnimationEnabled: e.target.checked })}
+                  className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20 theme-input-border"
+                />
+                <span className="text-xs theme-text-secondary">{t('settings.editor.edgeAnimation.label')}</span>
+              </label>
+              <p className="mt-0.5 text-[10px] theme-text-muted">{t('settings.editor.edgeAnimation.hint')}</p>
+            </div>
           </div>
         </section>
 
