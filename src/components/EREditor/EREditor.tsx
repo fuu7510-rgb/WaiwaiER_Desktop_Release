@@ -57,7 +57,8 @@ function EREditorInner() {
   const defaultFollowerIconName = settings.edgeFollowerIconName ?? 'arrow-right';
   const defaultFollowerIconSize = settings.edgeFollowerIconSize ?? 14;
   const defaultFollowerIconSpeed = settings.edgeFollowerIconSpeed ?? 90;
-  const zoom = useReactFlowStore((state) => state.transform[2]);
+  // パフォーマンス最適化: shallow比較で同じ値なら再レンダリングをスキップ
+  const zoom = useReactFlowStore((state) => state.transform[2], (a, b) => a === b);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   const lastPointerPosRef = useRef<{ x: number; y: number } | null>(null);
@@ -534,23 +535,26 @@ function EREditorInner() {
     };
   }, [edgeOffsetMap, isAnimationTemporarilyEnabled, isEdgeAnimationEnabled, isEdgeFollowerIconEnabled, defaultFollowerIconName, defaultFollowerIconSize, defaultFollowerIconSpeed, relatedGraph, selectedRelationId]);
 
-  const [nodes, setNodes] = useNodesState([
+  // パフォーマンス最適化: ノードとエッジを useMemo で計算し、依存関係が変わらない限り同じ参照を維持
+  const computedNodes = useMemo(() => [
     ...tables.map(tableToNode),
     ...(isMemosVisible ? memos.map(memoToNode) : []),
-  ]);
-  const [edges, setEdges] = useEdgesState(relations.map(relationToEdge));
+  ], [tables, tableToNode, memos, memoToNode, isMemosVisible]);
+
+  const computedEdges = useMemo(() => relations.map(relationToEdge), [relations, relationToEdge]);
+
+  const [nodes, setNodes] = useNodesState(computedNodes);
+  const [edges, setEdges] = useEdgesState(computedEdges);
 
   // ストアの変更を監視してノードとエッジを更新
+  // 計算済みの配列を直接使用して不要な再計算を防止
   useEffect(() => {
-    setNodes([
-      ...tables.map(tableToNode),
-      ...(isMemosVisible ? memos.map(memoToNode) : []),
-    ]);
-  }, [isMemosVisible, memos, memoToNode, tables, tableToNode, setNodes]);
+    setNodes(computedNodes);
+  }, [computedNodes, setNodes]);
 
   useEffect(() => {
-    setEdges(relations.map(relationToEdge));
-  }, [relations, relationToEdge, setEdges]);
+    setEdges(computedEdges);
+  }, [computedEdges, setEdges]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {

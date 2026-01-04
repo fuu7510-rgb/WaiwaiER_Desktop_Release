@@ -235,18 +235,31 @@ interface ColumnRowProps {
 
 const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowProps) => {
   const { t, i18n } = useTranslation();
-  // パフォーマンス最適化: 各状態を個別のセレクタで購読
+  // パフォーマンス最適化: アクション関数は安定した参照を持つため直接購読
   const selectColumn = useERStore((state) => state.selectColumn);
-  const isSelected = useERStore((state) => state.selectedColumnId === column.id);
   const reorderColumn = useERStore((state) => state.reorderColumn);
   const updateColumn = useERStore((state) => state.updateColumn);
   const deleteColumn = useERStore((state) => state.deleteColumn);
   const duplicateColumn = useERStore((state) => state.duplicateColumn);
-  // 着信リレーションの有無のみを購読（relations配列全体ではなくbooleanで）
-  const hasIncomingRelation = useERStore((state) =>
-    state.relations.some((r) => r.targetTableId === tableId && r.targetColumnId === column.id)
+
+  // パフォーマンス最適化: セレクタをuseCallbackでメモ化して安定した参照を保つ
+  const isSelectedSelector = useCallback(
+    (state: { selectedColumnId: string | null }) => state.selectedColumnId === column.id,
+    [column.id]
   );
-  const zoom = useReactFlowStore((state) => state.transform[2]) ?? 1;
+  const isSelected = useERStore(isSelectedSelector);
+
+  // 着信リレーションの有無のみを購読（relations配列全体ではなくbooleanで）
+  const hasIncomingRelationSelector = useCallback(
+    (state: { relations: { targetTableId: string; targetColumnId: string }[] }) =>
+      state.relations.some((r) => r.targetTableId === tableId && r.targetColumnId === column.id),
+    [tableId, column.id]
+  );
+  const hasIncomingRelation = useERStore(hasIncomingRelationSelector);
+
+  // パフォーマンス最適化: zoomはドラッグ中のtransform調整にのみ必要
+  // shallow比較で同じ値なら再レンダリングをスキップさせる
+  const zoom = useReactFlowStore((state) => state.transform[2], (a, b) => a === b) ?? 1;
   const typeClass = columnTypeClasses[column.type] || 'bg-slate-500';
 
   const showRetargetOverlay = hasIncomingRelation;
