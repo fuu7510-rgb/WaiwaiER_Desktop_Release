@@ -163,7 +163,8 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
           type="target"
           position={Position.Left}
           id={`${table.id}__addColumn`}
-          className="!w-2 !h-2 !bg-green-400 !border !border-white !-left-1 !rounded-full"
+          className="!bg-green-400 !border !border-white !rounded-full"
+          style={{ width: 8, height: 8, minWidth: 8, minHeight: 8, maxWidth: 8, maxHeight: 8, left: -5 }}
           title="ここに接続すると新しいカラムを作成"
         />
         <button
@@ -695,8 +696,13 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
         id={column.id}
         className={
           showRetargetOverlay
-            ? '!w-px !h-px !bg-transparent !border-0 !opacity-0 !pointer-events-none !-left-1.5'
-            : '!w-2 !h-2 !bg-zinc-400 !border !border-white !-left-1 !rounded-full'
+            ? '!bg-transparent !border-0 !opacity-0 !pointer-events-none'
+            : '!bg-zinc-400 !border !border-white !rounded-full'
+        }
+        style={
+          showRetargetOverlay
+            ? { width: 1, height: 1, left: -6 }
+            : { width: 8, height: 8, minWidth: 8, minHeight: 8, maxWidth: 8, maxHeight: 8, left: -5 }
         }
         onPointerDown={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
@@ -714,7 +720,7 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
             backgroundColor: 'var(--primary)',
             border: '1px solid #fff',
             cursor: 'default',
-            left: -5,
+            left: -6,
             top: '50%',
             transform: 'translateY(-50%)',
           }}
@@ -1186,7 +1192,8 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
           type="source"
           position={Position.Right}
           id={`${column.id}__source`}
-          className="!w-2 !h-2 !bg-amber-400 !border !border-white hover:!bg-amber-500 cursor-crosshair !-right-1 !rounded-full"
+          className="!bg-amber-400 !border !border-white hover:!bg-amber-500 cursor-crosshair !rounded-full"
+          style={{ width: 8, height: 8, minWidth: 8, minHeight: 8, maxWidth: 8, maxHeight: 8, right: -5 }}
           title="ドラッグして他のテーブルのカラムに接続"
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
