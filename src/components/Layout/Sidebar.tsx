@@ -264,7 +264,7 @@ function TableListItem({
       {...attributes}
       {...listeners}
       className={`
-        px-4 py-3 cursor-pointer transition-all duration-150
+        px-4 py-2 cursor-pointer transition-all duration-150
         border-l-4 pl-3
         ${isOver ? 'ring-2 ring-indigo-200 ring-inset' : ''}
       `}
