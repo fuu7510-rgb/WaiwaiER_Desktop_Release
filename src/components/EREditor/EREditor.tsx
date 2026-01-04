@@ -35,10 +35,13 @@ function EREditorInner() {
     addColumn,
     updateColumn,
     updateRelation,
+    deleteTable,
+    deleteColumn,
     deleteRelation,
     selectTable,
     selectRelation,
     selectedTableId,
+    selectedColumnId,
     selectedRelationId,
     pendingSelectedTableIds,
     clearPendingSelectedTableIds,
@@ -375,6 +378,7 @@ function EREditorInner() {
   // テーブルをReact Flowノードに変換
   const tableToNode = useCallback((table: Table): Node => {
     const isGraphSelected = selectedTableId === table.id;
+    const isReactFlowSelected = isGraphSelected && !selectedColumnId;
     const isUpstream = relatedGraph.hasSelection && relatedGraph.upstreamTableIds.has(table.id);
     const isDownstream = relatedGraph.hasSelection && relatedGraph.downstreamTableIds.has(table.id);
     const isRelated = isGraphSelected || isUpstream || isDownstream;
@@ -386,6 +390,7 @@ function EREditorInner() {
       type: 'tableNode',
       position: table.position,
       zIndex,
+      selected: isReactFlowSelected,
       data: {
         table,
         highlight: {
@@ -397,7 +402,35 @@ function EREditorInner() {
         },
       },
     };
-  }, [relatedGraph, selectedTableId, tableNodeZIndexMap]);
+  }, [relatedGraph, selectedColumnId, selectedTableId, tableNodeZIndexMap]);
+
+  // カラム選択中は Delete を「カラム削除」として扱う（テーブル削除を優先させない）
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Delete') return;
+
+      const target = e.target as HTMLElement | null;
+      const isTypingTarget =
+        !!target &&
+        (target.isContentEditable ||
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT');
+      if (isTypingTarget) return;
+
+      if (!selectedTableId || !selectedColumnId) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      // ReactFlow側の削除処理に先行して止める
+      (e as unknown as { stopImmediatePropagation?: () => void }).stopImmediatePropagation?.();
+
+      deleteColumn(selectedTableId, selectedColumnId);
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [deleteColumn, selectedColumnId, selectedTableId]);
 
   const memoToNode = useCallback((memo: Memo): Node => {
     return {
@@ -575,9 +608,18 @@ function EREditorInner() {
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
+      const removed = changes.filter((c) => c.type === 'remove');
+      if (removed.length > 0) {
+        for (const change of removed) {
+          const isTableNode = tables.some((t) => t.id === change.id);
+          if (isTableNode) {
+            deleteTable(change.id);
+          }
+        }
+      }
       setNodes((nds) => applyNodeChanges(changes, nds));
     },
-    [setNodes]
+    [deleteTable, setNodes, tables]
   );
 
   const onNodeDragStop = useCallback(
