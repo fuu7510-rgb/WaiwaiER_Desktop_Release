@@ -713,14 +713,14 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
         <div
           className="absolute z-30"
           style={{
-            width: 10,
-            height: 10,
+            width: 8,
+            height: 8,
             borderRadius: 9999,
             boxSizing: 'border-box',
             backgroundColor: 'var(--primary)',
             border: '1px solid #fff',
             cursor: 'default',
-            left: -6,
+            left: -5,
             top: '50%',
             transform: 'translateY(-50%)',
           }}
