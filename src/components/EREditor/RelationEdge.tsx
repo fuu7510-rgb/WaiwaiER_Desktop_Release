@@ -1,10 +1,10 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ComponentType } from 'react';
 import { BaseEdge, EdgeLabelRenderer } from 'reactflow';
 import type { EdgeProps, Position } from 'reactflow';
 import { ArrowRight as DefaultFollowerIcon } from 'lucide-react';
+import { DynamicIcon } from 'lucide-react/dynamic';
 
-import { getLucideIconComponent } from '../../lib/lucideIcons';
+import { coerceLucideIconName } from '../../lib/lucideIcons';
 
 import { useERStore } from '../../stores';
 import { useUIStore } from '../../stores/uiStore';
@@ -214,12 +214,7 @@ export const RelationEdge = memo(({
     });
   }, [sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, curvature]);
 
-  const FollowerIcon = useMemo((): ComponentType<{ size?: number }> => {
-    const icon = getLucideIconComponent(edgeFollowerIconName);
-    if (icon) return icon;
-    const fallbackIcon = getLucideIconComponent('arrow-right');
-    return fallbackIcon ?? DefaultFollowerIcon;
-  }, [edgeFollowerIconName]);
+  const followerIconName = coerceLucideIconName(edgeFollowerIconName, 'arrow-right');
 
   useEffect(() => {
     if (!followerIconEnabled) return;
@@ -295,7 +290,11 @@ export const RelationEdge = memo(({
                 transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               }}
             >
-              <FollowerIcon size={edgeFollowerIconSize} />
+              <DynamicIcon
+                name={followerIconName}
+                size={edgeFollowerIconSize}
+                fallback={DefaultFollowerIcon}
+              />
             </div>
           </EdgeLabelRenderer>
         </>

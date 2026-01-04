@@ -2,9 +2,11 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, X } from 'lucide-react';
+import { DynamicIcon } from 'lucide-react/dynamic';
 import {
   canonicalizeLucideIconName,
-  getLucideIconComponent,
+  coerceLucideIconName,
+  isLucideIconName,
   listLucideIconNamesKebab,
 } from '../../lib/lucideIcons';
 
@@ -65,7 +67,7 @@ export function IconPicker({
     const presetSet = new Set(presetIcons.map((name) => canonicalizeLucideIconName(name)));
     const preset = presetIcons
       .map((name) => canonicalizeLucideIconName(name))
-      .filter((name) => getLucideIconComponent(name));
+      .filter((name) => isLucideIconName(name));
     const others = allIconNames.filter((name) => !presetSet.has(name));
 
     if (!query) {
@@ -189,7 +191,7 @@ export function IconPicker({
     }
   }, [focusedIndex]);
 
-  const CurrentIcon = getLucideIconComponent(value) ?? getLucideIconComponent('arrow-right');
+  const currentIconName = coerceLucideIconName(value, 'arrow-right');
 
   return (
     <div ref={containerRef} className="relative w-full">
@@ -232,7 +234,7 @@ export function IconPicker({
             borderColor: 'var(--border)',
           }}
         >
-          {CurrentIcon && <CurrentIcon size={16} />}
+          <DynamicIcon name={currentIconName} size={16} />
         </span>
         <span className="flex-1 text-left truncate text-xs">{value}</span>
         <span
@@ -309,7 +311,6 @@ export function IconPicker({
             ) : (
               <div className="grid grid-cols-6 gap-1">
                 {filteredIcons.slice(0, 120).map((iconName, index) => {
-                  const IconComponent = getLucideIconComponent(iconName);
                   const isSelected = iconName === value;
                   const isFocused = index === focusedIndex;
 
@@ -335,7 +336,7 @@ export function IconPicker({
                         outlineOffset: '-2px',
                       }}
                     >
-                      {IconComponent && <IconComponent size={18} />}
+                      <DynamicIcon name={iconName} size={18} />
                     </button>
                   );
                 })}

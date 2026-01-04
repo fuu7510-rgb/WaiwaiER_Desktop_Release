@@ -41,11 +41,11 @@ export function TableEditor() {
 
   const exportTargets = selectedTable?.exportTargets ?? [...ALL_EXPORT_TARGETS];
 
-  const handleToggleExportTarget = useCallback((target: (typeof ALL_EXPORT_TARGETS)[number]) => {
+  const handleToggleExportTarget = (target: (typeof ALL_EXPORT_TARGETS)[number]) => {
     const current = selectedTable?.exportTargets ?? [...ALL_EXPORT_TARGETS];
     const next = current.includes(target) ? current.filter((t) => t !== target) : [...current, target];
     handleUpdate({ exportTargets: next });
-  }, [handleUpdate, selectedTable?.exportTargets]);
+  };
 
   if (!selectedTable) {
     return null;

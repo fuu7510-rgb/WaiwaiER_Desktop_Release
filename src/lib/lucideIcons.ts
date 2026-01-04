@@ -1,73 +1,32 @@
-import type { ComponentType } from 'react';
-import * as Lucide from 'lucide-react';
+import { iconNames, type IconName } from 'lucide-react/dynamic';
 
-export type LucideIconComponent = ComponentType<{ size?: number; className?: string }>;
-
-const DENY_KEYS = new Set([
-  // non-icon exports
-  'createLucideIcon',
-  'icons',
-  'default',
-  'DynamicIcon',
-]);
+export type LucideIconName = IconName;
 
 const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-const toKebabCase = (pascalCase: string) => {
-  // Examples:
-  // ArrowRight -> arrow-right
-  // Link2 -> link-2
-  // AArrowDown -> a-arrow-down
-  return pascalCase
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2')
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .replace(/([a-zA-Z])([0-9])/g, '$1-$2')
-    .replace(/([0-9])([a-zA-Z])/g, '$1-$2')
-    .toLowerCase();
-};
+const KEBAB_NAMES_SORTED = [...iconNames].sort((a, b) => a.localeCompare(b));
+const KEBAB_NAME_SET = new Set<IconName>(KEBAB_NAMES_SORTED);
+const NORMALIZED_TO_KEBAB = new Map<string, IconName>(
+  KEBAB_NAMES_SORTED.map((name) => [normalize(name), name])
+);
 
-const isProbablyIconExport = (key: string, value: unknown): value is LucideIconComponent => {
-  if (DENY_KEYS.has(key)) return false;
-  if (!/^[A-Z]/.test(key)) return false;
-  if (typeof value !== 'function') return false;
-  return true;
-};
-
-const ICON_EXPORTS = Object.entries(Lucide).filter(([key, value]) => isProbablyIconExport(key, value));
-const NORMALIZED_TO_PASCAL = new Map<string, string>(ICON_EXPORTS.map(([key]) => [normalize(key), key]));
-const KEBAB_NAMES_SORTED = ICON_EXPORTS.map(([key]) => toKebabCase(key)).sort((a, b) => a.localeCompare(b));
-
-export const listLucideIconNamesKebab = (): string[] => KEBAB_NAMES_SORTED;
-
-export const resolveLucideIconPascalName = (name: string): string | null => {
-  const trimmed = name.trim();
-  if (trimmed.length === 0) return null;
-
-  // Fast path: user already uses PascalCase export name
-  if (trimmed in Lucide) {
-    const maybe = (Lucide as Record<string, unknown>)[trimmed];
-    return isProbablyIconExport(trimmed, maybe) ? trimmed : null;
-  }
-
-  // Normalized lookup: supports kebab_case, snake_case, spaces, etc.
-  const normalized = normalize(trimmed);
-  if (normalized.length === 0) return null;
-
-  return NORMALIZED_TO_PASCAL.get(normalized) ?? null;
-};
+export const listLucideIconNamesKebab = (): IconName[] => KEBAB_NAMES_SORTED;
 
 export const canonicalizeLucideIconName = (name: string): string => {
-  const pascal = resolveLucideIconPascalName(name);
-  return pascal ? toKebabCase(pascal) : name.trim();
+  const trimmed = name.trim();
+  if (trimmed.length === 0) return '';
+  const normalized = normalize(trimmed);
+  if (normalized.length === 0) return trimmed;
+  return (NORMALIZED_TO_KEBAB.get(normalized) ?? trimmed) as string;
 };
 
-export const getLucideIconComponent = (name: string | null | undefined): LucideIconComponent | null => {
-  const raw = (name ?? '').trim();
-  if (raw.length === 0) return null;
+export const isLucideIconName = (name: string): name is IconName => KEBAB_NAME_SET.has(name as IconName);
 
-  const pascal = resolveLucideIconPascalName(raw);
-  if (!pascal) return null;
-
-  const maybe = (Lucide as Record<string, unknown>)[pascal];
-  return isProbablyIconExport(pascal, maybe) ? (maybe as LucideIconComponent) : null;
+export const coerceLucideIconName = (
+  name: string | null | undefined,
+  fallback: IconName = 'arrow-right'
+): IconName => {
+  const canonical = canonicalizeLucideIconName(name ?? '');
+  if (isLucideIconName(canonical)) return canonical;
+  return fallback;
 };

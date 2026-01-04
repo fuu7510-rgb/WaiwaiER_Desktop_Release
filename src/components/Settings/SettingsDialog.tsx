@@ -1,11 +1,10 @@
-import React, { useEffect, useMemo, useState, useId } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dialog, Button, Input, Select } from '../common';
+import { Dialog, Button, Input, Select, IconPicker } from '../common';
 import { useUIStore, useProjectStore } from '../../stores';
 import type { Language, Theme, FontSize, RelationLabelInitialMode, CommonColumnDefinition, ColumnType, ColumnConstraints } from '../../types';
 import { APPSHEET_COLUMN_TYPES } from '../../types';
 import { getAppInfo } from '../../lib/appInfo';
-import { canonicalizeLucideIconName, getLucideIconComponent, listLucideIconNamesKebab } from '../../lib/lucideIcons';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { v4 as uuidv4 } from 'uuid';
@@ -46,10 +45,6 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
 
   const [selectedCommonColumnId, setSelectedCommonColumnId] = useState<string | null>(null);
 
-  const edgeFollowerIconDatalistId = useId();
-  const allLucideIconNames = useMemo(() => listLucideIconNamesKebab(), []);
-  const [edgeFollowerIconDraft, setEdgeFollowerIconDraft] = useState<string>(settings.edgeFollowerIconName ?? 'arrow-right');
-
   const [appVersion, setAppVersion] = useState<string>('');
   const [transferMessage, setTransferMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -78,10 +73,6 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     };
   }, [isOpen]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    setEdgeFollowerIconDraft(settings.edgeFollowerIconName ?? 'arrow-right');
-  }, [isOpen, settings.edgeFollowerIconName]);
 
   const handleClose = () => {
     setTransferMessage(null);
@@ -103,14 +94,6 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     { value: 'small', label: t('settings.fontSizes.small') },
     { value: 'medium', label: t('settings.fontSizes.medium') },
     { value: 'large', label: t('settings.fontSizes.large') },
-  ];
-
-  const edgeFollowerIconOptions = [
-    { value: 'arrow-right', label: t('settings.editor.edgeFollowerIcon.options.arrowRight') },
-    { value: 'link-2', label: t('settings.editor.edgeFollowerIcon.options.link2') },
-    { value: 'zap', label: t('settings.editor.edgeFollowerIcon.options.zap') },
-    { value: 'truck', label: t('settings.editor.edgeFollowerIcon.options.truck') },
-    { value: 'circle', label: t('settings.editor.edgeFollowerIcon.options.circle') },
   ];
 
   const relationLabelModeOptions = [
@@ -464,65 +447,12 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
               </div>
 
               <div className="grid grid-cols-3 gap-2.5">
-                <div className="w-full">
-                  <div className="flex items-end gap-2">
-                    <div className="flex-1">
-                      <Input
-                        label={t('settings.editor.edgeFollowerIcon.icon')}
-                        placeholder="arrow-right"
-                        list={edgeFollowerIconDatalistId}
-                        disabled={!(settings.edgeFollowerIconEnabled ?? false)}
-                        value={edgeFollowerIconDraft}
-                        onChange={(e) => {
-                          const nextValue = e.target.value;
-                          setEdgeFollowerIconDraft(nextValue);
-                          const canonical = canonicalizeLucideIconName(nextValue);
-                          if (getLucideIconComponent(canonical)) {
-                            updateSettings({ edgeFollowerIconName: canonical });
-                          }
-                        }}
-                        onBlur={() => {
-                          const fallback = settings.edgeFollowerIconName ?? 'arrow-right';
-                          const candidate = canonicalizeLucideIconName(edgeFollowerIconDraft || fallback);
-                          if (getLucideIconComponent(candidate)) {
-                            setEdgeFollowerIconDraft(candidate);
-                            updateSettings({ edgeFollowerIconName: candidate });
-                            return;
-                          }
-                          setEdgeFollowerIconDraft(fallback);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key !== 'Enter') return;
-                          (e.currentTarget as HTMLInputElement).blur();
-                        }}
-                      />
-                      <datalist id={edgeFollowerIconDatalistId}>
-                        {allLucideIconNames.map((name) => (
-                          <option key={name} value={name} />
-                        ))}
-                      </datalist>
-                    </div>
-
-                    <div
-                      className="mb-[1px] flex h-[30px] w-[30px] items-center justify-center rounded border"
-                      style={{
-                        backgroundColor: 'var(--input-bg)',
-                        borderColor: 'var(--input-border)',
-                        color: 'var(--text-secondary)',
-                        opacity: settings.edgeFollowerIconEnabled ?? false ? 1 : 0.5,
-                      }}
-                      aria-label={t('settings.editor.edgeFollowerIcon.icon')}
-                    >
-                      {(() => {
-                        const Icon =
-                          getLucideIconComponent(edgeFollowerIconDraft) ??
-                          getLucideIconComponent(settings.edgeFollowerIconName ?? 'arrow-right') ??
-                          getLucideIconComponent('arrow-right');
-                        return Icon ? <Icon size={16} /> : null;
-                      })()}
-                    </div>
-                  </div>
-                </div>
+                <IconPicker
+                  label={t('settings.editor.edgeFollowerIcon.icon')}
+                  value={settings.edgeFollowerIconName ?? 'arrow-right'}
+                  onChange={(iconName: string) => updateSettings({ edgeFollowerIconName: iconName })}
+                  disabled={!(settings.edgeFollowerIconEnabled ?? false)}
+                />
 
                 <Input
                   label={t('settings.editor.edgeFollowerIcon.size')}
