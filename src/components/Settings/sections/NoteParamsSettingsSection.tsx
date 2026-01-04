@@ -8,14 +8,12 @@ import {
   getDefaultNoteParamOutputSettings,
   type NoteParamCategory,
 } from '../../../lib/appsheet/noteParameters';
-import { SettingsCollapsibleSection } from '../SettingsCollapsibleSection';
+import { SettingsSectionContent } from '../SettingsSectionContent';
 
 export function NoteParamsSettingsSection() {
   const { t, i18n } = useTranslation();
   const {
     settings,
-    isNoteParamsSettingsOpen,
-    toggleNoteParamsSettingsOpen,
     updateNoteParamOutputSetting,
     resetNoteParamOutputSettings,
   } = useUIStore();
@@ -26,14 +24,11 @@ export function NoteParamsSettingsSection() {
   }, [i18n.language, i18n.resolvedLanguage]);
 
   return (
-    <SettingsCollapsibleSection
+    <SettingsSectionContent
       title={t('settings.noteParams.title')}
-      isOpen={isNoteParamsSettingsOpen}
-      onToggle={toggleNoteParamsSettingsOpen}
+      description={t('settings.noteParams.description')}
     >
       <div className="space-y-3">
-        <p className="text-[10px] theme-text-muted">{t('settings.noteParams.description')}</p>
-
         {/* Reset Button */}
         <div className="flex justify-end">
           <Button variant="secondary" size="sm" onClick={resetNoteParamOutputSettings}>
@@ -156,6 +151,6 @@ export function NoteParamsSettingsSection() {
 
         <p className="text-[10px] theme-text-muted">{t('settings.noteParams.legend')}</p>
       </div>
-    </SettingsCollapsibleSection>
+    </SettingsSectionContent>
   );
 }

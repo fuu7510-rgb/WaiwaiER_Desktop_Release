@@ -341,9 +341,18 @@
   "settings": {
     "title": "User Settings",
     "general": "General",
+    "generalDescription": "Configure basic settings such as language, theme, and font size.",
     "appearance": "Appearance",
     "backup": "Backup",
+    "backupDescription": "Configure automatic backup settings.",
     "license": "License",
+    "licenseDescription": "View and activate your license.",
+    "about": "About WaiwaiER",
+    "groups": {
+      "main": "Basic Settings",
+      "advanced": "Advanced",
+      "info": "Information"
+    },
     "editor": {
       "edgeAnimation": {
         "label": "Enable edge animation",
@@ -384,10 +393,12 @@
       "legend": "Legend: ✓=Likely applied in AppSheet (Verified/Unstable), ✕=Not applied or untested (Unsupported/Untested)"
     },
     "tableCreationRules": {
-      "title": "Table creation rules"
+      "title": "Table creation rules",
+      "description": "Configure naming conventions for tables and columns."
     },
     "relationSettings": {
       "title": "Relation Settings",
+      "description": "Configure display and label settings for relations (connections between tables).",
       "lineStyle": {
         "title": "Line Style",
         "label": "Default line style",

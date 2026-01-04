@@ -1,22 +1,19 @@
 import { useTranslation } from 'react-i18next';
 import { Input } from '../../common';
 import { useUIStore } from '../../../stores';
-import { SettingsCollapsibleSection } from '../SettingsCollapsibleSection';
+import { SettingsSectionContent } from '../SettingsSectionContent';
 
 export function TableCreationRulesSection() {
   const { t } = useTranslation();
   const {
     settings,
     updateSettings,
-    isTableCreationRulesOpen,
-    toggleTableCreationRulesOpen,
   } = useUIStore();
 
   return (
-    <SettingsCollapsibleSection
+    <SettingsSectionContent
       title={t('settings.tableCreationRules.title')}
-      isOpen={isTableCreationRulesOpen}
-      onToggle={toggleTableCreationRulesOpen}
+      description={t('settings.tableCreationRules.description')}
     >
       <div className="space-y-4">
         {/* Table Name Settings */}
@@ -80,6 +77,6 @@ export function TableCreationRulesSection() {
           </div>
         </div>
       </div>
-    </SettingsCollapsibleSection>
+    </SettingsSectionContent>
   );
 }

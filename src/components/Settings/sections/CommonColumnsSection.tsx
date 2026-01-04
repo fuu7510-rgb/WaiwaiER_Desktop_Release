@@ -5,7 +5,7 @@ import { useUIStore } from '../../../stores';
 import type { ColumnType, CommonColumnDefinition, ColumnConstraints } from '../../../types';
 import { APPSHEET_COLUMN_TYPES } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
-import { SettingsCollapsibleSection } from '../SettingsCollapsibleSection';
+import { SettingsSectionContent } from '../SettingsSectionContent';
 
 const RAW_NOTE_OVERRIDE_KEY = '__AppSheetNoteOverride';
 
@@ -14,8 +14,6 @@ export function CommonColumnsSection() {
   const {
     settings,
     updateSettings,
-    isCommonColumnsOpen,
-    toggleCommonColumnsOpen,
   } = useUIStore();
 
   const [selectedCommonColumnId, setSelectedCommonColumnId] = useState<string | null>(null);
@@ -100,15 +98,11 @@ export function CommonColumnsSection() {
   };
 
   return (
-    <SettingsCollapsibleSection
+    <SettingsSectionContent
       title={t('settings.commonColumns.title')}
-      isOpen={isCommonColumnsOpen}
-      onToggle={toggleCommonColumnsOpen}
+      description={t('settings.commonColumns.description')}
     >
-      <div className="space-y-2.5">
-        <p className="text-[10px] theme-text-muted">{t('settings.commonColumns.description')}</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* List */}
           <div className="border rounded theme-border theme-bg-card">
             <div className="p-2 border-b flex items-center justify-between theme-border">
@@ -299,7 +293,6 @@ export function CommonColumnsSection() {
             )}
           </div>
         </div>
-      </div>
-    </SettingsCollapsibleSection>
+    </SettingsSectionContent>
   );
 }

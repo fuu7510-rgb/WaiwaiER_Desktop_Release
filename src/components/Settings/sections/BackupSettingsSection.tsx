@@ -1,22 +1,19 @@
 import { useTranslation } from 'react-i18next';
 import { Input } from '../../common';
 import { useUIStore } from '../../../stores';
-import { SettingsCollapsibleSection } from '../SettingsCollapsibleSection';
+import { SettingsSectionContent } from '../SettingsSectionContent';
 
 export function BackupSettingsSection() {
   const { t } = useTranslation();
   const {
     settings,
     updateSettings,
-    isBackupSettingsOpen,
-    toggleBackupSettingsOpen,
   } = useUIStore();
 
   return (
-    <SettingsCollapsibleSection
+    <SettingsSectionContent
       title={t('settings.backup')}
-      isOpen={isBackupSettingsOpen}
-      onToggle={toggleBackupSettingsOpen}
+      description={t('settings.backupDescription')}
     >
       <label className="flex items-center gap-1.5 cursor-pointer">
         <input
@@ -49,6 +46,6 @@ export function BackupSettingsSection() {
           />
         </>
       )}
-    </SettingsCollapsibleSection>
+    </SettingsSectionContent>
   );
 }

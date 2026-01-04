@@ -324,9 +324,18 @@
   "settings": {
     "title": "ユーザー設定",
     "general": "一般",
+    "generalDescription": "言語、テーマ、フォントサイズなどの基本設定を変更できます。",
     "appearance": "外観",
     "backup": "バックアップ",
+    "backupDescription": "自動バックアップの設定を行います。",
     "license": "ライセンス",
+    "licenseDescription": "ライセンスの確認とアクティベーションを行います。",
+    "about": "WaiwaiER について",
+    "groups": {
+      "main": "基本設定",
+      "advanced": "詳細設定",
+      "info": "情報"
+    },
     "editor": {
       "edgeAnimation": {
         "label": "線のアニメーションを有効にする",
@@ -367,10 +376,12 @@
       "legend": "凡例：✓=AppSheetに反映される可能性が高い（確認済み/不安定）、✕=反映されない/未検証（未対応/未検証）"
     },
     "tableCreationRules": {
-      "title": "新規作成時のルール"
+      "title": "新規作成時のルール",
+      "description": "テーブルやカラムの命名規則を設定します。"
     },
     "relationSettings": {
       "title": "リレーション設定",
+      "description": "リレーション（テーブル間の関連線）の表示やラベルの設定を行います。",
       "lineStyle": {
         "title": "線の種類",
         "label": "デフォルトの線種類",

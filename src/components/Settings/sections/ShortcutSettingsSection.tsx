@@ -3,7 +3,7 @@ import { Button } from '../../common';
 import { useUIStore } from '../../../stores';
 import { useShortcutEditor } from '../../../hooks/useShortcutEditor';
 import { formatShortcutForDisplay } from '../../../lib/shortcuts';
-import { SettingsCollapsibleSection } from '../SettingsCollapsibleSection';
+import { SettingsSectionContent } from '../SettingsSectionContent';
 import type { ShortcutActionDefinition } from '../../../types';
 
 interface ShortcutSettingsSectionProps {
@@ -15,8 +15,6 @@ export function ShortcutSettingsSection({ onEditingStateChange }: ShortcutSettin
   const { t } = useTranslation();
   const {
     settings,
-    isShortcutSettingsOpen,
-    toggleShortcutSettingsOpen,
     updateShortcutKey,
     resetShortcutKeys,
   } = useUIStore();
@@ -36,14 +34,11 @@ export function ShortcutSettingsSection({ onEditingStateChange }: ShortcutSettin
   });
 
   return (
-    <SettingsCollapsibleSection
+    <SettingsSectionContent
       title={t('settings.shortcuts.title')}
-      isOpen={isShortcutSettingsOpen}
-      onToggle={toggleShortcutSettingsOpen}
+      description={t('settings.shortcuts.description')}
     >
       <div className="space-y-4">
-        <p className="text-[10px] theme-text-muted">{t('settings.shortcuts.description')}</p>
-
         {/* Reset button */}
         <div className="flex justify-end">
           <Button variant="secondary" size="sm" onClick={resetShortcutKeys}>
@@ -125,6 +120,6 @@ export function ShortcutSettingsSection({ onEditingStateChange }: ShortcutSettin
           );
         })}
       </div>
-    </SettingsCollapsibleSection>
+    </SettingsSectionContent>
   );
 }

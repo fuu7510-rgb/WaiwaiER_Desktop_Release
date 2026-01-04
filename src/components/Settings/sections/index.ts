@@ -1,4 +1,3 @@
-export { SettingsTransferSection } from './SettingsTransferSection';
 export { GeneralSettingsSection } from './GeneralSettingsSection';
 export { TableCreationRulesSection } from './TableCreationRulesSection';
 export { RelationSettingsSection } from './RelationSettingsSection';

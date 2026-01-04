@@ -2,15 +2,13 @@ import { useTranslation } from 'react-i18next';
 import { Input, Select, IconPicker } from '../../common';
 import { useUIStore } from '../../../stores';
 import type { RelationLabelInitialMode } from '../../../types';
-import { SettingsCollapsibleSection } from '../SettingsCollapsibleSection';
+import { SettingsSectionContent } from '../SettingsSectionContent';
 
 export function RelationSettingsSection() {
   const { t } = useTranslation();
   const {
     settings,
     updateSettings,
-    isRelationSettingsOpen,
-    toggleRelationSettingsOpen,
   } = useUIStore();
 
   const relationLabelModeOptions = [
@@ -20,10 +18,9 @@ export function RelationSettingsSection() {
   ];
 
   return (
-    <SettingsCollapsibleSection
+    <SettingsSectionContent
       title={t('settings.relationSettings.title')}
-      isOpen={isRelationSettingsOpen}
-      onToggle={toggleRelationSettingsOpen}
+      description={t('settings.relationSettings.description')}
     >
       <div className="space-y-4">
         {/* Edge Animation */}
@@ -142,6 +139,6 @@ export function RelationSettingsSection() {
           </div>
         </div>
       </div>
-    </SettingsCollapsibleSection>
+    </SettingsSectionContent>
   );
 }
