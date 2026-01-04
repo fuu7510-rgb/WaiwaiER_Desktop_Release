@@ -32,6 +32,7 @@ export interface SampleDataState {
 export interface SelectionState {
   selectedTableId: string | null;
   selectedColumnId: string | null;
+  selectedRelationId: string | null;
 }
 
 export interface HistoryState {
@@ -67,6 +68,7 @@ export interface ColumnActions {
   addColumn: (tableId: string, column?: Partial<Column>) => string | null;
   updateColumn: (tableId: string, columnId: string, updates: Partial<Column>) => void;
   deleteColumn: (tableId: string, columnId: string) => void;
+  duplicateColumn: (tableId: string, columnId: string) => string | null;
   reorderColumn: (tableId: string, columnId: string, newOrder: number) => void;
   applyCommonColumnsToTable: (tableId: string, commonColumns?: CommonColumnDefinition[]) => void;
   applyCommonColumnsToAllTables: (commonColumns: CommonColumnDefinition[]) => void;
@@ -100,6 +102,7 @@ export interface MemoActions {
 export interface SelectionActions {
   selectTable: (id: string | null) => void;
   selectColumn: (tableId: string | null, columnId: string | null) => void;
+  selectRelation: (relationId: string | null) => void;
 }
 
 export interface HistoryActions {

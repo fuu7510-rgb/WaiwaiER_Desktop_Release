@@ -54,7 +54,7 @@ function createMinimalMemo(overrides: Partial<Memo> = {}): Memo {
 describe('diagramSchema', () => {
   describe('スキーマバージョン定数', () => {
     it('現在のスキーマバージョンが定義されている', () => {
-      expect(DIAGRAM_SCHEMA_VERSION).toBe(1);
+      expect(DIAGRAM_SCHEMA_VERSION).toBe(2);
     });
 
     it('最小サポートバージョンが定義されている', () => {

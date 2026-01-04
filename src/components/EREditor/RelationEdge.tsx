@@ -1,8 +1,13 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ComponentType } from 'react';
 import { BaseEdge, EdgeLabelRenderer } from 'reactflow';
 import type { EdgeProps, Position } from 'reactflow';
+import { ArrowRight as DefaultFollowerIcon } from 'lucide-react';
+
+import { getLucideIconComponent } from '../../lib/lucideIcons';
 
 import { useERStore } from '../../stores';
+import { useUIStore } from '../../stores/uiStore';
 
 interface RelationEdgeData {
   label?: string;
@@ -11,6 +16,7 @@ interface RelationEdgeData {
   offsetIndex?: number;  // 同じテーブルペア間のエッジのインデックス
   totalEdges?: number;   // 同じテーブルペア間のエッジの総数
   isDimmed?: boolean;
+  followerIconEnabled?: boolean;
 }
 
 /**
@@ -118,6 +124,13 @@ export const RelationEdge = memo(({
 }: EdgeProps<RelationEdgeData>) => {
   const updateRelation = useERStore((state) => state.updateRelation);
 
+  const edgeFollowerIconEnabled = useUIStore((state) => state.settings.edgeFollowerIconEnabled ?? false);
+  const edgeFollowerIconName = useUIStore((state) => state.settings.edgeFollowerIconName ?? 'arrow-right');
+  const edgeFollowerIconSize = useUIStore((state) => state.settings.edgeFollowerIconSize ?? 14);
+  const edgeFollowerIconSpeed = useUIStore((state) => state.settings.edgeFollowerIconSpeed ?? 90);
+
+  const followerIconEnabled = data?.followerIconEnabled ?? edgeFollowerIconEnabled;
+
   const offsetIndex = data?.offsetIndex ?? 0;
   const totalEdges = data?.totalEdges ?? 1;
   const label = data?.label;
@@ -129,6 +142,12 @@ export const RelationEdge = memo(({
   const [draftLabel, setDraftLabel] = useState(label ?? '');
   const inputRef = useRef<HTMLInputElement>(null);
   const ignoreBlurRef = useRef(false);
+
+  const followerPathRef = useRef<SVGPathElement | null>(null);
+  const followerElRef = useRef<HTMLDivElement | null>(null);
+  const followerRafRef = useRef<number | null>(null);
+  const followerLastTsRef = useRef<number | null>(null);
+  const followerLenRef = useRef<number>(0);
 
   const startEditing = useCallback(() => {
     setDraftLabel(label ?? '');
@@ -195,6 +214,56 @@ export const RelationEdge = memo(({
     });
   }, [sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, curvature]);
 
+  const FollowerIcon = useMemo((): ComponentType<{ size?: number }> => {
+    const icon = getLucideIconComponent(edgeFollowerIconName);
+    if (icon) return icon;
+    const fallbackIcon = getLucideIconComponent('arrow-right');
+    return fallbackIcon ?? DefaultFollowerIcon;
+  }, [edgeFollowerIconName]);
+
+  useEffect(() => {
+    if (!followerIconEnabled) return;
+
+    const pathEl = followerPathRef.current;
+    const followerEl = followerElRef.current;
+    if (!pathEl || !followerEl) return;
+
+    // パスが変わったら進捗をリセット（急なジャンプを避ける）
+    followerLenRef.current = 0;
+    followerLastTsRef.current = null;
+
+    const tick = (ts: number) => {
+      const total = pathEl.getTotalLength();
+      if (!(total > 0)) {
+        followerRafRef.current = window.requestAnimationFrame(tick);
+        return;
+      }
+
+      const last = followerLastTsRef.current ?? ts;
+      const dt = Math.max(0, (ts - last) / 1000);
+      followerLastTsRef.current = ts;
+
+      const nextLen = (followerLenRef.current + edgeFollowerIconSpeed * dt) % total;
+      followerLenRef.current = nextLen;
+
+      const p = pathEl.getPointAtLength(nextLen);
+      const p2 = pathEl.getPointAtLength((nextLen + 1) % total);
+      const angle = Math.atan2(p2.y - p.y, p2.x - p.x) * (180 / Math.PI);
+
+      followerEl.style.transform = `translate(-50%, -50%) translate(${p.x}px, ${p.y}px) rotate(${angle}deg)`;
+      followerRafRef.current = window.requestAnimationFrame(tick);
+    };
+
+    followerRafRef.current = window.requestAnimationFrame(tick);
+
+    return () => {
+      if (followerRafRef.current !== null) {
+        window.cancelAnimationFrame(followerRafRef.current);
+        followerRafRef.current = null;
+      }
+    };
+  }, [followerIconEnabled, edgeFollowerIconSpeed, edgePath]);
+
   return (
     <>
       <BaseEdge
@@ -208,6 +277,30 @@ export const RelationEdge = memo(({
         markerEnd={markerEnd}
         interactionWidth={20}
       />
+
+      {followerIconEnabled && (
+        <>
+          <path ref={followerPathRef} d={edgePath} fill="none" stroke="none" pointerEvents="none" />
+          <EdgeLabelRenderer>
+            <div
+              ref={followerElRef}
+              className="nodrag nopan"
+              style={{
+                position: 'absolute',
+                width: edgeFollowerIconSize,
+                height: edgeFollowerIconSize,
+                pointerEvents: 'none',
+                opacity: isDimmed ? 0.35 : 1,
+                color: 'var(--text-primary)',
+                transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              }}
+            >
+              <FollowerIcon size={edgeFollowerIconSize} />
+            </div>
+          </EdgeLabelRenderer>
+        </>
+      )}
+
       {label && (
         <text
           x={labelX}

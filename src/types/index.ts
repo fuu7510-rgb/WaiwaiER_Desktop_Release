@@ -95,6 +95,11 @@ export interface Column {
   type: ColumnType;
   isKey: boolean;
   isLabel: boolean;
+  /**
+   * AppSheetのVirtual Column相当。
+   * 物理データソース(Excel/Sheets)には存在せず、主にAppFormulaで表示する列。
+   */
+  isVirtual?: boolean;
   description?: string;
   /**
    * AppSheet Note Parameters（ヘッダーセルのNoteに入れるJSON）の追加設定。
@@ -132,12 +137,16 @@ export interface TablePosition {
   y: number;
 }
 
+export type ExportTarget = 'excel' | 'json' | 'package';
+
 export interface Table {
   id: string;
   name: string;
   columns: Column[];
   position: TablePosition;
   color?: string;
+  /** テーブルごとのエクスポート先（未指定は全てにエクスポート） */
+  exportTargets?: ExportTarget[];
   syncGroupId?: string;
   createdAt: string;
   updatedAt: string;
@@ -154,6 +163,26 @@ export interface Relation {
    * ER図の線上に表示する任意ラベル（例: "1:N"）。未指定なら type から自動生成する。
    */
   label?: string;
+
+  /**
+   * 線(リレーション)ごとのアニメーションON/OFF。
+   * - undefined: ユーザー設定(settings.edgeAnimationEnabled)に従う
+   * - true/false: この線だけ上書き
+   */
+  edgeAnimationEnabled?: boolean;
+
+  /**
+   * 線(リレーション)ごとの追従アイコン表示ON/OFF。
+   * - undefined: ユーザー設定(settings.edgeFollowerIconEnabled)に従う
+   * - true/false: この線だけ上書き
+   */
+  edgeFollowerIconEnabled?: boolean;
+
+  /**
+   * 線(リレーション)ごとの表示スタイル。
+   * - undefined: 実線として扱う（後方互換のため）
+   */
+  edgeLineStyle?: 'solid' | 'dashed' | 'dotted';
 }
 
 export interface Memo {
@@ -240,6 +269,7 @@ export interface UIState {
   viewMode: ViewMode;
   selectedTableId: string | null;
   selectedColumnId: string | null;
+  selectedRelationId?: string | null;
   zoom: number;
   panPosition: { x: number; y: number };
 }
@@ -263,6 +293,21 @@ export interface AppSettings {
   language: Language;
   theme: Theme;
   fontSize: FontSize;
+
+  /** ER図のリレーション線(エッジ)のアニメーション表示 */
+  edgeAnimationEnabled?: boolean;
+
+  /** ER図のリレーション線(エッジ)上を移動するアイコン表示 */
+  edgeFollowerIconEnabled?: boolean;
+
+  /** 追従アイコン種別（lucide-react のアイコン名。例: arrow-right） */
+  edgeFollowerIconName?: string;
+
+  /** 追従アイコンサイズ（px） */
+  edgeFollowerIconSize?: number;
+
+  /** 追従アイコン速度（px/sec） */
+  edgeFollowerIconSpeed?: number;
 
   /** Excelエクスポート画面で Note Parameters の対応状況パネルを表示する */
   showNoteParamsSupportPanel: boolean;

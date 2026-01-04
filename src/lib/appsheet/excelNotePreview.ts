@@ -224,6 +224,10 @@ export function previewExcelColumnNotesLocal(
     const byColumn: Record<string, string> = {};
 
     for (const column of table.columns) {
+      if (Boolean(column.isVirtual)) {
+        byColumn[column.id] = '';
+        continue;
+      }
       const columnForNote = {
         ...column,
         // Rust側と同様にLabel列を正規化

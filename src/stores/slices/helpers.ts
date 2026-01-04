@@ -43,6 +43,7 @@ export function createDefaultTable(name: string, position: { x: number; y: numbe
     name,
     columns: [createDefaultColumn(0, keyColumnName)],
     position,
+    exportTargets: ['excel', 'json', 'package'],
     createdAt: now,
     updatedAt: now,
   };
@@ -301,6 +302,7 @@ export function applyCommonColumnsToTableInPlace(table: Table, defs: CommonColum
       type: def.type,
       isKey: false,
       isLabel: false,
+      isVirtual: false,
       constraints: def.constraints ?? {},
       appSheet: def.appSheet,
       order: -1,

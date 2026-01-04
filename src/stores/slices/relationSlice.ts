@@ -45,6 +45,9 @@ export const createRelationSlice: SliceCreator<RelationSlice> = (set, get) => ({
   deleteRelation: (id) => {
     set((state) => {
       state.relations = state.relations.filter((r) => r.id !== id);
+      if (state.selectedRelationId === id) {
+        state.selectedRelationId = null;
+      }
     });
     get().saveHistory('リレーションを削除');
     get().queueSaveToDB();

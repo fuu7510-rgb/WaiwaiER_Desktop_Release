@@ -68,7 +68,12 @@ const columnTypeClasses: Record<ColumnType, string> = {
 export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => {
   const { table } = data;
   const { t } = useTranslation();
-  const { selectTable, selectedTableId, addColumn, updateTable } = useERStore();
+  // パフォーマンス最適化: 各アクションを個別のセレクタで購読
+  const selectTable = useERStore((state) => state.selectTable);
+  const addColumn = useERStore((state) => state.addColumn);
+  const updateTable = useERStore((state) => state.updateTable);
+  // selectedTableIdはテーブルの選択状態を判定するために必要
+  const isTableSelected = useERStore((state) => state.selectedTableId === table.id);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(table.name);
 
@@ -103,7 +108,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
     addColumn(table.id);
   }, [table.id, addColumn]);
 
-  const isSelected = selectedTableId === table.id || selected;
+  const isSelected = isTableSelected || selected;
   const highlight = data.highlight;
   const isDimmed = highlight?.isDimmed ?? false;
   const isUpstream = highlight?.isUpstream ?? false;
@@ -115,7 +120,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
     <div
       className={`
         rounded-md shadow-lg min-w-[180px] max-w-[280px]
-        border transition-all duration-200
+        border-2 transition-all duration-200
         ${isSelected ? 'ring-2 ring-indigo-400/50 ring-offset-1' : isRelated ? 'ring-1 ring-indigo-300/40' : 'hover:shadow-xl'}
         ${isUpstream && !isDownstream ? 'border-dashed' : ''}
         ${isDownstream && !isUpstream ? 'border-solid' : ''}
@@ -158,7 +163,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
           type="target"
           position={Position.Left}
           id={`${table.id}__addColumn`}
-          className="!w-3 !h-3 !bg-green-400 !border-[1.5px] !border-white !-left-1.5 !rounded-full"
+          className="!w-2 !h-2 !bg-green-400 !border !border-white !-left-1 !rounded-full"
           title="ここに接続すると新しいカラムを作成"
         />
         <button
@@ -180,7 +185,8 @@ TableNode.displayName = 'TableNode';
 
 function TableNodeSortableColumns(props: { table: Table }) {
   const { table } = props;
-  const { reorderColumn } = useERStore();
+  // パフォーマンス最適化: 個別のセレクタで購読
+  const reorderColumn = useERStore((state) => state.reorderColumn);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -229,14 +235,19 @@ interface ColumnRowProps {
 
 const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowProps) => {
   const { t, i18n } = useTranslation();
-  const { selectColumn, selectedColumnId, reorderColumn, updateColumn, deleteColumn, relations } = useERStore();
+  // パフォーマンス最適化: 各状態を個別のセレクタで購読
+  const selectColumn = useERStore((state) => state.selectColumn);
+  const isSelected = useERStore((state) => state.selectedColumnId === column.id);
+  const reorderColumn = useERStore((state) => state.reorderColumn);
+  const updateColumn = useERStore((state) => state.updateColumn);
+  const deleteColumn = useERStore((state) => state.deleteColumn);
+  const duplicateColumn = useERStore((state) => state.duplicateColumn);
+  // 着信リレーションの有無のみを購読（relations配列全体ではなくbooleanで）
+  const hasIncomingRelation = useERStore((state) =>
+    state.relations.some((r) => r.targetTableId === tableId && r.targetColumnId === column.id)
+  );
   const zoom = useReactFlowStore((state) => state.transform[2]) ?? 1;
-  const isSelected = selectedColumnId === column.id;
   const typeClass = columnTypeClasses[column.type] || 'bg-slate-500';
-
-  const hasIncomingRelation = useMemo(() => {
-    return relations.some((r) => r.targetTableId === tableId && r.targetColumnId === column.id);
-  }, [column.id, relations, tableId]);
 
   const showRetargetOverlay = hasIncomingRelation;
 
@@ -475,6 +486,16 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
     deleteColumn(tableId, column.id);
   }, [column.id, deleteArmed, deleteColumn, tableId]);
 
+  const handleDuplicate = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleteArmed(false);
+    setDeleteHintPos(null);
+    const newId = duplicateColumn(tableId, column.id);
+    if (newId) {
+      selectColumn(tableId, newId);
+    }
+  }, [column.id, duplicateColumn, selectColumn, tableId]);
+
   const handleToggleShow = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setDeleteArmed(false);
@@ -662,7 +683,7 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
         className={
           showRetargetOverlay
             ? '!w-px !h-px !bg-transparent !border-0 !opacity-0 !pointer-events-none !-left-1.5'
-            : '!w-3 !h-3 !bg-zinc-400 !border-[1.5px] !border-white !-left-1.5 !rounded-full'
+            : '!w-2 !h-2 !bg-zinc-400 !border !border-white !-left-1 !rounded-full'
         }
         onPointerDown={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
@@ -673,14 +694,14 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
         <div
           className="absolute z-30"
           style={{
-            width: 14,
-            height: 14,
+            width: 10,
+            height: 10,
             borderRadius: 9999,
             boxSizing: 'border-box',
             backgroundColor: 'var(--primary)',
-            border: '1.5px solid #fff',
+            border: '1px solid #fff',
             cursor: 'default',
-            left: -7,
+            left: -5,
             top: '50%',
             transform: 'translateY(-50%)',
           }}
@@ -732,6 +753,26 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
 
           <div className="flex flex-col">
             <div className="flex border-l" style={{ borderColor: 'var(--border)' }}>
+              <button
+                type="button"
+                onClick={handleDuplicate}
+                data-reorder-button="true"
+                onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                className="p-0.5 flex items-center justify-center border-r"
+                style={{
+                  borderColor: 'var(--border)',
+                  color: 'var(--text-muted)',
+                }}
+                title={t('column.duplicateColumn')}
+                aria-label={t('column.duplicateColumn')}
+              >
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 8h10v10H8z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 16H5a1 1 0 01-1-1V5a1 1 0 011-1h10a1 1 0 011 1v1" />
+                </svg>
+              </button>
+
               <div className="flex flex-col">
                 <div className="flex">
                   <button
@@ -1132,7 +1173,7 @@ const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowPr
           type="source"
           position={Position.Right}
           id={`${column.id}__source`}
-          className="!w-3 !h-3 !bg-amber-400 !border-[1.5px] !border-white hover:!bg-amber-500 cursor-crosshair !-right-1.5 !rounded-full"
+          className="!w-2 !h-2 !bg-amber-400 !border !border-white hover:!bg-amber-500 cursor-crosshair !-right-1 !rounded-full"
           title="ドラッグして他のテーブルのカラムに接続"
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}

@@ -63,11 +63,18 @@ export const createTableSlice: SliceCreator<TableSlice> = (set, get) => ({
   deleteTable: (id) => {
     const table = get().tables.find((t) => t.id === id);
     set((state) => {
+      const selectedRelation = state.selectedRelationId
+        ? state.relations.find((r) => r.id === state.selectedRelationId)
+        : null;
+
       state.tables = state.tables.filter((t) => t.id !== id);
       delete state.sampleDataByTableId[id];
       state.relations = state.relations.filter(
         (r) => r.sourceTableId !== id && r.targetTableId !== id
       );
+      if (selectedRelation && (selectedRelation.sourceTableId === id || selectedRelation.targetTableId === id)) {
+        state.selectedRelationId = null;
+      }
       if (state.selectedTableId === id) {
         state.selectedTableId = null;
         state.selectedColumnId = null;
@@ -115,6 +122,7 @@ export const createTableSlice: SliceCreator<TableSlice> = (set, get) => ({
       id: uuidv4(),
     }));
     newTable.color = source.color;
+    newTable.exportTargets = source.exportTargets ? [...source.exportTargets] : undefined;
 
     set((state) => {
       state.tables.push(newTable);

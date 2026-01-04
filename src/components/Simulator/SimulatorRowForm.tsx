@@ -82,8 +82,8 @@ export function SimulatorRowForm({
   const displayRow = computedDraftRow ?? draftRow ?? computedSelectedRow ?? selectedRow;
   const currentValue = displayRow?.[column.id];
 
-  // AppFormula列は編集不可（表示のみ）
-  if (appFormula.length > 0) {
+  // AppFormula列/Virtual Columnは編集不可（表示のみ）
+  if (Boolean(column.isVirtual) || appFormula.length > 0) {
     if (column.type === 'Ref') {
       return (
         <>

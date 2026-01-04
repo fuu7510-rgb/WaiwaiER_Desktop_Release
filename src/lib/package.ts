@@ -11,6 +11,7 @@ import {
 import { loadDiagram, saveDiagram, saveProject, loadProjects } from './database';
 import { encryptData, decryptData, hashPassphrase } from './crypto';
 import { decodeAndMigrateDiagram, encodeDiagramEnvelope, DIAGRAM_SCHEMA_VERSION, MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION } from './diagramSchema';
+import { filterDiagramForExport } from './exportFilter';
 import type { Project } from '../types';
 
 // パッケージメタデータの型定義
@@ -102,8 +103,10 @@ export async function exportPackage(
       return { success: false, error: 'ダイアグラムデータが見つかりません' };
     }
 
+    const exportDiagram = filterDiagramForExport(diagram, 'package');
+
     // パッケージ内のダイアグラムは常に envelope 形式で格納する
-    const diagramJson = JSON.stringify(encodeDiagramEnvelope(diagram));
+    const diagramJson = JSON.stringify(encodeDiagramEnvelope(exportDiagram));
 
     // メタデータを構築
     const metadata: PackageMetadata = {
@@ -117,8 +120,8 @@ export async function exportPackage(
       // パッケージ内データが暗号化されているか（プロジェクト状態とは独立）
       isEncrypted: !!passphrase,
       description: project.description,
-      tables: diagram.tables?.length || 0,
-      relations: diagram.relations?.length || 0,
+      tables: exportDiagram.tables?.length || 0,
+      relations: exportDiagram.relations?.length || 0,
     };
 
     // ダイアグラムデータを準備（暗号化オプション）

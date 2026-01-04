@@ -1,4 +1,5 @@
 export { Button } from './Button';
+export { IconPicker } from './IconPicker';
 export { Input } from './Input';
 export { Select } from './Select';
 export { Dialog } from './Dialog';
