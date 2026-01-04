@@ -4,6 +4,8 @@ import { Dialog, Button, Input } from '../common';
 import { useProjectStore, useERStore, useLicenseStore } from '../../stores';
 import { hashPassphrase, verifyPassphrase } from '../../lib/crypto';
 import { exportPackage, importPackage, importPackageFromFile } from '../../lib';
+import { DIAGRAM_SCHEMA_VERSION, MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION } from '../../lib/diagramSchema';
+import { getAppInfo } from '../../lib/appInfo';
 import {
   DndContext,
   closestCenter,
@@ -45,6 +47,12 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
 
   const [isImporting, setIsImporting] = useState(false);
   const [exportingProjectId, setExportingProjectId] = useState<string | null>(null);
+  const [appVersion, setAppVersion] = useState<string | null>(null);
+
+  // アプリバージョンを取得
+  useEffect(() => {
+    getAppInfo().then((info) => setAppVersion(info.version));
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -288,6 +296,18 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
       size="lg"
     >
       <div className="space-y-3">
+        {/* App & Data Version Info */}
+        <div
+          className="flex items-center justify-between text-[10px] px-2 py-1.5 rounded"
+          style={{ backgroundColor: 'var(--muted)', color: 'var(--text-muted)' }}
+        >
+          <span>{t('project.appVersion')}: v{appVersion ?? '...'}</span>
+          <span>
+            {t('project.currentDataVersion')}: v{DIAGRAM_SCHEMA_VERSION}
+            <span className="ml-2">({t('project.upgradableDataVersion')}: v{MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION}~)</span>
+          </span>
+        </div>
+
         {/* Create New Project */}
         {isCreating ? (
           <div className="rounded-lg p-3 space-y-2.5" style={{ backgroundColor: 'var(--muted)' }}>
@@ -336,7 +356,10 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
             )}
             
             {isEncrypted && (
-              <p className="text-[10px] text-amber-600 bg-amber-50/80 p-2 rounded flex items-start gap-1">
+              <p
+                className="text-[10px] p-2 rounded flex items-start gap-1"
+                style={{ color: 'var(--warning)', backgroundColor: 'var(--muted)' }}
+              >
                 <svg className="w-3 h-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
@@ -412,6 +435,14 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
                       </div>
                       <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
                         {t('project.updatedAt')}: {new Date(project.updatedAt).toLocaleString()}
+                        <span className="ml-2">
+                          {t('project.dataVersion')}: v{project.dataSchemaVersion ?? '?'}
+                          {project.dataSchemaVersion != null && project.dataSchemaVersion < DIAGRAM_SCHEMA_VERSION && (
+                            <span className="ml-1" style={{ color: 'var(--warning)' }} title={t('project.dataVersionOld')}>
+                              ⚠
+                            </span>
+                          )}
+                        </span>
                       </p>
                     </div>
 

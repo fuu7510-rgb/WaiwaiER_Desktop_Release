@@ -84,6 +84,11 @@
     "createProject": "プロジェクトを作成",
     "current": "現在",
     "updatedAt": "更新日",
+    "dataVersion": "データ版",
+    "dataVersionOld": "古いバージョンのデータです。プロジェクトを開いて保存すると最新版に更新されます。",
+    "appVersion": "現在のアプリバージョン",
+    "currentDataVersion": "現在のデータ版",
+    "upgradableDataVersion": "アップデート可能",
     "saveStatus": {
       "saved": "保存済み",
       "savedTitle": "保存済み",

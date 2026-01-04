@@ -239,6 +239,11 @@ export interface Project {
    */
   passphraseSalt?: string;
   passphraseHash?: string;
+  /**
+   * 保存されているダイアグラムデータのスキーマバージョン。
+   * 旧データ互換のため optional（未設定時は不明扱い）。
+   */
+  dataSchemaVersion?: number;
   createdAt: string;
   updatedAt: string;
   lastOpenedAt?: string;

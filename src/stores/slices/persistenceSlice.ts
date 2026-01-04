@@ -5,6 +5,8 @@ import type { ERDiagram, SampleDataByTableId } from '../../types';
 import type { PersistenceState, PersistenceActions, ImportExportActions, SliceCreator } from './types';
 import { saveDiagram, loadDiagram, loadSampleData, saveSampleData } from '../../lib/database';
 import { toast } from '../toastStore';
+import { useProjectStore } from '../projectStore';
+import { DIAGRAM_SCHEMA_VERSION } from '../../lib/diagramSchema';
 import {
   syncSampleRowsToTableSchema,
   normalizeRefValues,
@@ -140,6 +142,12 @@ export const createPersistenceSlice: SliceCreator<PersistenceSlice> = (set, get)
         await saveSampleData(currentProjectId, sampleDataByTableId ?? {}, {
           passphrase: currentProjectPassphrase || undefined,
         });
+
+        // プロジェクトのデータスキーマバージョンを更新
+        useProjectStore.getState().updateProject(currentProjectId, {
+          dataSchemaVersion: DIAGRAM_SCHEMA_VERSION,
+        });
+
         set((state) => {
           state.isSaving = false;
           state.isDirty = false;

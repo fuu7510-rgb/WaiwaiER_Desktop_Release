@@ -102,6 +102,11 @@
     "createProject": "Create Project",
     "current": "Current",
     "updatedAt": "Updated",
+    "dataVersion": "Data Ver",
+    "dataVersionOld": "This data is from an older version. Open and save the project to upgrade to the latest version.",
+    "appVersion": "Current App Version",
+    "currentDataVersion": "Current Data Ver",
+    "upgradableDataVersion": "Upgradable",
     "saveStatus": {
       "saved": "Saved",
       "savedTitle": "Saved",
