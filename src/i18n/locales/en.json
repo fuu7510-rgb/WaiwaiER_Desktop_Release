@@ -555,7 +555,12 @@
     "dropFile": "Drop file here",
     "importSuccess": "Import completed",
     "importError": "Import failed",
-    "invalidFormat": "Invalid file format"
+    "invalidFormat": "Invalid file format",
+    "modeLabel": "Import Mode",
+    "modeOverwrite": "Overwrite (replace existing data)",
+    "modeAppend": "Append (add to existing data)",
+    "importOverwrite": "Overwrite Import",
+    "importAppend": "Append Import"
   },
   "errors": {
     "generic": "An error occurred",

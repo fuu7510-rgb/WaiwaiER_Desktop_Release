@@ -111,8 +111,6 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
   const isSelected = isTableSelected || selected;
   const highlight = data.highlight;
   const isDimmed = highlight?.isDimmed ?? false;
-  const isUpstream = highlight?.isUpstream ?? false;
-  const isDownstream = highlight?.isDownstream ?? false;
   const isRelated = highlight?.isRelated ?? false;
   const colorClasses = TABLE_NODE_STYLE_CLASSES[table.color?.toLowerCase() || DEFAULT_TABLE_COLOR] || TABLE_NODE_STYLE_CLASSES[DEFAULT_TABLE_COLOR];
 
@@ -120,10 +118,8 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
     <div
       className={`
         rounded-md shadow-lg min-w-[180px] max-w-[280px]
-        border-2 transition-all duration-200
+        border-2 border-solid transition-all duration-200
         ${isSelected ? 'ring-2 ring-indigo-400/50 ring-offset-1' : isRelated ? 'ring-1 ring-indigo-300/40' : 'hover:shadow-xl'}
-        ${isUpstream && !isDownstream ? 'border-dashed' : ''}
-        ${isDownstream && !isUpstream ? 'border-solid' : ''}
         ${isDimmed ? 'opacity-30 saturate-50' : ''}
         ${colorClasses.border}
       `}

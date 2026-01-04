@@ -538,7 +538,12 @@
     "pasteEmpty": "JSONテキストが空です",
     "importSuccess": "インポートが完了しました",
     "importError": "インポートに失敗しました",
-    "invalidFormat": "無効なファイル形式です"
+    "invalidFormat": "無効なファイル形式です",
+    "modeLabel": "インポート方法",
+    "modeOverwrite": "上書き（既存データを置き換え）",
+    "modeAppend": "追加（既存データに追加）",
+    "importOverwrite": "上書きインポート",
+    "importAppend": "追加インポート"
   },
   "errors": {
     "generic": "エラーが発生しました",

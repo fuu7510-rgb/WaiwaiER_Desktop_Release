@@ -1,7 +1,8 @@
 /**
  * 永続化およびインポート/エクスポートスライス
  */
-import type { ERDiagram, SampleDataByTableId } from '../../types';
+import { v4 as uuidv4 } from 'uuid';
+import type { ERDiagram, SampleDataByTableId, Table, Column, Relation, Memo } from '../../types';
 import type { PersistenceState, PersistenceActions, ImportExportActions, SliceCreator } from './types';
 import { saveDiagram, loadDiagram, loadSampleData, saveSampleData } from '../../lib/database';
 import { toast } from '../toastStore';
@@ -186,6 +187,92 @@ export const createPersistenceSlice: SliceCreator<PersistenceSlice> = (set, get)
       get().queueSaveToDB();
     },
 
+    mergeDiagram: (diagram: ERDiagram) => {
+      // IDの重複を避けるためにすべてのIDを振り直す
+      const oldToNewTableId = new Map<string, string>();
+      const oldToNewColumnId = new Map<string, string>();
+      const oldToNewRelationId = new Map<string, string>();
+      const oldToNewMemoId = new Map<string, string>();
+
+      // テーブルとカラムのIDマッピングを作成
+      for (const table of diagram.tables ?? []) {
+        const newTableId = uuidv4();
+        oldToNewTableId.set(table.id, newTableId);
+        for (const column of table.columns ?? []) {
+          oldToNewColumnId.set(column.id, uuidv4());
+        }
+      }
+
+      // リレーションのIDマッピングを作成
+      for (const relation of diagram.relations ?? []) {
+        oldToNewRelationId.set(relation.id, uuidv4());
+      }
+
+      // メモのIDマッピングを作成
+      for (const memo of diagram.memos ?? []) {
+        oldToNewMemoId.set(memo.id, uuidv4());
+      }
+
+      // テーブルを変換（新しいIDを付与し、位置をずらす）
+      const newTables: Table[] = (diagram.tables ?? []).map((table) => ({
+        ...table,
+        id: oldToNewTableId.get(table.id) ?? uuidv4(),
+        position: {
+          x: (table.position?.x ?? 0) + 50,
+          y: (table.position?.y ?? 0) + 50,
+        },
+        columns: (table.columns ?? []).map((column) => ({
+          ...column,
+          id: oldToNewColumnId.get(column.id) ?? uuidv4(),
+          // Ref型のreferencedTableIdを更新
+          referencedTableId: column.referencedTableId
+            ? oldToNewTableId.get(column.referencedTableId) ?? column.referencedTableId
+            : column.referencedTableId,
+        })) as Column[],
+      }));
+
+      // リレーションを変換
+      const newRelations: Relation[] = (diagram.relations ?? []).map((relation) => ({
+        ...relation,
+        id: oldToNewRelationId.get(relation.id) ?? uuidv4(),
+        sourceTableId: oldToNewTableId.get(relation.sourceTableId) ?? relation.sourceTableId,
+        targetTableId: oldToNewTableId.get(relation.targetTableId) ?? relation.targetTableId,
+        sourceColumnId: relation.sourceColumnId
+          ? oldToNewColumnId.get(relation.sourceColumnId) ?? relation.sourceColumnId
+          : relation.sourceColumnId,
+        targetColumnId: relation.targetColumnId
+          ? oldToNewColumnId.get(relation.targetColumnId) ?? relation.targetColumnId
+          : relation.targetColumnId,
+      }));
+
+      // メモを変換（位置をずらす）
+      const newMemos: Memo[] = (diagram.memos ?? []).map((memo) => ({
+        ...memo,
+        id: oldToNewMemoId.get(memo.id) ?? uuidv4(),
+        position: {
+          x: (memo.position?.x ?? 0) + 50,
+          y: (memo.position?.y ?? 0) + 50,
+        },
+      }));
+
+      set((state) => {
+        // 既存のテーブル、リレーション、メモに追加
+        state.tables = [...state.tables, ...newTables];
+        state.relations = [...state.relations, ...newRelations];
+        state.memos = [...state.memos, ...newMemos];
+
+        // 新しいテーブルのサンプルデータを追加
+        for (const table of newTables) {
+          state.sampleDataByTableId[table.id] = syncSampleRowsToTableSchema({ table, currentRows: undefined });
+        }
+
+        // 追加されたテーブルを選択状態にするためにIDを保持
+        state.pendingSelectedTableIds = new Set(newTables.map((t) => t.id));
+      });
+      get().saveHistory('ダイアグラムを追加');
+      get().queueSaveToDB();
+    },
+
     exportDiagram: () => {
       const { tables, relations, memos } = get();
       return { tables, relations, memos };
@@ -204,6 +291,12 @@ export const createPersistenceSlice: SliceCreator<PersistenceSlice> = (set, get)
       });
       get().saveHistory('ダイアグラムをクリア');
       get().queueSaveToDB();
+    },
+
+    clearPendingSelectedTableIds: () => {
+      set((state) => {
+        state.pendingSelectedTableIds = new Set();
+      });
     },
   };
 };

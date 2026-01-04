@@ -14,6 +14,7 @@ export const createHistorySlice: SliceCreator<HistorySlice> = (set, get) => ({
   selectedTableId: null,
   selectedColumnId: null,
   selectedRelationId: null,
+  pendingSelectedTableIds: new Set<string>(),
 
   selectTable: (id) => {
     set((state) => {

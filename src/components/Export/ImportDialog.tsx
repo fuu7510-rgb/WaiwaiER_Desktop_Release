@@ -4,6 +4,8 @@ import { Dialog, Button } from '../common';
 import { useERStore } from '../../stores';
 import { parseJSONDiagramText, readJSONDiagramTextFromFile } from './importJSONDiagram';
 
+type ImportMode = 'overwrite' | 'append';
+
 interface ImportDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -11,17 +13,19 @@ interface ImportDialogProps {
 
 export function ImportDialog({ isOpen, onClose }: ImportDialogProps) {
   const { t } = useTranslation();
-  const { importDiagram } = useERStore();
+  const { importDiagram, mergeDiagram } = useERStore();
 
   const [jsonText, setJsonText] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [importMode, setImportMode] = useState<ImportMode>('overwrite');
 
   useEffect(() => {
     if (!isOpen) {
       setJsonText('');
       setErrorMessage(null);
       setIsImporting(false);
+      setImportMode('overwrite');
     }
   }, [isOpen]);
 
@@ -49,7 +53,11 @@ export function ImportDialog({ isOpen, onClose }: ImportDialogProps) {
       setErrorMessage(null);
 
       const diagram = parseJSONDiagramText(trimmed);
-      importDiagram(diagram);
+      if (importMode === 'overwrite') {
+        importDiagram(diagram);
+      } else {
+        mergeDiagram(diagram);
+      }
       onClose();
     } catch (error) {
       console.error('Import from pasted JSON failed:', error);
@@ -61,13 +69,13 @@ export function ImportDialog({ isOpen, onClose }: ImportDialogProps) {
     } finally {
       setIsImporting(false);
     }
-  }, [importDiagram, jsonText, onClose, t]);
+  }, [importDiagram, mergeDiagram, jsonText, onClose, t, importMode]);
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose} title={t('import.title')} size="xl">
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[10px] text-zinc-500">{t('import.pasteHint')}</p>
+          <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('import.pasteHint')}</p>
           <Button variant="secondary" size="sm" onClick={handleLoadFromFile}>
             {t('import.selectFile')}
           </Button>
@@ -78,8 +86,42 @@ export function ImportDialog({ isOpen, onClose }: ImportDialogProps) {
           onChange={(e) => setJsonText(e.currentTarget.value)}
           aria-label={t('import.title')}
           placeholder={t('import.pastePlaceholder')}
-          className="w-full h-72 rounded border border-zinc-200 bg-white p-2 font-mono text-[10px] text-zinc-700"
+          className="w-full h-60 rounded border p-2 font-mono text-[10px]"
+          style={{
+            backgroundColor: 'var(--input-bg)',
+            borderColor: 'var(--input-border)',
+            color: 'var(--text-primary)',
+          }}
         />
+
+        {/* インポートモード選択 */}
+        <div className="p-3 rounded-md border" style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}>
+          <p className="text-[10px] font-medium mb-2" style={{ color: 'var(--text-primary)' }}>{t('import.modeLabel')}</p>
+          <div className="flex flex-col gap-1.5">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="importMode"
+                value="overwrite"
+                checked={importMode === 'overwrite'}
+                onChange={() => setImportMode('overwrite')}
+                className="w-3 h-3"
+              />
+              <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{t('import.modeOverwrite')}</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="importMode"
+                value="append"
+                checked={importMode === 'append'}
+                onChange={() => setImportMode('append')}
+                className="w-3 h-3"
+              />
+              <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{t('import.modeAppend')}</span>
+            </label>
+          </div>
+        </div>
 
         {errorMessage && (
           <div className="bg-amber-50/80 border border-amber-200 rounded p-2 text-[10px] text-amber-900">
@@ -92,7 +134,11 @@ export function ImportDialog({ isOpen, onClose }: ImportDialogProps) {
             {t('common.cancel')}
           </Button>
           <Button size="sm" onClick={handleImport} disabled={isImporting}>
-            {isImporting ? t('common.loading') : t('common.import')}
+            {isImporting
+              ? t('common.loading')
+              : importMode === 'overwrite'
+                ? t('import.importOverwrite')
+                : t('import.importAppend')}
           </Button>
         </div>
       </div>

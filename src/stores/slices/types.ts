@@ -33,6 +33,8 @@ export interface SelectionState {
   selectedTableId: string | null;
   selectedColumnId: string | null;
   selectedRelationId: string | null;
+  /** インポート時に選択状態にするテーブルIDのセット（一時的な状態） */
+  pendingSelectedTableIds: Set<string>;
 }
 
 export interface HistoryState {
@@ -113,8 +115,10 @@ export interface HistoryActions {
 
 export interface ImportExportActions {
   importDiagram: (diagram: ERDiagram) => void;
+  mergeDiagram: (diagram: ERDiagram) => void;
   exportDiagram: () => ERDiagram;
   clearDiagram: () => void;
+  clearPendingSelectedTableIds: () => void;
 }
 
 export interface PersistenceActions {

@@ -40,6 +40,8 @@ function EREditorInner() {
     selectRelation,
     selectedTableId,
     selectedRelationId,
+    pendingSelectedTableIds,
+    clearPendingSelectedTableIds,
   } = useERStore();
   const {
     isRelationHighlightEnabled,
@@ -552,6 +554,21 @@ function EREditorInner() {
     setNodes(computedNodes);
   }, [computedNodes, setNodes]);
 
+  // pendingSelectedTableIds がセットされたときにノードの選択状態を更新
+  useEffect(() => {
+    if (pendingSelectedTableIds.size > 0) {
+      // ノードの選択状態を更新
+      setNodes((currentNodes) =>
+        currentNodes.map((node) => ({
+          ...node,
+          selected: pendingSelectedTableIds.has(node.id),
+        }))
+      );
+      // 選択状態を適用したらクリア
+      clearPendingSelectedTableIds();
+    }
+  }, [pendingSelectedTableIds, clearPendingSelectedTableIds, setNodes]);
+
   useEffect(() => {
     setEdges(computedEdges);
   }, [computedEdges, setEdges]);
@@ -564,11 +581,14 @@ function EREditorInner() {
   );
 
   const onNodeDragStop = useCallback(
-    (_: React.MouseEvent, node: Node) => {
-      if (node.type === 'memoNode') {
-        moveMemo(node.id, node.position);
-      } else {
-        moveTable(node.id, node.position);
+    (_: React.MouseEvent, node: Node, nodes: Node[]) => {
+      // 複数ノードがドラッグされた場合はすべてのノードの位置を保存
+      for (const n of nodes) {
+        if (n.type === 'memoNode') {
+          moveMemo(n.id, n.position);
+        } else {
+          moveTable(n.id, n.position);
+        }
       }
     },
     [moveMemo, moveTable]
