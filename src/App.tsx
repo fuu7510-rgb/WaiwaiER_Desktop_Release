@@ -4,9 +4,13 @@ import { MainLayout } from './components/Layout';
 import { EREditor } from './components/EREditor';
 import { Simulator } from './components/Simulator';
 import { ToastContainer } from './components/common';
+import { useKeyboardShortcuts } from './hooks';
 
 function App() {
   const { viewMode, settings } = useUIStore();
+
+  // グローバルキーボードショートカットを有効化
+  useKeyboardShortcuts({ enabled: true });
 
   // フォントサイズをHTML要素に適用
   useEffect(() => {

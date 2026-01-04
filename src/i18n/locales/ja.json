@@ -458,6 +458,40 @@
         "hidden": "非表示",
         "custom": "カスタム"
       }
+    },
+    "shortcuts": {
+      "title": "ショートカットキー",
+      "description": "各操作に割り当てるキーボードショートカットを設定します。クリックして新しいキーを押すと変更できます。",
+      "resetToDefault": "デフォルトに戻す",
+      "pressKey": "キーを押してください...",
+      "clickToEdit": "クリックして編集",
+      "notSet": "未設定",
+      "clear": "クリア",
+      "categories": {
+        "file": "ファイル",
+        "edit": "編集",
+        "view": "表示",
+        "navigation": "ナビゲーション"
+      },
+      "actions": {
+        "openProjectDialog": "プロジェクトを開く",
+        "save": "保存",
+        "openImportDialog": "インポート",
+        "openExportDialog": "エクスポート",
+        "openSettings": "設定を開く",
+        "undo": "元に戻す",
+        "redo": "やり直し",
+        "addTable": "テーブルを追加",
+        "toggleSidebar": "サイドバー切替",
+        "toggleGrid": "グリッド表示切替",
+        "toggleMemos": "メモ表示切替",
+        "toggleRelationHighlight": "関連強調切替",
+        "zoomIn": "拡大",
+        "zoomOut": "縮小",
+        "fitView": "全体表示",
+        "switchToEditor": "エディタへ切替",
+        "switchToSimulator": "シミュレーターへ切替"
+      }
     }
   },
   "license": {

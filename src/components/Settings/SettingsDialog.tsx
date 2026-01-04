@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, Button, Input, Select, IconPicker } from '../common';
 import { useUIStore, useProjectStore } from '../../stores';
-import type { Language, Theme, FontSize, RelationLabelInitialMode, CommonColumnDefinition, ColumnType, ColumnConstraints } from '../../types';
+import type { Language, Theme, FontSize, RelationLabelInitialMode, CommonColumnDefinition, ColumnType, ColumnConstraints, ShortcutActionId } from '../../types';
 import { APPSHEET_COLUMN_TYPES } from '../../types';
 import { getAppInfo } from '../../lib/appInfo';
 import { open, save } from '@tauri-apps/plugin-dialog';
@@ -15,6 +15,12 @@ import {
   getDefaultNoteParamOutputSettings,
   type NoteParamCategory,
 } from '../../lib/appsheet/noteParameters';
+import {
+  getShortcutActionsByCategory,
+  getMergedShortcutKeys,
+  formatShortcutForDisplay,
+  keyEventToShortcutString,
+} from '../../lib/shortcuts';
 
 interface SettingsDialogProps {
   isOpen: boolean;
@@ -42,6 +48,10 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     toggleNoteParamsSettingsOpen,
     isRelationSettingsOpen,
     toggleRelationSettingsOpen,
+    isShortcutSettingsOpen,
+    toggleShortcutSettingsOpen,
+    updateShortcutKey,
+    resetShortcutKeys,
     updateNoteParamOutputSetting,
     resetNoteParamOutputSettings,
   } = useUIStore();
@@ -51,6 +61,10 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
 
   const [appVersion, setAppVersion] = useState<string>('');
   const [transferMessage, setTransferMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // ショートカットキー編集用の状態
+  const [editingShortcutId, setEditingShortcutId] = useState<ShortcutActionId | null>(null);
+  const [recordingKey, setRecordingKey] = useState<string>('');
 
   const RAW_NOTE_OVERRIDE_KEY = '__AppSheetNoteOverride';
 
@@ -80,8 +94,52 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
 
   const handleClose = () => {
     setTransferMessage(null);
+    setEditingShortcutId(null);
+    setRecordingKey('');
     onClose();
   };
+
+  // ショートカットキー設定関連
+  const shortcutActionsByCategory = useMemo(() => getShortcutActionsByCategory(), []);
+  const mergedShortcutKeys = useMemo(() => getMergedShortcutKeys(settings.shortcutKeys), [settings.shortcutKeys]);
+
+  const handleShortcutKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>, actionId: ShortcutActionId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Escapeでキャンセル
+    if (e.key === 'Escape') {
+      setEditingShortcutId(null);
+      setRecordingKey('');
+      return;
+    }
+    
+    // 修飾キーだけの場合は無視
+    if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
+      return;
+    }
+    
+    const shortcutString = keyEventToShortcutString(e.nativeEvent);
+    if (shortcutString) {
+      updateShortcutKey(actionId, shortcutString);
+      setEditingShortcutId(null);
+      setRecordingKey('');
+    }
+  }, [updateShortcutKey]);
+
+  const startEditingShortcut = useCallback((actionId: ShortcutActionId) => {
+    setEditingShortcutId(actionId);
+    setRecordingKey('');
+  }, []);
+
+  const cancelEditingShortcut = useCallback(() => {
+    setEditingShortcutId(null);
+    setRecordingKey('');
+  }, []);
+
+  const clearShortcut = useCallback((actionId: ShortcutActionId) => {
+    updateShortcutKey(actionId, '');
+  }, [updateShortcutKey]);
 
   const languageOptions = [
     { value: 'ja', label: '日本語' },
@@ -1135,6 +1193,117 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
               </div>
 
               <p className="text-[10px] theme-text-muted">{t('settings.noteParams.legend')}</p>
+            </div>
+          )}
+        </section>
+
+        {/* Shortcut Keys Settings (Collapsible) */}
+        <section>
+          <button
+            type="button"
+            onClick={toggleShortcutSettingsOpen}
+            className={
+              'settings-collapsible-button w-full flex items-center justify-between text-left px-3 py-2 rounded border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ' +
+              (isShortcutSettingsOpen
+                ? 'border-indigo-300 bg-indigo-50'
+                : 'border-indigo-200 bg-indigo-50/40 hover:bg-indigo-50/70 hover:border-indigo-300')
+            }
+          >
+            <h3 className="settings-collapsible-title text-xs font-semibold text-indigo-700 uppercase tracking-wide">{t('settings.shortcuts.title')}</h3>
+            <svg
+              className={
+                'settings-collapsible-icon w-4 h-4 transition-transform ' +
+                (isShortcutSettingsOpen ? 'rotate-180 text-indigo-600' : 'rotate-0 text-indigo-500/70')
+              }
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {isShortcutSettingsOpen && (
+            <div className="mt-2.5 space-y-4">
+              <p className="text-[10px] theme-text-muted">{t('settings.shortcuts.description')}</p>
+
+              {/* Reset button */}
+              <div className="flex justify-end">
+                <Button variant="secondary" size="sm" onClick={resetShortcutKeys}>
+                  {t('settings.shortcuts.resetToDefault')}
+                </Button>
+              </div>
+
+              {/* Shortcut categories */}
+              {(['file', 'edit', 'view', 'navigation'] as const).map((category) => {
+                const actions = shortcutActionsByCategory[category];
+                if (actions.length === 0) return null;
+
+                return (
+                  <div key={category}>
+                    <h4 className="text-xs font-semibold mb-2 theme-text-secondary">
+                      {t(`settings.shortcuts.categories.${category}`)}
+                    </h4>
+                    <div className="space-y-1">
+                      {actions.map((action) => {
+                        const currentKey = mergedShortcutKeys[action.id] || '';
+                        const isEditing = editingShortcutId === action.id;
+
+                        return (
+                          <div
+                            key={action.id}
+                            className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-indigo-50/50"
+                            style={{ backgroundColor: isEditing ? 'var(--muted)' : undefined }}
+                          >
+                            <span className="text-xs theme-text-secondary">
+                              {t(action.labelKey)}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  readOnly
+                                  placeholder={t('settings.shortcuts.pressKey')}
+                                  value={recordingKey}
+                                  onKeyDown={(e) => handleShortcutKeyDown(e, action.id)}
+                                  onBlur={cancelEditingShortcut}
+                                  className="w-32 px-2 py-1 text-xs text-center rounded border theme-input-border theme-input-bg focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                />
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => startEditingShortcut(action.id)}
+                                  className="min-w-[80px] px-2 py-1 text-xs text-center rounded border theme-input-border hover:border-indigo-300 transition-colors"
+                                  style={{ backgroundColor: 'var(--input-bg)' }}
+                                  title={t('settings.shortcuts.clickToEdit')}
+                                >
+                                  {currentKey ? formatShortcutForDisplay(currentKey) : (
+                                    <span className="theme-text-muted">{t('settings.shortcuts.notSet')}</span>
+                                  )}
+                                </button>
+                              )}
+                              {currentKey && !isEditing && (
+                                <button
+                                  type="button"
+                                  onClick={() => clearShortcut(action.id)}
+                                  className="p-1 text-xs rounded hover:bg-red-100 theme-text-muted hover:text-red-600 transition-colors"
+                                  title={t('settings.shortcuts.clear')}
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>

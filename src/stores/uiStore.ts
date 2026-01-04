@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ViewMode, Language, Theme, FontSize, AppSettings } from '../types';
+import type { ViewMode, Language, Theme, FontSize, AppSettings, ShortcutActionId } from '../types';
 import { getDefaultNoteParamOutputSettings } from '../lib/appsheet/noteParameters';
+import { getDefaultShortcutKeys } from '../lib/shortcuts';
 
 interface UIState {
   // ビュー状態
@@ -29,6 +30,7 @@ interface UIState {
   isBackupSettingsOpen: boolean;
   isNoteParamsSettingsOpen: boolean;
   isRelationSettingsOpen: boolean;
+  isShortcutSettingsOpen: boolean;
 
   // ERエディタ表示
   isRelationHighlightEnabled: boolean;
@@ -66,6 +68,11 @@ interface UIState {
   toggleBackupSettingsOpen: () => void;
   toggleNoteParamsSettingsOpen: () => void;
   toggleRelationSettingsOpen: () => void;
+  toggleShortcutSettingsOpen: () => void;
+
+  // ショートカットキー設定操作
+  updateShortcutKey: (actionId: ShortcutActionId, key: string) => void;
+  resetShortcutKeys: () => void;
 
   // Note Parameters 出力設定操作
   updateNoteParamOutputSetting: (key: string, enabled: boolean) => void;
@@ -129,6 +136,7 @@ export const useUIStore = create<UIState>()(
       isBackupSettingsOpen: true,
       isNoteParamsSettingsOpen: false,
       isRelationSettingsOpen: true,
+      isShortcutSettingsOpen: false,
       isRelationHighlightEnabled: true,
       isGridVisible: true,
       isMemosVisible: true,
@@ -168,6 +176,27 @@ export const useUIStore = create<UIState>()(
         set((state) => ({ isNoteParamsSettingsOpen: !state.isNoteParamsSettingsOpen })),
       toggleRelationSettingsOpen: () =>
         set((state) => ({ isRelationSettingsOpen: !state.isRelationSettingsOpen })),
+      toggleShortcutSettingsOpen: () =>
+        set((state) => ({ isShortcutSettingsOpen: !state.isShortcutSettingsOpen })),
+
+      // ショートカットキー設定操作
+      updateShortcutKey: (actionId: ShortcutActionId, key: string) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            shortcutKeys: {
+              ...(state.settings.shortcutKeys ?? {}),
+              [actionId]: key,
+            },
+          },
+        })),
+      resetShortcutKeys: () =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            shortcutKeys: getDefaultShortcutKeys(),
+          },
+        })),
 
       // Note Parameters 出力設定操作
       updateNoteParamOutputSetting: (key: string, enabled: boolean) =>
@@ -253,6 +282,7 @@ export const useUIStore = create<UIState>()(
         isCommonColumnsOpen: state.isCommonColumnsOpen,
         isBackupSettingsOpen: state.isBackupSettingsOpen,
         isNoteParamsSettingsOpen: state.isNoteParamsSettingsOpen,
+        isShortcutSettingsOpen: state.isShortcutSettingsOpen,
         isRelationHighlightEnabled: state.isRelationHighlightEnabled,
         isGridVisible: state.isGridVisible,
         isMemosVisible: state.isMemosVisible,

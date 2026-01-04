@@ -303,6 +303,48 @@ export type Language = 'ja' | 'en';
 export type Theme = 'light' | 'dark' | 'system';
 export type FontSize = 'small' | 'medium' | 'large';
 
+// ショートカットキー関連の型定義
+
+/**
+ * ショートカットキーで実行可能な操作のID
+ */
+export type ShortcutActionId =
+  | 'openProjectDialog'
+  | 'openSettings'
+  | 'openImportDialog'
+  | 'openExportDialog'
+  | 'toggleSidebar'
+  | 'switchToEditor'
+  | 'switchToSimulator'
+  | 'undo'
+  | 'redo'
+  | 'addTable'
+  | 'toggleGrid'
+  | 'toggleMemos'
+  | 'toggleRelationHighlight'
+  | 'zoomIn'
+  | 'zoomOut'
+  | 'fitView'
+  | 'save';
+
+/**
+ * ショートカットキーの設定（アクションIDをキー、キーバインディングを値）
+ */
+export type ShortcutKeySettings = Record<ShortcutActionId, string>;
+
+/**
+ * ショートカットアクションの定義
+ */
+export interface ShortcutActionDefinition {
+  id: ShortcutActionId;
+  /** 翻訳キー（settings.shortcuts.actions.xxx） */
+  labelKey: string;
+  /** デフォルトのキーバインディング（例: "Ctrl+S"） */
+  defaultKey: string;
+  /** カテゴリ（グループ化用） */
+  category: 'file' | 'edit' | 'view' | 'navigation';
+}
+
 export type RelationLabelInitialMode = 'auto' | 'hidden' | 'custom';
 
 /**
@@ -364,6 +406,12 @@ export interface AppSettings {
    * relationLabelInitialMode === 'custom' のときに使う初期テキスト
    */
   relationLabelInitialCustomText: string;
+
+  /**
+   * ショートカットキー設定（アクションIDをキー、キーバインディングを値）
+   * 未設定の場合はデフォルト値が使用される
+   */
+  shortcutKeys?: Partial<ShortcutKeySettings>;
 }
 
 // 履歴関連の型定義（Undo/Redo）

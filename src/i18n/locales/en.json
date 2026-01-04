@@ -475,6 +475,40 @@
         "hidden": "Hidden",
         "custom": "Custom"
       }
+    },
+    "shortcuts": {
+      "title": "Keyboard Shortcuts",
+      "description": "Configure keyboard shortcuts for various actions. Click on a shortcut and press the desired key combination to change it.",
+      "resetToDefault": "Reset to Default",
+      "pressKey": "Press a key...",
+      "clickToEdit": "Click to edit",
+      "notSet": "Not set",
+      "clear": "Clear",
+      "categories": {
+        "file": "File",
+        "edit": "Edit",
+        "view": "View",
+        "navigation": "Navigation"
+      },
+      "actions": {
+        "openProjectDialog": "Open Project",
+        "save": "Save",
+        "openImportDialog": "Import",
+        "openExportDialog": "Export",
+        "openSettings": "Open Settings",
+        "undo": "Undo",
+        "redo": "Redo",
+        "addTable": "Add Table",
+        "toggleSidebar": "Toggle Sidebar",
+        "toggleGrid": "Toggle Grid",
+        "toggleMemos": "Toggle Memos",
+        "toggleRelationHighlight": "Toggle Relation Highlight",
+        "zoomIn": "Zoom In",
+        "zoomOut": "Zoom Out",
+        "fitView": "Fit View",
+        "switchToEditor": "Switch to Editor",
+        "switchToSimulator": "Switch to Simulator"
+      }
     }
   },
   "license": {
