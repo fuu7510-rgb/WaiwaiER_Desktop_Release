@@ -23,10 +23,12 @@ interface UIState {
   sidebarWidth: number;
 
   // ユーザー設定UI（開閉状態など）
+  isGeneralSettingsOpen: boolean;
   isTableCreationRulesOpen: boolean;
   isCommonColumnsOpen: boolean;
   isBackupSettingsOpen: boolean;
   isNoteParamsSettingsOpen: boolean;
+  isRelationSettingsOpen: boolean;
 
   // ERエディタ表示
   isRelationHighlightEnabled: boolean;
@@ -58,10 +60,12 @@ interface UIState {
   setSidebarWidth: (width: number) => void;
 
   // ユーザー設定UI操作
+  toggleGeneralSettingsOpen: () => void;
   toggleTableCreationRulesOpen: () => void;
   toggleCommonColumnsOpen: () => void;
   toggleBackupSettingsOpen: () => void;
   toggleNoteParamsSettingsOpen: () => void;
+  toggleRelationSettingsOpen: () => void;
 
   // Note Parameters 出力設定操作
   updateNoteParamOutputSetting: (key: string, enabled: boolean) => void;
@@ -88,6 +92,7 @@ const defaultSettings: AppSettings = {
   edgeFollowerIconName: 'arrow-right',
   edgeFollowerIconSize: 14,
   edgeFollowerIconSpeed: 90,
+  edgeLineStyle: 'solid',
   showNoteParamsSupportPanel: true,
   noteParamOutputSettings: getDefaultNoteParamOutputSettings(),
   autoBackupEnabled: true,
@@ -118,10 +123,12 @@ export const useUIStore = create<UIState>()(
       isAboutDialogOpen: false,
       isSidebarOpen: true,
       sidebarWidth: 280,
+      isGeneralSettingsOpen: true,
       isTableCreationRulesOpen: true,
       isCommonColumnsOpen: true,
       isBackupSettingsOpen: true,
       isNoteParamsSettingsOpen: false,
+      isRelationSettingsOpen: true,
       isRelationHighlightEnabled: true,
       isGridVisible: true,
       isMemosVisible: true,
@@ -149,6 +156,8 @@ export const useUIStore = create<UIState>()(
       setSidebarWidth: (width) => set({ sidebarWidth: Math.max(200, Math.min(500, width)) }),
 
       // ユーザー設定UI操作
+      toggleGeneralSettingsOpen: () =>
+        set((state) => ({ isGeneralSettingsOpen: !state.isGeneralSettingsOpen })),
       toggleTableCreationRulesOpen: () =>
         set((state) => ({ isTableCreationRulesOpen: !state.isTableCreationRulesOpen })),
       toggleCommonColumnsOpen: () =>
@@ -157,6 +166,8 @@ export const useUIStore = create<UIState>()(
         set((state) => ({ isBackupSettingsOpen: !state.isBackupSettingsOpen })),
       toggleNoteParamsSettingsOpen: () =>
         set((state) => ({ isNoteParamsSettingsOpen: !state.isNoteParamsSettingsOpen })),
+      toggleRelationSettingsOpen: () =>
+        set((state) => ({ isRelationSettingsOpen: !state.isRelationSettingsOpen })),
 
       // Note Parameters 出力設定操作
       updateNoteParamOutputSetting: (key: string, enabled: boolean) =>
@@ -205,7 +216,7 @@ export const useUIStore = create<UIState>()(
     }),
     {
       name: 'waiwaier-ui',
-      version: 1,
+      version: 2,
       migrate: (persisted: unknown) => {
         if (typeof persisted !== 'object' || persisted === null) return persisted as UIState;
         const state = persisted as UIState;
@@ -223,12 +234,21 @@ export const useUIStore = create<UIState>()(
           }
         }
 
+        // リレーション個別設定へ移行したため、ユーザー設定は既定値へ戻す。
+        // （以降、リレーションの個別設定には影響しない）
+        if (settings) {
+          settings.edgeFollowerIconName = 'arrow-right';
+          settings.edgeFollowerIconSize = 14;
+          settings.edgeFollowerIconSpeed = 90;
+        }
+
         return state;
       },
       partialize: (state) => ({
         settings: state.settings,
         isSidebarOpen: state.isSidebarOpen,
         sidebarWidth: state.sidebarWidth,
+        isGeneralSettingsOpen: state.isGeneralSettingsOpen,
         isTableCreationRulesOpen: state.isTableCreationRulesOpen,
         isCommonColumnsOpen: state.isCommonColumnsOpen,
         isBackupSettingsOpen: state.isBackupSettingsOpen,

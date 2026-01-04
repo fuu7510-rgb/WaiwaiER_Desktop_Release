@@ -54,7 +54,7 @@ function createMinimalMemo(overrides: Partial<Memo> = {}): Memo {
 describe('diagramSchema', () => {
   describe('スキーマバージョン定数', () => {
     it('現在のスキーマバージョンが定義されている', () => {
-      expect(DIAGRAM_SCHEMA_VERSION).toBe(2);
+      expect(DIAGRAM_SCHEMA_VERSION).toBe(3);
     });
 
     it('最小サポートバージョンが定義されている', () => {
@@ -161,6 +161,49 @@ describe('diagramSchema', () => {
       });
     });
 
+    describe('リレーションの追従アイコン個別設定の正規化', () => {
+      it('未指定の場合は既定値に正規化される', () => {
+        const envelope = {
+          schemaVersion: 2,
+          diagram: {
+            tables: [createMinimalTable({ id: 't1' }), createMinimalTable({ id: 't2' })],
+            relations: [createMinimalRelation({ id: 'r1' })],
+            memos: [],
+          },
+        };
+
+        const result = decodeAndMigrateDiagram(envelope);
+        expect(result).not.toBeNull();
+
+        const rel = result!.relations[0];
+        expect(rel.edgeFollowerIconName).toBe('arrow-right');
+        expect(rel.edgeFollowerIconSize).toBe(14);
+        expect(rel.edgeFollowerIconSpeed).toBe(90);
+      });
+
+      it('不正な値は範囲内に丸められる', () => {
+        const legacy = {
+          tables: [createMinimalTable({ id: 't1' }), createMinimalTable({ id: 't2' })],
+          relations: [
+            createMinimalRelation({
+              id: 'r1',
+              edgeFollowerIconName: '  ',
+              edgeFollowerIconSize: 9999,
+              edgeFollowerIconSpeed: 0,
+            }),
+          ],
+        };
+
+        const result = decodeAndMigrateDiagram(legacy);
+        expect(result).not.toBeNull();
+
+        const rel = result!.relations[0];
+        expect(rel.edgeFollowerIconName).toBe('arrow-right');
+        expect(rel.edgeFollowerIconSize).toBe(48);
+        expect(rel.edgeFollowerIconSpeed).toBe(10);
+      });
+    });
+
     describe('レガシー形式（エンベロープなし）の処理', () => {
       it('エンベロープなしのダイアグラムをV1にマイグレートできる', () => {
         const legacyDiagram = {
@@ -189,13 +232,27 @@ describe('diagramSchema', () => {
     });
 
     describe('バージョンチェック', () => {
-      it('新しすぎるバージョンはエラーを投げる', () => {
+      it('新しすぎるバージョンでも、diagramの形が合えば読み込める（前方互換）', () => {
         const futureEnvelope = {
-          schemaVersion: 999,
+          schemaVersion: DIAGRAM_SCHEMA_VERSION + 1,
           diagram: {
             tables: [],
             relations: [],
+            memos: [],
           },
+        };
+
+        const result = decodeAndMigrateDiagram(futureEnvelope);
+        expect(result).not.toBeNull();
+        expect(result?.tables).toEqual([]);
+        expect(result?.relations).toEqual([]);
+        expect(result?.memos).toEqual([]);
+      });
+
+      it('新しすぎるバージョンでも、diagramの形が合わない場合はエラーを投げる', () => {
+        const futureEnvelope = {
+          schemaVersion: 999,
+          diagram: 'not a diagram',
         };
 
         expect(() => decodeAndMigrateDiagram(futureEnvelope)).toThrow(
@@ -216,6 +273,23 @@ describe('diagramSchema', () => {
         expect(() => decodeAndMigrateDiagram(veryOldEnvelope)).toThrow(
           'このデータは古すぎるため'
         );
+      });
+    });
+
+    describe('部分欠落データ救済', () => {
+      it('envelope内diagramでrelationsが欠落していても読み込める', () => {
+        const envelope = {
+          schemaVersion: DIAGRAM_SCHEMA_VERSION,
+          diagram: {
+            tables: [createMinimalTable({ name: 'NoRelations' })],
+            // relations missing
+          },
+        };
+
+        const result = decodeAndMigrateDiagram(envelope);
+        expect(result).not.toBeNull();
+        expect(result?.tables[0].name).toBe('NoRelations');
+        expect(result?.relations).toEqual([]);
       });
     });
 

@@ -179,6 +179,24 @@ export interface Relation {
   edgeFollowerIconEnabled?: boolean;
 
   /**
+   * 線(リレーション)ごとの追従アイコン種別（lucide-react のアイコン名）。
+   * - undefined: 既定値('arrow-right')として扱う
+   */
+  edgeFollowerIconName?: string;
+
+  /**
+   * 線(リレーション)ごとの追従アイコンサイズ（px）。
+   * - undefined: 既定値(14)として扱う
+   */
+  edgeFollowerIconSize?: number;
+
+  /**
+   * 線(リレーション)ごとの追従アイコン速度（px/sec）。
+   * - undefined: 既定値(90)として扱う
+   */
+  edgeFollowerIconSpeed?: number;
+
+  /**
    * 線(リレーション)ごとの表示スタイル。
    * - undefined: 実線として扱う（後方互換のため）
    */
@@ -308,6 +326,9 @@ export interface AppSettings {
 
   /** 追従アイコン速度（px/sec） */
   edgeFollowerIconSpeed?: number;
+
+  /** ER図のリレーション線(エッジ)のデフォルト線種類 */
+  edgeLineStyle?: 'solid' | 'dashed' | 'dotted';
 
   /** Excelエクスポート画面で Note Parameters の対応状況パネルを表示する */
   showNoteParamsSupportPanel: boolean;

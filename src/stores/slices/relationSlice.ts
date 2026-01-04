@@ -24,7 +24,13 @@ export const createRelationSlice: SliceCreator<RelationSlice> = (set, get) => ({
 
     const id = uuidv4();
     set((state) => {
-      state.relations.push({ ...relation, id });
+      state.relations.push({
+        edgeFollowerIconName: relation.edgeFollowerIconName ?? 'arrow-right',
+        edgeFollowerIconSize: relation.edgeFollowerIconSize ?? 14,
+        edgeFollowerIconSpeed: relation.edgeFollowerIconSpeed ?? 90,
+        ...relation,
+        id,
+      });
     });
     get().saveHistory('リレーションを追加');
     get().queueSaveToDB();

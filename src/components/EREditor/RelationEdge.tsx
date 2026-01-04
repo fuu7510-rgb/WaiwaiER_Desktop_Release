@@ -7,7 +7,6 @@ import { DynamicIcon } from 'lucide-react/dynamic';
 import { coerceLucideIconName } from '../../lib/lucideIcons';
 
 import { useERStore } from '../../stores';
-import { useUIStore } from '../../stores/uiStore';
 
 interface RelationEdgeData {
   label?: string;
@@ -17,6 +16,9 @@ interface RelationEdgeData {
   totalEdges?: number;   // 同じテーブルペア間のエッジの総数
   isDimmed?: boolean;
   followerIconEnabled?: boolean;
+  followerIconName?: string;
+  followerIconSize?: number;
+  followerIconSpeed?: number;
 }
 
 /**
@@ -121,15 +123,14 @@ export const RelationEdge = memo(({
   data,
   style,
   markerEnd,
+  selected,
 }: EdgeProps<RelationEdgeData>) => {
   const updateRelation = useERStore((state) => state.updateRelation);
 
-  const edgeFollowerIconEnabled = useUIStore((state) => state.settings.edgeFollowerIconEnabled ?? false);
-  const edgeFollowerIconName = useUIStore((state) => state.settings.edgeFollowerIconName ?? 'arrow-right');
-  const edgeFollowerIconSize = useUIStore((state) => state.settings.edgeFollowerIconSize ?? 14);
-  const edgeFollowerIconSpeed = useUIStore((state) => state.settings.edgeFollowerIconSpeed ?? 90);
-
-  const followerIconEnabled = data?.followerIconEnabled ?? edgeFollowerIconEnabled;
+  const followerIconEnabled = data?.followerIconEnabled ?? false;
+  const followerIconNameRaw = data?.followerIconName ?? 'arrow-right';
+  const followerIconSize = data?.followerIconSize ?? 14;
+  const followerIconSpeed = data?.followerIconSpeed ?? 90;
 
   const offsetIndex = data?.offsetIndex ?? 0;
   const totalEdges = data?.totalEdges ?? 1;
@@ -214,7 +215,7 @@ export const RelationEdge = memo(({
     });
   }, [sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, curvature]);
 
-  const followerIconName = coerceLucideIconName(edgeFollowerIconName, 'arrow-right');
+  const followerIconName = coerceLucideIconName(followerIconNameRaw, 'arrow-right');
 
   useEffect(() => {
     if (!followerIconEnabled) return;
@@ -238,7 +239,7 @@ export const RelationEdge = memo(({
       const dt = Math.max(0, (ts - last) / 1000);
       followerLastTsRef.current = ts;
 
-      const nextLen = (followerLenRef.current + edgeFollowerIconSpeed * dt) % total;
+      const nextLen = (followerLenRef.current + followerIconSpeed * dt) % total;
       followerLenRef.current = nextLen;
 
       const p = pathEl.getPointAtLength(nextLen);
@@ -257,7 +258,7 @@ export const RelationEdge = memo(({
         followerRafRef.current = null;
       }
     };
-  }, [followerIconEnabled, edgeFollowerIconSpeed, edgePath]);
+  }, [followerIconEnabled, followerIconSpeed, edgePath]);
 
   return (
     <>
@@ -265,8 +266,9 @@ export const RelationEdge = memo(({
         id={id}
         path={edgePath}
         style={{
-          stroke: '#6366f1',
-          strokeWidth: 2,
+          stroke: selected ? '#f59e0b' : '#6366f1',
+          strokeWidth: selected ? 4 : 2,
+          filter: selected ? 'drop-shadow(0 0 4px rgba(245, 158, 11, 0.6))' : undefined,
           ...style,
         }}
         markerEnd={markerEnd}
@@ -282,8 +284,8 @@ export const RelationEdge = memo(({
               className="nodrag nopan"
               style={{
                 position: 'absolute',
-                width: edgeFollowerIconSize,
-                height: edgeFollowerIconSize,
+                width: followerIconSize,
+                height: followerIconSize,
                 pointerEvents: 'none',
                 opacity: isDimmed ? 0.35 : 1,
                 color: 'var(--text-primary)',
@@ -292,7 +294,7 @@ export const RelationEdge = memo(({
             >
               <DynamicIcon
                 name={followerIconName}
-                size={edgeFollowerIconSize}
+                size={followerIconSize}
                 fallback={DefaultFollowerIcon}
               />
             </div>

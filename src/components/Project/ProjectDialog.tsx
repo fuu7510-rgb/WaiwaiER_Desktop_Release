@@ -148,9 +148,14 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
 
     setCurrentProjectId(projectId);
     setCurrentProjectPassphrase(null);
-    await loadFromDB(projectId, { passphrase: null });
-    openProject(projectId);
-    onClose();
+    try {
+      await loadFromDB(projectId, { passphrase: null });
+      openProject(projectId);
+      onClose();
+    } catch (e) {
+      console.error(e);
+      alert(e instanceof Error ? e.message : String(e));
+    }
   }, [projects, loadFromDB, openProject, onClose, setCurrentProjectId, setCurrentProjectPassphrase, currentProjectId, isDirty, saveToDB]);
 
   const handleUnlockAndOpen = useCallback(async () => {

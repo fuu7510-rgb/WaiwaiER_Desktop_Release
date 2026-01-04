@@ -5,7 +5,7 @@ import { CollapsibleSection, IconPicker, Input, Select } from '../common';
 
 type LabelMode = 'auto' | 'hidden' | 'custom';
 type EdgeAnimationMode = 'default' | 'on' | 'off';
-type EdgeLineStyle = 'solid' | 'dashed' | 'dotted';
+type EdgeLineStyleMode = 'default' | 'solid' | 'dashed' | 'dotted';
 type FollowerIconMode = 'default' | 'on' | 'off';
 
 function getLabelMode(label: string | undefined): LabelMode {
@@ -17,7 +17,7 @@ function getLabelMode(label: string | undefined): LabelMode {
 export function RelationEditor() {
   const { t } = useTranslation();
   const { relations, tables, selectedRelationId, updateRelation } = useERStore();
-  const { settings, updateSettings } = useUIStore();
+  const { settings } = useUIStore();
 
   const selectedRelation = relations.find((r) => r.id === selectedRelationId) ?? null;
 
@@ -73,6 +73,7 @@ export function RelationEditor() {
 
   const edgeLineStyleOptions = useMemo(
     () => [
+      { value: 'default', label: t('relation.edgeLineStyle.modes.default') },
       { value: 'solid', label: t('relation.edgeLineStyle.modes.solid') },
       { value: 'dashed', label: t('relation.edgeLineStyle.modes.dashed') },
       { value: 'dotted', label: t('relation.edgeLineStyle.modes.dotted') },
@@ -87,11 +88,22 @@ export function RelationEditor() {
       updates: Partial<{
         type: 'one-to-one' | 'one-to-many' | 'many-to-many';
         label: string | undefined;
-        edgeLineStyle: EdgeLineStyle | undefined;
       }>
     ) => {
       if (!selectedRelationId) return;
       updateRelation(selectedRelationId, updates);
+    },
+    [selectedRelationId, updateRelation]
+  );
+
+  const handleEdgeLineStyleUpdate = useCallback(
+    (mode: EdgeLineStyleMode) => {
+      if (!selectedRelationId) return;
+      if (mode === 'default') {
+        updateRelation(selectedRelationId, { edgeLineStyle: undefined });
+        return;
+      }
+      updateRelation(selectedRelationId, { edgeLineStyle: mode });
     },
     [selectedRelationId, updateRelation]
   );
@@ -123,6 +135,8 @@ export function RelationEditor() {
   // Keep this guard AFTER all hooks so hook order/count never changes.
   if (!selectedRelation) return null;
 
+  const relationId = selectedRelation.id;
+
   const labelMode = getLabelMode(selectedRelation.label);
   const edgeAnimationMode: EdgeAnimationMode =
     selectedRelation.edgeAnimationEnabled === undefined
@@ -131,7 +145,10 @@ export function RelationEditor() {
         ? 'on'
         : 'off';
 
-  const edgeLineStyle: EdgeLineStyle = (selectedRelation.edgeLineStyle ?? 'solid') as EdgeLineStyle;
+  const edgeLineStyleMode: EdgeLineStyleMode =
+    selectedRelation.edgeLineStyle === undefined
+      ? 'default'
+      : selectedRelation.edgeLineStyle as EdgeLineStyleMode;
 
   const followerIconMode: FollowerIconMode =
     selectedRelation.edgeFollowerIconEnabled === undefined
@@ -140,8 +157,24 @@ export function RelationEditor() {
         ? 'on'
         : 'off';
 
-  const isFollowerIconEnabledEffective =
-    (selectedRelation.edgeFollowerIconEnabled ?? (settings.edgeFollowerIconEnabled ?? false)) === true;
+  // 追従アイコン設定欄の有効/無効判定
+  // ON の場合のみ有効（独自設定可能）
+  // デフォルト/OFF の場合は無効（暗くする）
+  const isFollowerIconSettingsEnabled = followerIconMode === 'on';
+
+  // 表示用の値（デフォルト時はユーザー設定の値を使用）
+  const displayFollowerIconName =
+    followerIconMode === 'on'
+      ? (selectedRelation.edgeFollowerIconName ?? 'arrow-right')
+      : (settings.edgeFollowerIconName ?? 'arrow-right');
+  const displayFollowerIconSize =
+    followerIconMode === 'on'
+      ? (selectedRelation.edgeFollowerIconSize ?? 14)
+      : (settings.edgeFollowerIconSize ?? 14);
+  const displayFollowerIconSpeed =
+    followerIconMode === 'on'
+      ? (selectedRelation.edgeFollowerIconSpeed ?? 90)
+      : (settings.edgeFollowerIconSpeed ?? 90);
 
   return (
     <div className="p-4 space-y-4">
@@ -161,8 +194,8 @@ export function RelationEditor() {
 
           <Select
             label={t('relation.edgeLineStyle.title')}
-            value={edgeLineStyle}
-            onChange={(e) => handleUpdate({ edgeLineStyle: e.target.value as EdgeLineStyle })}
+            value={edgeLineStyleMode}
+            onChange={(e) => handleEdgeLineStyleUpdate(e.target.value as EdgeLineStyleMode)}
             options={edgeLineStyleOptions}
           />
 
@@ -190,9 +223,11 @@ export function RelationEditor() {
           <Input
             label={t('relation.label.customText')}
             placeholder={t('relation.label.customTextPlaceholder')}
-            value={labelMode === 'custom' ? selectedRelation.label ?? '' : ''}
-            disabled={labelMode !== 'custom'}
-            onChange={(e) => handleUpdate({ label: e.target.value })}
+            value={selectedRelation.label ?? ''}
+            onChange={(e) => {
+              // 入力があれば自動的にカスタムモードに切り替え
+              handleUpdate({ label: e.target.value });
+            }}
           />
         </div>
       </CollapsibleSection>
@@ -207,12 +242,15 @@ export function RelationEditor() {
           />
           <p className="-mt-2 text-[10px] theme-text-muted">{t('relation.edgeFollowerIconAnimation.description')}</p>
 
-          <div className="grid grid-cols-3 gap-2.5">
+          <div 
+            className="grid grid-cols-3 gap-2.5"
+            style={{ opacity: isFollowerIconSettingsEnabled ? 1 : 0.5 }}
+          >
             <IconPicker
               label={t('settings.editor.edgeFollowerIcon.icon')}
-              value={settings.edgeFollowerIconName ?? 'arrow-right'}
-              onChange={(iconName: string) => updateSettings({ edgeFollowerIconName: iconName })}
-              disabled={!isFollowerIconEnabledEffective}
+              value={displayFollowerIconName}
+              onChange={(iconName: string) => updateRelation(relationId, { edgeFollowerIconName: iconName })}
+              disabled={!isFollowerIconSettingsEnabled}
             />
 
             <Input
@@ -221,12 +259,14 @@ export function RelationEditor() {
               min={8}
               max={48}
               step={1}
-              disabled={!isFollowerIconEnabledEffective}
-              value={String(settings.edgeFollowerIconSize ?? 14)}
+              disabled={!isFollowerIconSettingsEnabled}
+              value={String(displayFollowerIconSize)}
               onChange={(e) => {
                 const n = Number(e.target.value);
                 if (!Number.isFinite(n)) return;
-                updateSettings({ edgeFollowerIconSize: Math.max(8, Math.min(48, Math.trunc(n))) });
+                updateRelation(relationId, {
+                  edgeFollowerIconSize: Math.max(8, Math.min(48, Math.trunc(n))),
+                });
               }}
             />
 
@@ -236,12 +276,14 @@ export function RelationEditor() {
               min={10}
               max={1000}
               step={5}
-              disabled={!isFollowerIconEnabledEffective}
-              value={String(settings.edgeFollowerIconSpeed ?? 90)}
+              disabled={!isFollowerIconSettingsEnabled}
+              value={String(displayFollowerIconSpeed)}
               onChange={(e) => {
                 const n = Number(e.target.value);
                 if (!Number.isFinite(n)) return;
-                updateSettings({ edgeFollowerIconSpeed: Math.max(10, Math.min(1000, n)) });
+                updateRelation(relationId, {
+                  edgeFollowerIconSpeed: Math.max(10, Math.min(1000, n)),
+                });
               }}
             />
           </div>

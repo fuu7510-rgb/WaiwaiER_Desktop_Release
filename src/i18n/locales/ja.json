@@ -136,7 +136,10 @@
     "memoPlaceholder": "好きなことを自由にメモできます",
     "grid": "グリッド",
     "showGrid": "グリッドを表示",
-    "hideGrid": "グリッドを非表示"
+    "hideGrid": "グリッドを非表示",
+    "animations": "アニメーション",
+    "enableAnimations": "アニメーションをON",
+    "disableAnimations": "アニメーションをOFF"
   },
   "table": {
     "table": "テーブル",
@@ -280,17 +283,18 @@
     },
     "edgeFollowerIconAnimation": {
       "title": "追従アイコン",
-      "description": "『デフォルト』はユーザー設定の値に従います。",
+      "description": "『デフォルト』はユーザー設定の値に従います。『ON』にすると独自の設定が可能です。『OFF』にするとアイコンが非表示になります。",
       "modes": {
         "default": "デフォルト（ユーザー設定）",
-        "on": "ON",
-        "off": "OFF"
+        "on": "ON（独自設定）",
+        "off": "OFF（非表示）"
       }
     },
     "edgeLineStyle": {
       "title": "線の種類",
       "description": "リレーション線の表示（実線/破線/点線）を変更します。",
       "modes": {
+        "default": "デフォルト（ユーザー設定）",
         "solid": "実線",
         "dashed": "破線",
         "dotted": "点線"
@@ -320,12 +324,12 @@
     "license": "ライセンス",
     "editor": {
       "edgeAnimation": {
-        "label": "エッジのアニメーションを有効にする",
+        "label": "線のアニメーションを有効にする",
         "hint": "ER図のリレーション線にアニメーションを表示します。"
       },
       "edgeFollowerIcon": {
-        "label": "エッジ上の追従アイコンを表示",
-        "hint": "Lucideアイコンをリレーション線（SVGパス）に沿って移動表示します。",
+        "label": "線上の追従アイコンを表示",
+        "hint": "チェックを入れると、デフォルト値を設定できます。線の設定が「デフォルト」の場合、この値が反映されます。",
         "icon": "アイコン",
         "size": "サイズ(px)",
         "speed": "速度(px/秒)",
@@ -359,6 +363,19 @@
     },
     "tableCreationRules": {
       "title": "新規作成時のルール"
+    },
+    "relationSettings": {
+      "title": "リレーション設定",
+      "lineStyle": {
+        "title": "線の種類",
+        "label": "デフォルトの線種類",
+        "description": "新規作成されるリレーション（線）のデフォルト表示スタイルを指定します。",
+        "modes": {
+          "solid": "実線",
+          "dashed": "破線",
+          "dotted": "点線"
+        }
+      }
     },
     "commonColumns": {
       "title": "共通カラム",

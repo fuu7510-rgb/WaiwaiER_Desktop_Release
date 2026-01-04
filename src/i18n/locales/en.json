@@ -154,7 +154,10 @@
     "memoPlaceholder": "Write anything here",
     "grid": "Grid",
     "showGrid": "Show grid",
-    "hideGrid": "Hide grid"
+    "hideGrid": "Hide grid",
+    "animations": "Animations",
+    "enableAnimations": "Turn animations ON",
+    "disableAnimations": "Turn animations OFF"
   },
   "table": {
     "table": "Table",
@@ -297,17 +300,18 @@
     },
       "edgeFollowerIconAnimation": {
         "title": "Follower Icon",
-        "description": "Default follows User Settings.",
+        "description": "'Default' follows User Settings. 'ON' allows custom settings. 'OFF' hides the icon.",
         "modes": {
           "default": "Default (User Settings)",
-          "on": "ON",
-          "off": "OFF"
+          "on": "ON (Custom)",
+          "off": "OFF (Hidden)"
         }
       },
     "edgeLineStyle": {
       "title": "Line Style",
       "description": "Changes the relationship edge rendering (solid/dashed/dotted).",
       "modes": {
+        "default": "Default (User Settings)",
         "solid": "Solid",
         "dashed": "Dashed",
         "dotted": "Dotted"
@@ -342,7 +346,7 @@
       },
       "edgeFollowerIcon": {
         "label": "Show moving icon on edges",
-        "hint": "Moves a Lucide icon along the relationship edge path (SVG).",
+        "hint": "When enabled, you can set default values. When the edge setting is 'Default', these values will be used.",
         "icon": "Icon",
         "size": "Size (px)",
         "speed": "Speed (px/sec)",
@@ -376,6 +380,19 @@
     },
     "tableCreationRules": {
       "title": "Table creation rules"
+    },
+    "relationSettings": {
+      "title": "Relation Settings",
+      "lineStyle": {
+        "title": "Line Style",
+        "label": "Default line style",
+        "description": "Specifies the default display style for newly created relations (edges).",
+        "modes": {
+          "solid": "Solid",
+          "dashed": "Dashed",
+          "dotted": "Dotted"
+        }
+      }
     },
     "commonColumns": {
       "title": "Common Columns",

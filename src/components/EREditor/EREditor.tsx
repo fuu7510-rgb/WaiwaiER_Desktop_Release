@@ -39,6 +39,7 @@ function EREditorInner() {
     selectTable,
     selectRelation,
     selectedTableId,
+    selectedRelationId,
   } = useERStore();
   const {
     isRelationHighlightEnabled,
@@ -52,6 +53,10 @@ function EREditorInner() {
 
   const isEdgeAnimationEnabled = settings.edgeAnimationEnabled ?? true;
   const isEdgeFollowerIconEnabled = settings.edgeFollowerIconEnabled ?? false;
+  // ユーザー設定の追従アイコン設定（デフォルト用）
+  const defaultFollowerIconName = settings.edgeFollowerIconName ?? 'arrow-right';
+  const defaultFollowerIconSize = settings.edgeFollowerIconSize ?? 14;
+  const defaultFollowerIconSpeed = settings.edgeFollowerIconSpeed ?? 90;
   const zoom = useReactFlowStore((state) => state.transform[2]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
@@ -429,6 +434,9 @@ function EREditorInner() {
     return result;
   }, [relations]);
 
+  // アニメーション一時停止（設定は変更しない）
+  const [isAnimationTemporarilyEnabled, setIsAnimationTemporarilyEnabled] = useState(true);
+
   // リレーションをReact Flowエッジに変換
   const relationToEdge = useCallback((relation: Relation): Edge => {
     const offsetInfo = edgeOffsetMap.get(relation.id) || { offsetIndex: 0, totalEdges: 1 };
@@ -459,7 +467,10 @@ function EREditorInner() {
     // こちらのdashパターン(8 4 / 1 6)と周期が合わずギクシャクしやすい。
     // そのため、破線/点線のみ独自のdashoffsetアニメーションを適用する。
     const canAnimate = lineStyle !== 'solid';
-    const shouldAnimate = canAnimate ? (relation.edgeAnimationEnabled ?? isEdgeAnimationEnabled) : false;
+    const shouldAnimate =
+      isAnimationTemporarilyEnabled && canAnimate
+        ? (relation.edgeAnimationEnabled ?? isEdgeAnimationEnabled)
+        : false;
 
     const animationCSS: React.CSSProperties = shouldAnimate
       ? lineStyle === 'dashed'
@@ -477,7 +488,24 @@ function EREditorInner() {
 
     const hasMergedStyle = Object.keys(mergedStyle).length > 0;
 
-    const followerIconEnabled = relation.edgeFollowerIconEnabled ?? isEdgeFollowerIconEnabled;
+    // 追従アイコンの有効/無効判定
+    // edgeFollowerIconEnabled: undefined=デフォルト, true=ON, false=OFF
+    const followerIconEnabled =
+      isAnimationTemporarilyEnabled && (relation.edgeFollowerIconEnabled ?? isEdgeFollowerIconEnabled);
+
+    // 追従アイコンの設定値
+    // ONの場合: エッジ独自の値（未設定時はデフォルト値）
+    // デフォルト/OFFの場合: ユーザー設定の値
+    const isFollowerIconON = relation.edgeFollowerIconEnabled === true;
+    const followerIconName = isFollowerIconON
+      ? (relation.edgeFollowerIconName ?? defaultFollowerIconName)
+      : defaultFollowerIconName;
+    const followerIconSize = isFollowerIconON
+      ? (relation.edgeFollowerIconSize ?? defaultFollowerIconSize)
+      : defaultFollowerIconSize;
+    const followerIconSpeed = isFollowerIconON
+      ? (relation.edgeFollowerIconSpeed ?? defaultFollowerIconSpeed)
+      : defaultFollowerIconSpeed;
 
     return {
       id: relation.id,
@@ -487,6 +515,7 @@ function EREditorInner() {
       targetHandle: relation.targetColumnId,
       type: 'relationEdge',
       updatable: true,
+      selected: relation.id === selectedRelationId,
       // 標準 animated は使わず、style側のanimationで制御する。
       animated: false,
       style: hasMergedStyle ? mergedStyle : undefined,
@@ -498,9 +527,12 @@ function EREditorInner() {
         totalEdges: offsetInfo.totalEdges,
         isDimmed,
         followerIconEnabled,
+        followerIconName,
+        followerIconSize,
+        followerIconSpeed,
       },
     };
-  }, [edgeOffsetMap, isEdgeAnimationEnabled, isEdgeFollowerIconEnabled, relatedGraph]);
+  }, [edgeOffsetMap, isAnimationTemporarilyEnabled, isEdgeAnimationEnabled, isEdgeFollowerIconEnabled, defaultFollowerIconName, defaultFollowerIconSize, defaultFollowerIconSpeed, relatedGraph, selectedRelationId]);
 
   const [nodes, setNodes] = useNodesState([
     ...tables.map(tableToNode),
@@ -904,6 +936,21 @@ function EREditorInner() {
           title={isGridVisible ? t('editor.hideGrid') : t('editor.showGrid')}
         >
           {t('editor.grid')}: {isGridVisible ? 'ON' : 'OFF'}
+        </Button>
+
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => setIsAnimationTemporarilyEnabled((v) => !v)}
+          aria-pressed={isAnimationTemporarilyEnabled}
+          title={
+            isAnimationTemporarilyEnabled
+              ? t('editor.disableAnimations')
+              : t('editor.enableAnimations')
+          }
+        >
+          {t('editor.animations')}: {isAnimationTemporarilyEnabled ? 'ON' : 'OFF'}
         </Button>
       </div>
     </div>

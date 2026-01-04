@@ -21,7 +21,7 @@ function normalizeExportTargets(raw: unknown): Table['exportTargets'] {
  * - サポート対象は「直近2世代」(current と current-1 と current-2)。
  */
 
-export const DIAGRAM_SCHEMA_VERSION = 2 as const;
+export const DIAGRAM_SCHEMA_VERSION = 3 as const;
 export const MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION = Math.max(0, DIAGRAM_SCHEMA_VERSION - 2);
 
 export type DiagramEnvelopeV1 = {
@@ -31,6 +31,11 @@ export type DiagramEnvelopeV1 = {
 
 export type DiagramEnvelopeV2 = {
   schemaVersion: 2;
+  diagram: ERDiagram;
+};
+
+export type DiagramEnvelopeV3 = {
+  schemaVersion: 3;
   diagram: ERDiagram;
 };
 
@@ -50,9 +55,24 @@ function isDiagramEnvelope(value: unknown): value is AnyEnvelope {
 
 function isLegacyDiagram(value: unknown): value is ERDiagram {
   if (!isObject(value)) return false;
-  const tables = value.tables;
-  const relations = value.relations;
-  return Array.isArray(tables) && Array.isArray(relations);
+  // 旧データ/壊れかけデータ救済のため、必須フィールドを「存在すれば配列」で判定する。
+  // - tables/relations/memos のいずれも無いものはダイアグラムとして扱わない
+  // - ある場合は配列である必要がある
+  const hasTables = 'tables' in value;
+  const hasRelations = 'relations' in value;
+  const hasMemos = 'memos' in value;
+
+  if (!hasTables && !hasRelations && !hasMemos) return false;
+
+  const tables = (value as Record<string, unknown>).tables;
+  const relations = (value as Record<string, unknown>).relations;
+  const memos = (value as Record<string, unknown>).memos;
+
+  if (hasTables && tables != null && !Array.isArray(tables)) return false;
+  if (hasRelations && relations != null && !Array.isArray(relations)) return false;
+  if (hasMemos && memos != null && !Array.isArray(memos)) return false;
+
+  return true;
 }
 
 function nowIso(): string {
@@ -113,6 +133,22 @@ function normalizeRelation(raw: unknown): Relation {
       ? edgeLineStyleRaw
       : undefined;
 
+  const iconNameRaw = obj.edgeFollowerIconName;
+  const edgeFollowerIconName =
+    typeof iconNameRaw === 'string' && iconNameRaw.trim().length > 0 ? iconNameRaw.trim() : 'arrow-right';
+
+  const iconSizeRaw = obj.edgeFollowerIconSize;
+  const edgeFollowerIconSize =
+    typeof iconSizeRaw === 'number' && Number.isFinite(iconSizeRaw)
+      ? Math.max(8, Math.min(48, Math.trunc(iconSizeRaw)))
+      : 14;
+
+  const iconSpeedRaw = obj.edgeFollowerIconSpeed;
+  const edgeFollowerIconSpeed =
+    typeof iconSpeedRaw === 'number' && Number.isFinite(iconSpeedRaw)
+      ? Math.max(10, Math.min(1000, iconSpeedRaw))
+      : 90;
+
   return {
     id: (typeof obj.id === 'string' && obj.id) || crypto.randomUUID(),
     sourceTableId: (typeof obj.sourceTableId === 'string' && obj.sourceTableId) || '',
@@ -127,6 +163,9 @@ function normalizeRelation(raw: unknown): Relation {
     edgeAnimationEnabled: typeof obj.edgeAnimationEnabled === 'boolean' ? obj.edgeAnimationEnabled : undefined,
     edgeFollowerIconEnabled:
       typeof obj.edgeFollowerIconEnabled === 'boolean' ? obj.edgeFollowerIconEnabled : undefined,
+    edgeFollowerIconName,
+    edgeFollowerIconSize,
+    edgeFollowerIconSpeed,
     edgeLineStyle,
   };
 }
@@ -186,7 +225,14 @@ function migrateV1ToV2(v1: DiagramEnvelopeV1): DiagramEnvelopeV2 {
   };
 }
 
-export function encodeDiagramEnvelope(diagram: ERDiagram): DiagramEnvelopeV2 {
+function migrateV2ToV3(v2: DiagramEnvelopeV2): DiagramEnvelopeV3 {
+  return {
+    schemaVersion: 3,
+    diagram: normalizeDiagram(v2.diagram),
+  };
+}
+
+export function encodeDiagramEnvelope(diagram: ERDiagram): DiagramEnvelopeV3 {
   // 書き込みは常に最新
   return {
     schemaVersion: DIAGRAM_SCHEMA_VERSION,
@@ -210,12 +256,29 @@ export function decodeAndMigrateDiagram(value: unknown): ERDiagram | null {
   if (isDiagramEnvelope(value)) {
     const fromVersion = value.schemaVersion;
 
+    // 前方互換（将来の schemaVersion ）
+    // 新しいバージョンで追加されたフィールドが「任意追加」だけの場合は、diagram 部分を正規化して読める。
     if (fromVersion > DIAGRAM_SCHEMA_VERSION) {
-      throw new Error('このデータは新しいバージョンで作成されています。アプリをアップデートしてください。');
+      if (!isLegacyDiagram(value.diagram)) {
+        throw new Error('このデータは新しいバージョンで作成されています。アプリをアップデートしてください。');
+      }
+      return normalizeDiagram(value.diagram);
     }
 
+    // 直近2世代の範囲外（古すぎるデータ）は従来どおりエラー。
+    // ※ schemaVersion が負の値などの不正値を「救済」すると、無関係なデータを誤って受理するリスクがある。
     if (fromVersion < MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION) {
-      throw new Error('このデータは古すぎるため、このバージョンでは読み込めません。中間バージョンを経由してアップデートしてください。');
+      throw new Error(
+        'このデータは古すぎるため、このバージョンでは読み込めません。中間バージョンを経由してアップデートしてください。'
+      );
+    }
+
+    // v3
+    if (fromVersion === 3) {
+      if (!isLegacyDiagram(value.diagram)) {
+        return null;
+      }
+      return normalizeDiagram(value.diagram);
     }
 
     // v2
@@ -223,7 +286,7 @@ export function decodeAndMigrateDiagram(value: unknown): ERDiagram | null {
       if (!isLegacyDiagram(value.diagram)) {
         return null;
       }
-      return normalizeDiagram(value.diagram);
+      return migrateV2ToV3({ schemaVersion: 2, diagram: value.diagram as ERDiagram }).diagram;
     }
 
     // v1
@@ -231,7 +294,8 @@ export function decodeAndMigrateDiagram(value: unknown): ERDiagram | null {
       if (!isLegacyDiagram(value.diagram)) {
         return null;
       }
-      return migrateV1ToV2({ schemaVersion: 1, diagram: value.diagram }).diagram;
+      const v2 = migrateV1ToV2({ schemaVersion: 1, diagram: value.diagram as ERDiagram });
+      return migrateV2ToV3(v2).diagram;
     }
 
     if (fromVersion === 0) {

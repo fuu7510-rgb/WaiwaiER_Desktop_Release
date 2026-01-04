@@ -185,7 +185,12 @@ const localStorageDb: DbImpl = {
   ): Promise<Record<string, Record<string, unknown>[]> | null> {
     const sampleData = getLocalStorageData<Record<string, unknown>>(STORAGE_KEYS.SAMPLE_DATA, {});
     const value = sampleData[projectId];
-    return decodeJsonFromStorage<Record<string, Record<string, unknown>[]>>(value, options?.passphrase);
+    try {
+      return await decodeJsonFromStorage<Record<string, Record<string, unknown>[]>>(value, options?.passphrase);
+    } catch {
+      // サンプルデータは復元できなくても図は開けるようにする（必要なら再生成できる）
+      return null;
+    }
   },
 
   async saveSetting(key: string, value: string): Promise<void> {

@@ -30,6 +30,8 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     setTheme,
     setFontSize,
     openAboutDialog,
+    isGeneralSettingsOpen,
+    toggleGeneralSettingsOpen,
     isTableCreationRulesOpen,
     toggleTableCreationRulesOpen,
     isCommonColumnsOpen,
@@ -38,6 +40,8 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     toggleBackupSettingsOpen,
     isNoteParamsSettingsOpen,
     toggleNoteParamsSettingsOpen,
+    isRelationSettingsOpen,
+    toggleRelationSettingsOpen,
     updateNoteParamOutputSetting,
     resetNoteParamOutputSettings,
   } = useUIStore();
@@ -207,6 +211,9 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     if (obj.fontSize === 'small' || obj.fontSize === 'medium' || obj.fontSize === 'large') next.fontSize = obj.fontSize;
     if (obj.relationLabelInitialMode === 'auto' || obj.relationLabelInitialMode === 'hidden' || obj.relationLabelInitialMode === 'custom') {
       next.relationLabelInitialMode = obj.relationLabelInitialMode;
+    }
+    if (obj.edgeLineStyle === 'solid' || obj.edgeLineStyle === 'dashed' || obj.edgeLineStyle === 'dotted') {
+      next.edgeLineStyle = obj.edgeLineStyle;
     }
 
     // boolean
@@ -393,99 +400,57 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
           </div>
         </section>
 
-        {/* General Settings */}
+        {/* General Settings (Collapsible) */}
         <section>
-          <h3 className="text-xs font-medium uppercase tracking-wide mb-2.5 theme-text-muted">{t('settings.general')}</h3>
-          
-          <div className="space-y-2.5">
-            <Select
-              label={t('settings.language')}
-              value={settings.language}
-              options={languageOptions}
-              onChange={(e) => setLanguage(e.target.value as Language)}
-            />
-            
-            <Select
-              label={t('settings.theme')}
-              value={settings.theme}
-              options={themeOptions}
-              onChange={(e) => setTheme(e.target.value as Theme)}
-            />
+          <button
+            type="button"
+            onClick={toggleGeneralSettingsOpen}
+            className={
+              'settings-collapsible-button w-full flex items-center justify-between text-left px-3 py-2 rounded border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ' +
+              (isGeneralSettingsOpen
+                ? 'border-indigo-300 bg-indigo-50'
+                : 'border-indigo-200 bg-indigo-50/40 hover:bg-indigo-50/70 hover:border-indigo-300')
+            }
+          >
+            <h3 className="settings-collapsible-title text-xs font-semibold text-indigo-700 uppercase tracking-wide">{t('settings.general')}</h3>
+            <svg
+              className={
+                'settings-collapsible-icon w-4 h-4 transition-transform ' +
+                (isGeneralSettingsOpen ? 'rotate-180 text-indigo-600' : 'rotate-0 text-indigo-500/70')
+              }
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
 
-            <Select
-              label={t('settings.fontSize')}
-              value={settings.fontSize}
-              options={fontSizeOptions}
-              onChange={(e) => setFontSize(e.target.value as FontSize)}
-            />
+          {isGeneralSettingsOpen && (
+            <div className="mt-2.5 space-y-2.5">
+              <Select
+                label={t('settings.language')}
+                value={settings.language}
+                options={languageOptions}
+                onChange={(e) => setLanguage(e.target.value as Language)}
+              />
+              
+              <Select
+                label={t('settings.theme')}
+                value={settings.theme}
+                options={themeOptions}
+                onChange={(e) => setTheme(e.target.value as Theme)}
+              />
 
-            <div>
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.edgeAnimationEnabled ?? true}
-                  onChange={(e) => updateSettings({ edgeAnimationEnabled: e.target.checked })}
-                  className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20 theme-input-border"
-                />
-                <span className="text-xs theme-text-secondary">{t('settings.editor.edgeAnimation.label')}</span>
-              </label>
-              <p className="mt-0.5 text-[10px] theme-text-muted">{t('settings.editor.edgeAnimation.hint')}</p>
+              <Select
+                label={t('settings.fontSize')}
+                value={settings.fontSize}
+                options={fontSizeOptions}
+                onChange={(e) => setFontSize(e.target.value as FontSize)}
+              />
             </div>
-
-            <div className="space-y-2">
-              <div>
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.edgeFollowerIconEnabled ?? false}
-                    onChange={(e) => updateSettings({ edgeFollowerIconEnabled: e.target.checked })}
-                    className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20 theme-input-border"
-                  />
-                  <span className="text-xs theme-text-secondary">{t('settings.editor.edgeFollowerIcon.label')}</span>
-                </label>
-                <p className="mt-0.5 text-[10px] theme-text-muted">{t('settings.editor.edgeFollowerIcon.hint')}</p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2.5">
-                <IconPicker
-                  label={t('settings.editor.edgeFollowerIcon.icon')}
-                  value={settings.edgeFollowerIconName ?? 'arrow-right'}
-                  onChange={(iconName: string) => updateSettings({ edgeFollowerIconName: iconName })}
-                  disabled={!(settings.edgeFollowerIconEnabled ?? false)}
-                />
-
-                <Input
-                  label={t('settings.editor.edgeFollowerIcon.size')}
-                  type="number"
-                  min={8}
-                  max={48}
-                  step={1}
-                  disabled={!(settings.edgeFollowerIconEnabled ?? false)}
-                  value={String(settings.edgeFollowerIconSize ?? 14)}
-                  onChange={(e) => {
-                    const n = Number(e.target.value);
-                    if (!Number.isFinite(n)) return;
-                    updateSettings({ edgeFollowerIconSize: Math.max(8, Math.min(48, Math.trunc(n))) });
-                  }}
-                />
-
-                <Input
-                  label={t('settings.editor.edgeFollowerIcon.speed')}
-                  type="number"
-                  min={10}
-                  max={1000}
-                  step={5}
-                  disabled={!(settings.edgeFollowerIconEnabled ?? false)}
-                  value={String(settings.edgeFollowerIconSpeed ?? 90)}
-                  onChange={(e) => {
-                    const n = Number(e.target.value);
-                    if (!Number.isFinite(n)) return;
-                    updateSettings({ edgeFollowerIconSpeed: Math.max(10, Math.min(1000, n)) });
-                  }}
-                />
-              </div>
-            </div>
-          </div>
+          )}
         </section>
 
         {/* Table Creation Rules (Collapsible) */}
@@ -577,6 +542,68 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                   <p className="text-[10px] theme-text-muted">{t('settings.keyColumn.description')}</p>
                 </div>
               </div>
+            </div>
+          )}
+        </section>
+
+        {/* Relation Settings (Collapsible) */}
+        <section>
+          <button
+            type="button"
+            onClick={toggleRelationSettingsOpen}
+            className={
+              'settings-collapsible-button w-full flex items-center justify-between text-left px-3 py-2 rounded border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ' +
+              (isRelationSettingsOpen
+                ? 'border-indigo-300 bg-indigo-50'
+                : 'border-indigo-200 bg-indigo-50/40 hover:bg-indigo-50/70 hover:border-indigo-300')
+            }
+          >
+            <h3 className="settings-collapsible-title text-xs font-semibold text-indigo-700 uppercase tracking-wide">{t('settings.relationSettings.title')}</h3>
+            <svg
+              className={
+                'settings-collapsible-icon w-4 h-4 transition-transform ' +
+                (isRelationSettingsOpen ? 'rotate-180 text-indigo-600' : 'rotate-0 text-indigo-500/70')
+              }
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {isRelationSettingsOpen && (
+            <div className="mt-2.5 space-y-4">
+              {/* Edge Animation */}
+              <div>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.edgeAnimationEnabled ?? true}
+                    onChange={(e) => updateSettings({ edgeAnimationEnabled: e.target.checked })}
+                    className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20 theme-input-border"
+                  />
+                  <span className="text-xs theme-text-secondary">{t('settings.editor.edgeAnimation.label')}</span>
+                </label>
+                <p className="mt-0.5 text-[10px] theme-text-muted">{t('settings.editor.edgeAnimation.hint')}</p>
+              </div>
+
+              {/* Edge Line Style */}
+              <div>
+                <h4 className="text-xs font-semibold mb-2 theme-text-secondary">{t('settings.relationSettings.lineStyle.title')}</h4>
+                <Select
+                  label={t('settings.relationSettings.lineStyle.label')}
+                  value={settings.edgeLineStyle ?? 'solid'}
+                  options={[
+                    { value: 'solid', label: t('settings.relationSettings.lineStyle.modes.solid') },
+                    { value: 'dashed', label: t('settings.relationSettings.lineStyle.modes.dashed') },
+                    { value: 'dotted', label: t('settings.relationSettings.lineStyle.modes.dotted') },
+                  ]}
+                  onChange={(e) => updateSettings({ edgeLineStyle: e.target.value as 'solid' | 'dashed' | 'dotted' })}
+                />
+                <p className="mt-1 text-[10px] theme-text-muted">{t('settings.relationSettings.lineStyle.description')}</p>
+              </div>
 
               {/* Relation Label Settings */}
               <div>
@@ -603,6 +630,64 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                   )}
 
                   <p className="text-[10px] theme-text-muted">{t('settings.relationLabel.description')}</p>
+                </div>
+              </div>
+
+              {/* Edge Follower Icon */}
+              <div className="space-y-2">
+                <div>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.edgeFollowerIconEnabled ?? false}
+                      onChange={(e) => updateSettings({ edgeFollowerIconEnabled: e.target.checked })}
+                      className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500/20 theme-input-border"
+                    />
+                    <span className="text-xs theme-text-secondary">{t('settings.editor.edgeFollowerIcon.label')}</span>
+                  </label>
+                  <p className="mt-0.5 text-[10px] theme-text-muted">{t('settings.editor.edgeFollowerIcon.hint')}</p>
+                </div>
+
+                <div 
+                  className="grid grid-cols-3 gap-2.5"
+                  style={{ opacity: (settings.edgeFollowerIconEnabled ?? false) ? 1 : 0.5 }}
+                >
+                  <IconPicker
+                    label={t('settings.editor.edgeFollowerIcon.icon')}
+                    value={settings.edgeFollowerIconName ?? 'arrow-right'}
+                    onChange={(iconName: string) => updateSettings({ edgeFollowerIconName: iconName })}
+                    disabled={!(settings.edgeFollowerIconEnabled ?? false)}
+                  />
+
+                  <Input
+                    label={t('settings.editor.edgeFollowerIcon.size')}
+                    type="number"
+                    min={8}
+                    max={48}
+                    step={1}
+                    disabled={!(settings.edgeFollowerIconEnabled ?? false)}
+                    value={String(settings.edgeFollowerIconSize ?? 14)}
+                    onChange={(e) => {
+                      const n = Number(e.target.value);
+                      if (!Number.isFinite(n)) return;
+                      updateSettings({ edgeFollowerIconSize: Math.max(8, Math.min(48, Math.trunc(n))) });
+                    }}
+                  />
+
+                  <Input
+                    label={t('settings.editor.edgeFollowerIcon.speed')}
+                    type="number"
+                    min={10}
+                    max={1000}
+                    step={5}
+                    disabled={!(settings.edgeFollowerIconEnabled ?? false)}
+                    value={String(settings.edgeFollowerIconSpeed ?? 90)}
+                    onChange={(e) => {
+                      const n = Number(e.target.value);
+                      if (!Number.isFinite(n)) return;
+                      updateSettings({ edgeFollowerIconSpeed: Math.max(10, Math.min(1000, n)) });
+                    }}
+                  />
                 </div>
               </div>
             </div>
