@@ -32,6 +32,7 @@ export interface SampleDataState {
 export interface SelectionState {
   selectedTableId: string | null;
   selectedColumnId: string | null;
+  selectedRelationId: string | null;
 }
 
 export interface HistoryState {
@@ -101,6 +102,7 @@ export interface MemoActions {
 export interface SelectionActions {
   selectTable: (id: string | null) => void;
   selectColumn: (tableId: string | null, columnId: string | null) => void;
+  selectRelation: (relationId: string | null) => void;
 }
 
 export interface HistoryActions {

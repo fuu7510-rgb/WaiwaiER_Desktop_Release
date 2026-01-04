@@ -206,15 +206,20 @@ export const createColumnSlice: SliceCreator<ColumnSlice> = (set, get) => ({
     set((state) => {
       const table = state.tables.find((t) => t.id === tableId);
       if (table) {
+        const selectedRelationId = state.selectedRelationId;
+
         table.columns = table.columns.filter((c) => c.id !== columnId);
         table.updatedAt = new Date().toISOString();
         const synced = syncSampleRowsToTableSchema({ table, currentRows: state.sampleDataByTableId[tableId] });
         state.sampleDataByTableId = normalizeRefValues({ tables: state.tables, sampleDataByTableId: { ...state.sampleDataByTableId, [tableId]: synced } });
 
         // リレーションも削除
-        state.relations = state.relations.filter(
-          (r) => r.sourceColumnId !== columnId && r.targetColumnId !== columnId
-        );
+        const nextRelations = state.relations.filter((r) => r.sourceColumnId !== columnId && r.targetColumnId !== columnId);
+        if (selectedRelationId && nextRelations.length !== state.relations.length) {
+          const stillExists = nextRelations.some((r) => r.id === selectedRelationId);
+          if (!stillExists) state.selectedRelationId = null;
+        }
+        state.relations = nextRelations;
 
         if (state.selectedColumnId === columnId) {
           state.selectedColumnId = null;

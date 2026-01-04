@@ -56,7 +56,13 @@
     "delete": "Delete",
     "open": "Open",
     "export": "Export",
-    "import": "Import"
+    "import": "Import",
+    "iconPicker": {
+      "searchPlaceholder": "Search icons...",
+      "noResults": "No matching icons found",
+      "moreIcons": "{{count}} more icons",
+      "selected": "Selected"
+    }
   },
   "app": {
     "title": "WaiwaiER Desktop",
@@ -255,6 +261,12 @@
   "relation": {
     "relation": "Relation",
     "relations": "Relations",
+    "settingsTitle": "Relation Settings",
+    "sections": {
+      "display": "Display",
+      "iconAnimation": "Icon Animation",
+      "relationSettings": "Relation Settings"
+    },
     "sourceTable": "Source Table",
     "sourceColumn": "Source Column",
     "targetTable": "Target Table",
@@ -263,6 +275,44 @@
     "oneToOne": "One to One",
     "oneToMany": "One to Many",
     "manyToMany": "Many to Many",
+    "label": {
+      "title": "Edge Label",
+      "customText": "Custom Text",
+      "customTextPlaceholder": "e.g. 1:N",
+      "description": "'Auto' stores as undefined (auto-generated from type). 'Hidden' stores as an empty string.",
+      "modes": {
+        "auto": "Auto (1:N / 1:1 / N:M)",
+        "hidden": "Hidden",
+        "custom": "Custom"
+      }
+    },
+    "edgeAnimation": {
+      "title": "Edge Animation",
+      "description": "'Default' follows the user setting.",
+      "modes": {
+        "default": "Default (User Setting)",
+        "on": "ON",
+        "off": "OFF"
+      }
+    },
+      "edgeFollowerIconAnimation": {
+        "title": "Follower Icon",
+        "description": "Default follows User Settings.",
+        "modes": {
+          "default": "Default (User Settings)",
+          "on": "ON",
+          "off": "OFF"
+        }
+      },
+    "edgeLineStyle": {
+      "title": "Line Style",
+      "description": "Changes the relationship edge rendering (solid/dashed/dotted).",
+      "modes": {
+        "solid": "Solid",
+        "dashed": "Dashed",
+        "dotted": "Dotted"
+      }
+    },
     "deleteRelation": "Delete Relation"
   },
   "simulator": {
@@ -289,6 +339,20 @@
       "edgeAnimation": {
         "label": "Enable edge animation",
         "hint": "Shows animation on relationship edges in the ER diagram."
+      },
+      "edgeFollowerIcon": {
+        "label": "Show moving icon on edges",
+        "hint": "Moves a Lucide icon along the relationship edge path (SVG).",
+        "icon": "Icon",
+        "size": "Size (px)",
+        "speed": "Speed (px/sec)",
+        "options": {
+          "arrowRight": "Arrow",
+          "link2": "Link",
+          "zap": "Zap",
+          "truck": "Truck",
+          "circle": "Circle"
+        }
       }
     },
     "export": {

@@ -68,7 +68,12 @@ const columnTypeClasses: Record<ColumnType, string> = {
 export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => {
   const { table } = data;
   const { t } = useTranslation();
-  const { selectTable, selectedTableId, addColumn, updateTable } = useERStore();
+  // パフォーマンス最適化: 各アクションを個別のセレクタで購読
+  const selectTable = useERStore((state) => state.selectTable);
+  const addColumn = useERStore((state) => state.addColumn);
+  const updateTable = useERStore((state) => state.updateTable);
+  // selectedTableIdはテーブルの選択状態を判定するために必要
+  const isTableSelected = useERStore((state) => state.selectedTableId === table.id);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(table.name);
 
@@ -103,7 +108,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
     addColumn(table.id);
   }, [table.id, addColumn]);
 
-  const isSelected = selectedTableId === table.id || selected;
+  const isSelected = isTableSelected || selected;
   const highlight = data.highlight;
   const isDimmed = highlight?.isDimmed ?? false;
   const isUpstream = highlight?.isUpstream ?? false;
@@ -180,7 +185,8 @@ TableNode.displayName = 'TableNode';
 
 function TableNodeSortableColumns(props: { table: Table }) {
   const { table } = props;
-  const { reorderColumn } = useERStore();
+  // パフォーマンス最適化: 個別のセレクタで購読
+  const reorderColumn = useERStore((state) => state.reorderColumn);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -229,14 +235,19 @@ interface ColumnRowProps {
 
 const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowProps) => {
   const { t, i18n } = useTranslation();
-  const { selectColumn, selectedColumnId, reorderColumn, updateColumn, deleteColumn, duplicateColumn, relations } = useERStore();
+  // パフォーマンス最適化: 各状態を個別のセレクタで購読
+  const selectColumn = useERStore((state) => state.selectColumn);
+  const isSelected = useERStore((state) => state.selectedColumnId === column.id);
+  const reorderColumn = useERStore((state) => state.reorderColumn);
+  const updateColumn = useERStore((state) => state.updateColumn);
+  const deleteColumn = useERStore((state) => state.deleteColumn);
+  const duplicateColumn = useERStore((state) => state.duplicateColumn);
+  // 着信リレーションの有無のみを購読（relations配列全体ではなくbooleanで）
+  const hasIncomingRelation = useERStore((state) =>
+    state.relations.some((r) => r.targetTableId === tableId && r.targetColumnId === column.id)
+  );
   const zoom = useReactFlowStore((state) => state.transform[2]) ?? 1;
-  const isSelected = selectedColumnId === column.id;
   const typeClass = columnTypeClasses[column.type] || 'bg-slate-500';
-
-  const hasIncomingRelation = useMemo(() => {
-    return relations.some((r) => r.targetTableId === tableId && r.targetColumnId === column.id);
-  }, [column.id, relations, tableId]);
 
   const showRetargetOverlay = hasIncomingRelation;
 

@@ -4,6 +4,7 @@ import { useERStore, useProjectStore, useUIStore } from '../../stores';
 import { Button, Input, ResizableSplitter } from '../common';
 import { TableEditor } from '../EREditor/TableEditor';
 import { ColumnEditor } from '../EREditor/ColumnEditor';
+import { RelationEditor } from '../EREditor/RelationEditor';
 import { TABLE_BG_COLOR_CLASSES } from '../../lib/constants';
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -18,7 +19,7 @@ export function Sidebar() {
 function SidebarInner() {
   const { t } = useTranslation();
   const { settings } = useUIStore();
-  const { tables, addTable, selectedTableId, selectedColumnId, reorderTables } = useERStore();
+  const { tables, addTable, selectedTableId, selectedColumnId, selectedRelationId, reorderTables } = useERStore();
   const { currentProjectId, canAddTable } = useProjectStore();
 
   const [newTableName, setNewTableName] = useState('');
@@ -199,7 +200,9 @@ function SidebarInner() {
             className="flex-1 min-h-0 overflow-y-auto"
             style={{ backgroundColor: 'var(--muted)' }}
           >
-            {selectedColumnId ? (
+            {selectedRelationId ? (
+              <RelationEditor />
+            ) : selectedColumnId ? (
               <ColumnEditor />
             ) : selectedTableId ? (
               <TableEditor />

@@ -87,6 +87,7 @@ export const createPersistenceSlice: SliceCreator<PersistenceSlice> = (set, get)
           });
           state.selectedTableId = null;
           state.selectedColumnId = null;
+          state.selectedRelationId = null;
           state.history = [];
           state.historyIndex = -1;
           state.currentProjectId = projectId;
@@ -169,6 +170,7 @@ export const createPersistenceSlice: SliceCreator<PersistenceSlice> = (set, get)
         state.deletedSampleRowStack = [];
         state.selectedTableId = null;
         state.selectedColumnId = null;
+        state.selectedRelationId = null;
         state.history = [];
         state.historyIndex = -1;
       });
@@ -190,6 +192,7 @@ export const createPersistenceSlice: SliceCreator<PersistenceSlice> = (set, get)
         state.deletedSampleRowStack = [];
         state.selectedTableId = null;
         state.selectedColumnId = null;
+        state.selectedRelationId = null;
       });
       get().saveHistory('ダイアグラムをクリア');
       get().queueSaveToDB();

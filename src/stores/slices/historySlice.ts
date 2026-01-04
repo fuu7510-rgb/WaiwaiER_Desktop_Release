@@ -13,12 +13,14 @@ export const createHistorySlice: SliceCreator<HistorySlice> = (set, get) => ({
   historyIndex: -1,
   selectedTableId: null,
   selectedColumnId: null,
+  selectedRelationId: null,
 
   selectTable: (id) => {
     set((state) => {
       state.selectedTableId = id;
       // テーブル選択時はカラム選択を常にクリアする
       state.selectedColumnId = null;
+      state.selectedRelationId = null;
     });
   },
 
@@ -26,6 +28,15 @@ export const createHistorySlice: SliceCreator<HistorySlice> = (set, get) => ({
     set((state) => {
       state.selectedTableId = tableId;
       state.selectedColumnId = columnId;
+      state.selectedRelationId = null;
+    });
+  },
+
+  selectRelation: (relationId) => {
+    set((state) => {
+      state.selectedTableId = null;
+      state.selectedColumnId = null;
+      state.selectedRelationId = relationId;
     });
   },
 

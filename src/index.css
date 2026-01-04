@@ -274,6 +274,22 @@ html[data-theme="dark"] .settings-collapsible-icon {
   cursor: crosshair;
 }
 
+/* ========================================
+   WaiwaiER: dashed/dotted edge animations
+   ======================================== */
+
+@keyframes waiwai-edge-dash-12 {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+@keyframes waiwai-edge-dash-7 {
+  to {
+    stroke-dashoffset: -7;
+  }
+}
+
 .react-flow__edgeupdater-source,
 .react-flow__edgeupdater-target {
   pointer-events: all;

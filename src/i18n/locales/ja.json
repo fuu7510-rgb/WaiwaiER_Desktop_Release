@@ -38,7 +38,13 @@
     "collapseSidebar": "サイドバーを折り畳む",
     "expandSidebar": "サイドバーを展開",
     "on": "ON",
-    "off": "OFF"
+    "off": "OFF",
+    "iconPicker": {
+      "searchPlaceholder": "アイコンを検索...",
+      "noResults": "該当するアイコンがありません",
+      "moreIcons": "他 {{count}} 個のアイコン",
+      "selected": "選択中"
+    }
   },
   "app": {
     "title": "WaiwaiER Desktop",
@@ -238,6 +244,12 @@
   "relation": {
     "relation": "リレーション",
     "relations": "リレーション",
+    "settingsTitle": "リレーション設定",
+    "sections": {
+      "display": "表示",
+      "iconAnimation": "アイコンアニメーション",
+      "relationSettings": "リレーション設定"
+    },
     "sourceTable": "参照元テーブル",
     "sourceColumn": "参照元カラム",
     "targetTable": "参照先テーブル",
@@ -246,6 +258,44 @@
     "oneToOne": "1対1",
     "oneToMany": "1対多",
     "manyToMany": "多対多",
+    "label": {
+      "title": "線ラベル",
+      "customText": "カスタム文字",
+      "customTextPlaceholder": "例: 1:N",
+      "description": "『自動』は未設定(=typeから自動生成)、『非表示』は空文字として保存します。",
+      "modes": {
+        "auto": "自動（1:N / 1:1 / N:M）",
+        "hidden": "非表示",
+        "custom": "カスタム"
+      }
+    },
+    "edgeAnimation": {
+      "title": "線アニメーション",
+      "description": "『デフォルト』はユーザー設定の値に従います。",
+      "modes": {
+        "default": "デフォルト（ユーザー設定）",
+        "on": "ON",
+        "off": "OFF"
+      }
+    },
+    "edgeFollowerIconAnimation": {
+      "title": "追従アイコン",
+      "description": "『デフォルト』はユーザー設定の値に従います。",
+      "modes": {
+        "default": "デフォルト（ユーザー設定）",
+        "on": "ON",
+        "off": "OFF"
+      }
+    },
+    "edgeLineStyle": {
+      "title": "線の種類",
+      "description": "リレーション線の表示（実線/破線/点線）を変更します。",
+      "modes": {
+        "solid": "実線",
+        "dashed": "破線",
+        "dotted": "点線"
+      }
+    },
     "deleteRelation": "リレーションを削除"
   },
   "simulator": {
@@ -272,6 +322,20 @@
       "edgeAnimation": {
         "label": "エッジのアニメーションを有効にする",
         "hint": "ER図のリレーション線にアニメーションを表示します。"
+      },
+      "edgeFollowerIcon": {
+        "label": "エッジ上の追従アイコンを表示",
+        "hint": "Lucideアイコンをリレーション線（SVGパス）に沿って移動表示します。",
+        "icon": "アイコン",
+        "size": "サイズ(px)",
+        "speed": "速度(px/秒)",
+        "options": {
+          "arrowRight": "矢印",
+          "link2": "リンク",
+          "zap": "稲妻",
+          "truck": "トラック",
+          "circle": "丸"
+        }
       }
     },
     "export": {

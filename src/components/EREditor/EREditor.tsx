@@ -37,6 +37,7 @@ function EREditorInner() {
     updateRelation,
     deleteRelation,
     selectTable,
+    selectRelation,
     selectedTableId,
   } = useERStore();
   const {
@@ -50,6 +51,7 @@ function EREditorInner() {
   } = useUIStore();
 
   const isEdgeAnimationEnabled = settings.edgeAnimationEnabled ?? true;
+  const isEdgeFollowerIconEnabled = settings.edgeFollowerIconEnabled ?? false;
   const zoom = useReactFlowStore((state) => state.transform[2]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
@@ -444,7 +446,39 @@ function EREditorInner() {
           strokeWidth: isDimmed ? 1.5 : 2.5,
         }
       : undefined;
-    
+
+    const lineStyle = relation.edgeLineStyle ?? 'solid';
+    const lineStyleCSS: React.CSSProperties =
+      lineStyle === 'dashed'
+        ? { strokeDasharray: '8 4' }
+        : lineStyle === 'dotted'
+          ? { strokeDasharray: '1 6', strokeLinecap: 'round' }
+          : {};
+
+    // ReactFlow標準の animated=true は dashoffset を固定値で動かすため、
+    // こちらのdashパターン(8 4 / 1 6)と周期が合わずギクシャクしやすい。
+    // そのため、破線/点線のみ独自のdashoffsetアニメーションを適用する。
+    const canAnimate = lineStyle !== 'solid';
+    const shouldAnimate = canAnimate ? (relation.edgeAnimationEnabled ?? isEdgeAnimationEnabled) : false;
+
+    const animationCSS: React.CSSProperties = shouldAnimate
+      ? lineStyle === 'dashed'
+        ? { animation: 'waiwai-edge-dash-12 0.9s linear infinite' }
+        : lineStyle === 'dotted'
+          ? { animation: 'waiwai-edge-dash-7 0.55s linear infinite' }
+          : {}
+      : {};
+
+    const mergedStyle = {
+      ...lineStyleCSS,
+      ...animationCSS,
+      ...(edgeStyle ?? {}),
+    };
+
+    const hasMergedStyle = Object.keys(mergedStyle).length > 0;
+
+    const followerIconEnabled = relation.edgeFollowerIconEnabled ?? isEdgeFollowerIconEnabled;
+
     return {
       id: relation.id,
       source: relation.sourceTableId,
@@ -453,8 +487,9 @@ function EREditorInner() {
       targetHandle: relation.targetColumnId,
       type: 'relationEdge',
       updatable: true,
-      animated: isEdgeAnimationEnabled,
-      style: edgeStyle,
+      // 標準 animated は使わず、style側のanimationで制御する。
+      animated: false,
+      style: hasMergedStyle ? mergedStyle : undefined,
       data: {
         label: effectiveLabel,
         rawLabel: relation.label,
@@ -462,9 +497,10 @@ function EREditorInner() {
         offsetIndex: offsetInfo.offsetIndex,
         totalEdges: offsetInfo.totalEdges,
         isDimmed,
+        followerIconEnabled,
       },
     };
-  }, [edgeOffsetMap, isEdgeAnimationEnabled, relatedGraph]);
+  }, [edgeOffsetMap, isEdgeAnimationEnabled, isEdgeFollowerIconEnabled, relatedGraph]);
 
   const [nodes, setNodes] = useNodesState([
     ...tables.map(tableToNode),
@@ -643,6 +679,14 @@ function EREditorInner() {
     selectTable(null);
   }, [selectTable]);
 
+  const onEdgeClick = useCallback(
+    (event: React.MouseEvent, edge: Edge) => {
+      event.stopPropagation();
+      selectRelation(edge.id);
+    },
+    [selectRelation]
+  );
+
   return (
     <div
       ref={reactFlowWrapper}
@@ -706,6 +750,7 @@ function EREditorInner() {
         onConnectEnd={onConnectEnd}
         isValidConnection={isValidConnection}
         onPaneClick={onPaneClick}
+        onEdgeClick={onEdgeClick}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView

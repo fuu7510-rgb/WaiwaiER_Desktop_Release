@@ -107,6 +107,12 @@ function normalizeTable(raw: unknown, index: number, fallbackNow: string): Table
 function normalizeRelation(raw: unknown): Relation {
   const obj = (isObject(raw) ? raw : {}) as Record<string, unknown>;
 
+  const edgeLineStyleRaw = obj.edgeLineStyle;
+  const edgeLineStyle =
+    edgeLineStyleRaw === 'solid' || edgeLineStyleRaw === 'dashed' || edgeLineStyleRaw === 'dotted'
+      ? edgeLineStyleRaw
+      : undefined;
+
   return {
     id: (typeof obj.id === 'string' && obj.id) || crypto.randomUUID(),
     sourceTableId: (typeof obj.sourceTableId === 'string' && obj.sourceTableId) || '',
@@ -118,6 +124,10 @@ function normalizeRelation(raw: unknown): Relation {
         ? obj.type
         : 'one-to-many',
     label: typeof obj.label === 'string' ? obj.label : undefined,
+    edgeAnimationEnabled: typeof obj.edgeAnimationEnabled === 'boolean' ? obj.edgeAnimationEnabled : undefined,
+    edgeFollowerIconEnabled:
+      typeof obj.edgeFollowerIconEnabled === 'boolean' ? obj.edgeFollowerIconEnabled : undefined,
+    edgeLineStyle,
   };
 }
 
