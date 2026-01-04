@@ -60,6 +60,8 @@
 | テキスト色 | `var(--text-primary)`, `var(--text-secondary)`, `var(--text-muted)` |
 | ボーダー色 | `var(--border)` |
 | 入力フィールド | `var(--input-bg)`, `var(--input-border)` |
+| アクセント（セクションヘッダ等） | `var(--accent-bg)`, `var(--accent-text)`, `var(--accent-border)` |
+| 状態色 | `var(--success)`, `var(--danger)`, `var(--warning)` |
 
 #### 実装ルール
 - ❌ **禁止**: Tailwindのハードコード色クラス（`text-zinc-500`, `bg-white`, `border-zinc-200` など）
@@ -81,9 +83,12 @@
 | 種類 | 配置場所 |
 |------|---------|
 | コンポーネント | `src/components/{機能名}/` |
+| セクションコンポーネント | `src/components/{機能名}/sections/` |
+| カスタムフック | `src/hooks/` |
 | 状態管理 (Zustand) | `src/stores/` |
 | 型定義 | `src/types/index.ts` |
 | AppSheet関連ロジック | `src/lib/appsheet/` |
+| 設定関連ロジック | `src/lib/settings/` |
 | 翻訳ファイル | `src/i18n/locales/{ja,en}.json` |
 | ドキュメント | `docs/` |
 | Rustコマンド | `src-tauri/src/commands/` |

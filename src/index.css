@@ -23,6 +23,7 @@
   --destructive: #ef4444;
   --success: #22c55e;
   --warning: #f59e0b;
+  --danger: #ef4444;
   
   /* UI Colors */
   --text-primary: #18181b;
@@ -37,6 +38,13 @@
   --section-bg-active: #eef2ff;
   --section-border: #c7d2fe;
   --section-text: #4338ca;
+  
+  /* Accent Colors for Settings Collapsible */
+  --accent-bg: #eef2ff;
+  --accent-bg-subtle: rgba(238, 242, 255, 0.4);
+  --accent-text: #4338ca;
+  --accent-text-muted: rgba(99, 102, 241, 0.7);
+  --accent-border: #c7d2fe;
   
   /* Spacing */
   --header-height: 44px;
@@ -58,6 +66,7 @@ html[data-theme="dark"] {
   --destructive: #dc2626;
   --success: #16a34a;
   --warning: #d97706;
+  --danger: #dc2626;
   
   /* UI Colors */
   --text-primary: #fafafa;
@@ -72,6 +81,13 @@ html[data-theme="dark"] {
   --section-bg-active: #312e81;
   --section-border: #4338ca;
   --section-text: #a5b4fc;
+  
+  /* Accent Colors for Settings Collapsible */
+  --accent-bg: #312e81;
+  --accent-bg-subtle: rgba(49, 46, 129, 0.4);
+  --accent-text: #a5b4fc;
+  --accent-text-muted: rgba(165, 180, 252, 0.7);
+  --accent-border: #4338ca;
 }
 
 /* フォントサイズ設定 */

@@ -200,12 +200,18 @@ WaiwaiER_Desktop/
 │   │   ├── Layout/          # レイアウト
 │   │   ├── Project/         # プロジェクト管理
 │   │   ├── Settings/        # 設定
+│   │   │   ├── sections/    # 各設定セクションコンポーネント
+│   │   │   ├── SettingsCollapsibleSection.tsx
+│   │   │   └── SettingsDialog.tsx
 │   │   ├── Export/          # エクスポート機能
 │   │   └── common/          # 共通コンポーネント
+│   ├── hooks/               # カスタムフック
 │   ├── stores/              # Zustand ストア
 │   ├── types/               # TypeScript 型定義
 │   ├── i18n/                # 多言語対応
 │   ├── lib/                 # ユーティリティ
+│   │   ├── appsheet/        # AppSheet関連ロジック
+│   │   └── settings/        # 設定のシリアライズ/バリデーション
 │   ├── App.tsx              # メインアプリ
 │   └── main.tsx             # エントリーポイント
 ├── src-tauri/               # Rust バックエンド
@@ -343,8 +349,14 @@ import { Button } from '@/components/common';
 | `--muted-foreground` | ミュートされたテキスト |
 | `--border` | ボーダー色 |
 | `--destructive` | 削除・エラー用の赤 |
+| `--danger` | エラー用の赤（`--destructive`のエイリアス） |
 | `--success` | 成功用の緑 |
 | `--warning` | 警告用のオレンジ |
+| `--accent-bg` | アクセント背景色（折りたたみヘッダ等） |
+| `--accent-bg-subtle` | 薄いアクセント背景色 |
+| `--accent-text` | アクセントテキスト色 |
+| `--accent-text-muted` | 薄いアクセントテキスト色 |
+| `--accent-border` | アクセントボーダー色 |
 
 ### 新しいコンポーネントの作成
 

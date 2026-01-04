@@ -8,7 +8,7 @@ interface DialogProps {
   title: string;
   children: ReactNode;
   footer?: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
 }
 
 export function Dialog({ isOpen, onClose, title, children, footer, size = 'md' }: DialogProps) {
@@ -37,6 +37,8 @@ export function Dialog({ isOpen, onClose, title, children, footer, size = 'md' }
     md: 'max-w-md',
     lg: 'max-w-lg',
     xl: 'max-w-xl',
+    '2xl': 'max-w-2xl',
+    '3xl': 'max-w-3xl',
   };
 
   return (

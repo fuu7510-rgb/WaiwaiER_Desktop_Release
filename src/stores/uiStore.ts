@@ -4,6 +4,18 @@ import type { ViewMode, Language, Theme, FontSize, AppSettings, ShortcutActionId
 import { getDefaultNoteParamOutputSettings } from '../lib/appsheet/noteParameters';
 import { getDefaultShortcutKeys } from '../lib/shortcuts';
 
+// 設定ダイアログのセクション識別子
+export type SettingsSectionId = 
+  | 'general'
+  | 'tableCreationRules'
+  | 'commonColumns'
+  | 'relationSettings'
+  | 'backup'
+  | 'noteParams'
+  | 'shortcuts'
+  | 'license'
+  | 'about';
+
 interface UIState {
   // ビュー状態
   viewMode: ViewMode;
@@ -23,7 +35,10 @@ interface UIState {
   isSidebarOpen: boolean;
   sidebarWidth: number;
 
-  // ユーザー設定UI（開閉状態など）
+  // 設定ダイアログのアクティブセクション
+  activeSettingsSection: SettingsSectionId;
+
+  // ユーザー設定UI（開閉状態など） - 後方互換性のため維持
   isGeneralSettingsOpen: boolean;
   isTableCreationRulesOpen: boolean;
   isCommonColumnsOpen: boolean;
@@ -69,6 +84,9 @@ interface UIState {
   toggleNoteParamsSettingsOpen: () => void;
   toggleRelationSettingsOpen: () => void;
   toggleShortcutSettingsOpen: () => void;
+
+  // 設定ダイアログのセクション切り替え
+  setActiveSettingsSection: (section: SettingsSectionId) => void;
 
   // ショートカットキー設定操作
   updateShortcutKey: (actionId: ShortcutActionId, key: string) => void;
@@ -137,6 +155,7 @@ export const useUIStore = create<UIState>()(
       isNoteParamsSettingsOpen: false,
       isRelationSettingsOpen: true,
       isShortcutSettingsOpen: false,
+      activeSettingsSection: 'general',
       isRelationHighlightEnabled: true,
       isGridVisible: true,
       isMemosVisible: true,
@@ -178,6 +197,10 @@ export const useUIStore = create<UIState>()(
         set((state) => ({ isRelationSettingsOpen: !state.isRelationSettingsOpen })),
       toggleShortcutSettingsOpen: () =>
         set((state) => ({ isShortcutSettingsOpen: !state.isShortcutSettingsOpen })),
+
+      // 設定ダイアログのセクション切り替え
+      setActiveSettingsSection: (section: SettingsSectionId) =>
+        set({ activeSettingsSection: section }),
 
       // ショートカットキー設定操作
       updateShortcutKey: (actionId: ShortcutActionId, key: string) =>
@@ -277,6 +300,7 @@ export const useUIStore = create<UIState>()(
         settings: state.settings,
         isSidebarOpen: state.isSidebarOpen,
         sidebarWidth: state.sidebarWidth,
+        activeSettingsSection: state.activeSettingsSection,
         isGeneralSettingsOpen: state.isGeneralSettingsOpen,
         isTableCreationRulesOpen: state.isTableCreationRulesOpen,
         isCommonColumnsOpen: state.isCommonColumnsOpen,

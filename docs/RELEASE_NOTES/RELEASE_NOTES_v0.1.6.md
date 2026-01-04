@@ -86,6 +86,13 @@
   - プロジェクトを開いて保存することで最新版へ更新
 - 内部: DB抽象化レイヤーを `src/lib/database/` 配下に分割し、保守性を改善
   - `src/lib/database.ts` は後方互換のためのエイリアス
+- 内部: 設定ダイアログ（SettingsDialog）をリファクタリングし、保守性を改善
+  - 1378行 → 75行へ大幅に簡素化
+  - 各設定セクションを `src/components/Settings/sections/` に分割（10コンポーネント）
+  - 共通の折りたたみUI を `SettingsCollapsibleSection` として共通化
+  - ショートカットキー編集ロジックを `src/hooks/useShortcutEditor.ts` に切り出し
+  - 設定インポート/エクスポートのバリデーションを `src/lib/settings/` に分離（テスト可能化）
+  - CSS変数 `--accent-*`, `--danger` を追加し、テーマ対応を強化
 
 ### 修正
 - ERエディタ: カラム行ミニツールバーが他のテーブルの下に入ってクリックできない場合がある問題を修正
