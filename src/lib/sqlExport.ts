@@ -165,8 +165,12 @@ function generateCreateTable(
   }
   
   // テーブルコメント
-  if (includeComments && table.columns.length > 0) {
+  if (includeComments) {
     lines.push(`-- ${table.name}`);
+    const tableDescription = typeof table.description === 'string' ? table.description.trim() : '';
+    if (tableDescription) {
+      lines.push(`-- ${tableDescription.replace(/\r?\n/g, ' ')}`);
+    }
   }
   
   lines.push(`CREATE TABLE ${tableName} (`);
@@ -254,6 +258,10 @@ function generateCreateTable(
   
   // PostgreSQL用のCOMMENT文
   if (includeComments && dialect === 'postgresql') {
+    const tableDescription = typeof table.description === 'string' ? table.description.trim() : '';
+    if (tableDescription) {
+      lines.push(`COMMENT ON TABLE ${tableName} IS '${tableDescription.replace(/'/g, "''")}';`);
+    }
     for (const column of sortedColumns) {
       if (column.description) {
         lines.push(
@@ -378,6 +386,13 @@ function generateMarkdownTable(
   
   // 説明
   if (includeDescription) {
+    const quoteLines: string[] = [];
+
+    const tableDescription = typeof table.description === 'string' ? table.description.trim() : '';
+    if (tableDescription) {
+      quoteLines.push(tableDescription.replace(/\r?\n/g, ' '));
+    }
+
     // カラム情報を要約
     const keyColumns = table.columns.filter(c => c.isKey && !c.isVirtual);
     const labelColumns = table.columns.filter(c => c.isLabel && !c.isVirtual);
@@ -393,9 +408,15 @@ function generateMarkdownTable(
     if (refColumns.length > 0) {
       info.push(`References: ${refColumns.map(c => c.name).join(', ')}`);
     }
-    
+
     if (info.length > 0) {
-      lines.push(`> ${info.join(' | ')}`);
+      quoteLines.push(info.join(' | '));
+    }
+
+    if (quoteLines.length > 0) {
+      for (const q of quoteLines) {
+        lines.push(`> ${q}`);
+      }
       lines.push('');
     }
   }
@@ -454,6 +475,13 @@ function generateSchemaMarkdownTable(table: Table): string {
   
   lines.push(`### ${table.name} - Schema`);
   lines.push('');
+
+  const tableDescription = typeof table.description === 'string' ? table.description.trim() : '';
+  if (tableDescription) {
+    lines.push(`> ${tableDescription.replace(/\r?\n/g, ' ')}`);
+    lines.push('');
+  }
+
   lines.push('| Column | Type | Key | Required | Description |');
   lines.push('| --- | --- | --- | --- | --- |');
   

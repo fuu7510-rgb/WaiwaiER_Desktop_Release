@@ -66,6 +66,14 @@ export function TableEditor() {
         value={selectedTable.name}
         onChange={(e) => handleUpdate({ name: e.target.value })}
       />
+
+      {/* テーブルの説明 */}
+      <Input
+        label={t('table.description')}
+        placeholder={t('table.descriptionPlaceholder')}
+        value={selectedTable.description ?? ''}
+        onChange={(e) => handleUpdate({ description: e.target.value })}
+      />
       
       {/* 色選択 */}
       <div>

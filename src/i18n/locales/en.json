@@ -168,6 +168,8 @@
     "table": "Table",
     "settingsTitle": "Table Settings",
     "tables": "Tables",
+    "description": "Table description",
+    "descriptionPlaceholder": "Description",
     "addColumn": "Add Column",
     "addCommonColumns": "Add common columns",
     "columnName": "Column Name",

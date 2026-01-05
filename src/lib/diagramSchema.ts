@@ -114,6 +114,7 @@ function normalizeTable(raw: unknown, index: number, fallbackNow: string): Table
   return {
     id: (typeof obj.id === 'string' && obj.id) || crypto.randomUUID(),
     name: (typeof obj.name === 'string' && obj.name) || `Table${index + 1}`,
+    description: typeof obj.description === 'string' ? obj.description : undefined,
     columns: columnsRaw.map((c, i) => normalizeColumn(c, i)),
     position,
     color: typeof obj.color === 'string' ? obj.color : undefined,
