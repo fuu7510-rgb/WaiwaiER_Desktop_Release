@@ -3,7 +3,10 @@
 本ドキュメントは、ERエディタで**テーブル内のカラム行を選択したとき**に、そのカラム行の**右側に表示されるミニツールバー**（上下移動・Key/Label・データ型変更）について、**名前／機能／挙動**を整理したものです。
 
 - 対象UI: テーブルノード内のカラム行（`ColumnRow`）
-- 実装: `src/components/EREditor/TableNode.tsx`
+- 実装:
+  - `src/components/EREditor/TableNode/ColumnRow.tsx` - カラム行本体
+  - `src/components/EREditor/TableNode/ColumnRowActionPanel.tsx` - ミニツールバー
+  - `src/components/EREditor/TableNode/MiniMetaEditor.tsx` - データ型・数式エディタ
 
 ---
 

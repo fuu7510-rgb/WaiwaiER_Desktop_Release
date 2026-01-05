@@ -80,7 +80,11 @@
 再利用対象コンポーネント:
 ├── EREditor/          # ER図エディタ全体
 │   ├── EREditor.tsx
-│   ├── TableNode.tsx
+│   ├── TableNode/       # テーブルノード（モジュール化済み）
+│   │   ├── TableNode.tsx
+│   │   ├── ColumnRow.tsx
+│   │   ├── ColumnRowActionPanel.tsx
+│   │   └── ...
 │   ├── ConfirmDialog.tsx
 │   └── ...
 ├── Simulator/         # AppSheetシミュレーター
