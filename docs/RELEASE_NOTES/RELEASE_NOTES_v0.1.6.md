@@ -102,6 +102,12 @@
   - ショートカットキー編集ロジックを `src/hooks/useShortcutEditor.ts` に切り出し
   - 設定インポート/エクスポートのバリデーションを `src/lib/settings/` に分離（テスト可能化）
   - CSS変数 `--accent-*`, `--danger` を追加し、テーマ対応を強化
+- 内部: TableNode（テーブルノード）をリファクタリングし、保守性を改善
+  - 900行超の単一ファイルを12ファイルに分割
+  - `src/components/EREditor/TableNode/` ディレクトリ構造に整理
+  - ColumnRow / ColumnRowActionPanel / MiniMetaEditor / TableNodeHeader 等のサブコンポーネント化
+  - 状態管理ロジックを `useColumnRowState` / `useColumnRowActions` フックに分離
+  - 既存インポートとの後方互換性を維持（TableNode.tsx から再エクスポート）
 - ユーザー設定: 設定ダイアログを2カラム構成にリニューアル
   - 左サイドバー: セクション名をグループ別（基本設定/詳細設定/情報）にアイコン付きで表示
   - 右コンテンツエリア: 選択されたセクションの設定内容を表示
