@@ -29,6 +29,7 @@ interface UIState {
   isProjectDialogOpen: boolean;
   isImportDialogOpen: boolean;
   isExportDialogOpen: boolean;
+  isSQLExportDialogOpen: boolean;
   isAboutDialogOpen: boolean;
   
   // サイドバー
@@ -69,6 +70,8 @@ interface UIState {
   closeImportDialog: () => void;
   openExportDialog: () => void;
   closeExportDialog: () => void;
+  openSQLExportDialog: () => void;
+  closeSQLExportDialog: () => void;
   openAboutDialog: () => void;
   closeAboutDialog: () => void;
   
@@ -145,6 +148,7 @@ export const useUIStore = create<UIState>()(
       isProjectDialogOpen: false,
       isImportDialogOpen: false,
       isExportDialogOpen: false,
+      isSQLExportDialogOpen: false,
       isAboutDialogOpen: false,
       isSidebarOpen: true,
       sidebarWidth: 280,
@@ -175,6 +179,8 @@ export const useUIStore = create<UIState>()(
       closeImportDialog: () => set({ isImportDialogOpen: false }),
       openExportDialog: () => set({ isExportDialogOpen: true }),
       closeExportDialog: () => set({ isExportDialogOpen: false }),
+      openSQLExportDialog: () => set({ isSQLExportDialogOpen: true }),
+      closeSQLExportDialog: () => set({ isSQLExportDialogOpen: false }),
       openAboutDialog: () => set({ isAboutDialogOpen: true }),
       closeAboutDialog: () => set({ isAboutDialogOpen: false }),
       

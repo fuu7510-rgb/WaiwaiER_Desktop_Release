@@ -6,7 +6,7 @@ import { Sidebar } from './Sidebar';
 import { useUIStore, useERStore, useLicenseStore, initializeLicenseStore, useProjectStore } from '../../stores';
 import { ProjectDialog } from '../Project/ProjectDialog';
 import { SettingsDialog } from '../Settings/SettingsDialog';
-import { ExportDialog, ImportDialog } from '../Export';
+import { ExportDialog, ImportDialog, SQLExportDialog } from '../Export';
 import { LicenseDialog } from '../License';
 import { AboutDialog } from '../About';
 
@@ -35,6 +35,8 @@ export function MainLayout({ children }: MainLayoutProps) {
     closeImportDialog,
     isExportDialogOpen,
     closeExportDialog,
+    isSQLExportDialogOpen,
+    closeSQLExportDialog,
     isAboutDialogOpen,
     closeAboutDialog,
   } = useUIStore();
@@ -154,6 +156,10 @@ export function MainLayout({ children }: MainLayoutProps) {
       <ExportDialog
         isOpen={isExportDialogOpen}
         onClose={closeExportDialog}
+      />
+      <SQLExportDialog
+        isOpen={isSQLExportDialogOpen}
+        onClose={closeSQLExportDialog}
       />
       <LicenseDialog
         isOpen={showLicenseDialog}

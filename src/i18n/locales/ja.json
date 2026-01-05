@@ -150,6 +150,8 @@
     "table": "テーブル",
     "settingsTitle": "テーブル設定",
     "tables": "テーブル",
+    "description": "テーブルの説明",
+    "descriptionPlaceholder": "説明",
     "addColumn": "カラムを追加",
     "addCommonColumns": "共通カラムを追加",
     "columnName": "カラム名",
@@ -500,8 +502,7 @@
         "zoomIn": "拡大",
         "zoomOut": "縮小",
         "fitView": "全体表示",
-        "switchToEditor": "エディタへ切替",
-        "switchToSimulator": "シミュレーターへ切替"
+        "toggleViewMode": "エディタ/シミュレーター切り替え"
       }
     }
   },
@@ -608,5 +609,26 @@
     "refSettings": "Ref型の場合、参照先テーブルや参照キーカラムを設定します。これによりテーブル間のリレーションが定義されます。",
     "numericSettings": "数値型（Number、Decimal、Percent、Price、Progress）の場合、桁数や表示形式を設定できます。",
     "sampleData": "シミュレーターで表示されるサンプルデータを設定します。Excelエクスポート時にもこのデータが含まれます。"
+  },
+  "sqlExport": {
+    "title": "SQL / Markdown エクスポート",
+    "description": "AI開発駆動用にER図をDDLとMarkdownテーブルで出力します",
+    "preview": "プレビュー",
+    "tabs": {
+      "ddl": "DDL (CREATE TABLE)",
+      "markdown": "Markdown (データ)",
+      "schema": "Markdown (スキーマ)"
+    },
+    "dialects": {
+      "generic": "汎用SQL"
+    },
+    "options": {
+      "dialect": "SQLダイアレクト",
+      "includeForeignKeys": "外部キー制約を含める",
+      "includeComments": "コメントを含める",
+      "includeDropTable": "DROP TABLE を含める",
+      "maxRows": "最大行数"
+    },
+    "schemaHint": "カラムの型情報を中心としたスキーマ定義を出力します"
   }
 }

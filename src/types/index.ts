@@ -142,6 +142,8 @@ export type ExportTarget = 'excel' | 'json' | 'package';
 export interface Table {
   id: string;
   name: string;
+  /** テーブルの説明（任意） */
+  description?: string;
   columns: Column[];
   position: TablePosition;
   color?: string;
@@ -314,8 +316,7 @@ export type ShortcutActionId =
   | 'openImportDialog'
   | 'openExportDialog'
   | 'toggleSidebar'
-  | 'switchToEditor'
-  | 'switchToSimulator'
+  | 'toggleViewMode'
   | 'undo'
   | 'redo'
   | 'addTable'
