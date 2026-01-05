@@ -5,21 +5,22 @@
 - チャネル: ALPHA / BETA
 - 対象OS: Windows
 - 配布形態: ストア不使用（手動アップデート）
+- 配布物: GitHub Releases（このリポジトリのReleasesページ）からダウンロード
+  - 配布ZIP（NSIS）: WaiwaiER-Desktop-X.Y.Z-<channel>-win64-nsis.zip
+  - 配布ZIP（MSI）: WaiwaiER-Desktop-X.Y.Z-<channel>-win64-msi.zip
 
-## バージョン情報（互換性の目安）
-- パッケージ内ER図データ世代（diagram schema）
-  - 現行: v__DIAGRAM_SCHEMA_VERSION__
-  - この版で読み込み可能: v__MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION__〜v__DIAGRAM_SCHEMA_VERSION__
-- `.waiwai` パッケージ形式世代（package format）
-  - 現行: v__PACKAGE_FORMAT_VERSION__
-  - この版で読み込み可能: v__MIN_SUPPORTED_PACKAGE_FORMAT_VERSION__〜v__PACKAGE_FORMAT_VERSION__
-
-## ダウンロード
-- （ここに配布URL）
+### ハイライト
+- 
 
 ## 重要（必読）
 - 破壊的変更の可能性: 本ビルドは ALPHA/BETA のため、今後の更新でデータ形式（DB/プロジェクト/エクスポート）が破壊的に変更される可能性があります。
 - アップデート前バックアップ推奨: 更新前に必ずエクスポート（JSON/パッケージ）などでバックアップしてください。
+
+## インストール
+1. 配布ZIP（MSI/NSIS）を展開
+2. 展開したインストーラを実行
+  - MSI版: `.msi`
+  - NSIS版: `.exe`
 
 ## 変更点
 ### 追加
@@ -35,6 +36,14 @@
 - 
 
 ## 互換性/移行
+### バージョン情報（互換性の目安）
+- パッケージ内ER図データ世代（diagram schema）
+  - 現行: v__DIAGRAM_SCHEMA_VERSION__
+  - この版で読み込み可能: v__MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION__〜v__DIAGRAM_SCHEMA_VERSION__
+- `.waiwai` パッケージ形式世代（package format）
+  - 現行: v__PACKAGE_FORMAT_VERSION__
+  - この版で読み込み可能: v__MIN_SUPPORTED_PACKAGE_FORMAT_VERSION__〜v__PACKAGE_FORMAT_VERSION__
+
 - 旧バージョンからの移行:
   - 
 
