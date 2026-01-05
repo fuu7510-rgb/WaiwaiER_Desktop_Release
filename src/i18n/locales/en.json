@@ -170,6 +170,8 @@
     "tables": "Tables",
     "description": "Table description",
     "descriptionPlaceholder": "Description",
+    "collapse": "Collapse table",
+    "expand": "Expand table",
     "addColumn": "Add Column",
     "addCommonColumns": "Add common columns",
     "columnName": "Column Name",

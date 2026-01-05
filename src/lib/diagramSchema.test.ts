@@ -54,7 +54,7 @@ function createMinimalMemo(overrides: Partial<Memo> = {}): Memo {
 describe('diagramSchema', () => {
   describe('スキーマバージョン定数', () => {
     it('現在のスキーマバージョンが定義されている', () => {
-      expect(DIAGRAM_SCHEMA_VERSION).toBe(3);
+      expect(DIAGRAM_SCHEMA_VERSION).toBe(4);
     });
 
     it('最小サポートバージョンが定義されている', () => {
@@ -119,10 +119,10 @@ describe('diagramSchema', () => {
       });
     });
 
-    describe('エンベロープ形式（V1）の処理', () => {
-      it('V1エンベロープを正常にデコードできる', () => {
+    describe('エンベロープ形式（V2）の処理', () => {
+      it('V2エンベロープを正常にデコードできる', () => {
         const envelope = {
-          schemaVersion: 1,
+          schemaVersion: 2,
           diagram: {
             tables: [createMinimalTable()],
             relations: [],
@@ -138,7 +138,7 @@ describe('diagramSchema', () => {
 
       it('JSON文字列からデコードできる', () => {
         const envelope = {
-          schemaVersion: 1,
+          schemaVersion: 2,
           diagram: {
             tables: [createMinimalTable({ name: 'FromJSON' })],
             relations: [],
@@ -296,7 +296,7 @@ describe('diagramSchema', () => {
     describe('データ正規化', () => {
       it('テーブルのカラムを正規化する', () => {
         const envelope = {
-          schemaVersion: 1,
+          schemaVersion: 2,
           diagram: {
             tables: [
               {
@@ -329,7 +329,7 @@ describe('diagramSchema', () => {
 
       it('リレーションのtypeを正規化する', () => {
         const envelope = {
-          schemaVersion: 1,
+          schemaVersion: 2,
           diagram: {
             tables: [],
             relations: [
@@ -353,7 +353,7 @@ describe('diagramSchema', () => {
 
       it('メモのサイズを保持する', () => {
         const envelope = {
-          schemaVersion: 1,
+          schemaVersion: 2,
           diagram: {
             tables: [],
             relations: [],
@@ -379,7 +379,7 @@ describe('diagramSchema', () => {
 
       it('欠落したIDを生成する', () => {
         const envelope = {
-          schemaVersion: 1,
+          schemaVersion: 2,
           diagram: {
             tables: [
               {
@@ -402,7 +402,7 @@ describe('diagramSchema', () => {
 
       it('欠落したタイムスタンプを生成する', () => {
         const envelope = {
-          schemaVersion: 1,
+          schemaVersion: 2,
           diagram: {
             tables: [
               {
@@ -428,7 +428,7 @@ describe('diagramSchema', () => {
     describe('不正なデータの処理', () => {
       it('tablesが配列でない場合は空配列として扱う', () => {
         const envelope = {
-          schemaVersion: 1,
+          schemaVersion: 2,
           diagram: {
             tables: 'not an array',
             relations: [],
@@ -442,7 +442,7 @@ describe('diagramSchema', () => {
 
       it('relationsが配列でない場合は空配列として扱う', () => {
         const envelope = {
-          schemaVersion: 1,
+          schemaVersion: 2,
           diagram: {
             tables: [],
             relations: 'not an array',

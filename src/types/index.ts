@@ -147,6 +147,8 @@ export interface Table {
   columns: Column[];
   position: TablePosition;
   color?: string;
+  /** ER図上で折り畳まれているか（表示用。保存データにも含める） */
+  isCollapsed?: boolean;
   /** テーブルごとのエクスポート先（未指定は全てにエクスポート） */
   exportTargets?: ExportTarget[];
   syncGroupId?: string;

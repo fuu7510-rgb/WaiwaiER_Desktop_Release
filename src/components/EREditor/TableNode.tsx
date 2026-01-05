@@ -108,6 +108,16 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
     addColumn(table.id);
   }, [table.id, addColumn]);
 
+  const isCollapsed = table.isCollapsed ?? false;
+  const handleToggleCollapsed = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      selectTable(table.id);
+      updateTable(table.id, { isCollapsed: !(table.isCollapsed ?? false) });
+    },
+    [selectTable, table.id, table.isCollapsed, updateTable]
+  );
+
   const isSelected = isTableSelected || selected;
   const highlight = data.highlight;
   const isDimmed = highlight?.isDimmed ?? false;
@@ -145,13 +155,34 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
         ) : (
           <span className="truncate">{table.name}</span>
         )}
-        <span className="text-[10px] opacity-70 ml-1.5 tabular-nums">
-          {table.columns.length}
+        <span className="flex items-center gap-1.5">
+          <Tooltip content={isCollapsed ? t('table.expand') : t('table.collapse')}>
+            <button
+              type="button"
+              onClick={handleToggleCollapsed}
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="p-0.5 rounded-sm transition-colors hover:bg-white/10"
+              aria-label={isCollapsed ? t('table.expand') : t('table.collapse')}
+              title={isCollapsed ? t('table.expand') : t('table.collapse')}
+            >
+              {isCollapsed ? (
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                </svg>
+              ) : (
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              )}
+            </button>
+          </Tooltip>
+          <span className="text-[10px] opacity-70 ml-0.5 tabular-nums">{table.columns.length}</span>
         </span>
       </div>
 
       {/* Columns */}
-      <TableNodeSortableColumns table={table} />
+      {isCollapsed ? <CollapsedColumnHandles table={table} /> : <TableNodeSortableColumns table={table} />}
 
       {/* Add Column Button */}
       <div className="relative">
@@ -179,6 +210,79 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
 });
 
 TableNode.displayName = 'TableNode';
+
+function CollapsedColumnHandles(props: { table: Table }) {
+  const { table } = props;
+
+  const stripHeight = 28;
+
+  return (
+    <div
+      className="relative nodrag"
+      style={{ height: stripHeight, backgroundColor: 'var(--card)' }}
+      aria-hidden
+    >
+      {/* Minimal visual cue */}
+      <div
+        className="absolute inset-0 flex items-center justify-center text-[10px]"
+        style={{ color: 'var(--text-muted)' }}
+      >
+        …
+      </div>
+
+      {table.columns.map((column) => {
+        return (
+          <div key={column.id}>
+            <Handle
+              type="target"
+              position={Position.Left}
+              id={column.id}
+              className="!bg-zinc-400 !border !border-white !rounded-full"
+              style={{
+                width: 8,
+                height: 8,
+                minWidth: 8,
+                minHeight: 8,
+                maxWidth: 8,
+                maxHeight: 8,
+                left: -5,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                pointerEvents: 'none',
+              }}
+              isConnectable={false}
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            />
+
+            {column.isKey && (
+              <Handle
+                type="source"
+                position={Position.Right}
+                id={`${column.id}__source`}
+                className="!bg-amber-400 !border !border-white hover:!bg-amber-500 cursor-crosshair !rounded-full"
+                style={{
+                  width: 8,
+                  height: 8,
+                  minWidth: 8,
+                  minHeight: 8,
+                  maxWidth: 8,
+                  maxHeight: 8,
+                  right: -5,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                }}
+                isConnectable
+                onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function TableNodeSortableColumns(props: { table: Table }) {
   const { table } = props;

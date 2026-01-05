@@ -121,16 +121,24 @@ function EREditorInner() {
 
       // ハンドル付け替えは独自実装で処理する（ReactFlowの接続開始に依存しない）
 
+      const isAddColumnTarget = connection.targetHandle.endsWith('__addColumn');
+
       const sourceHandleParts = connection.sourceHandle.split('__');
       const sourceColumnId = sourceHandleParts[0];
       const sourceTable = tables.find((t) => t.id === connection.source);
+      const targetTable = tables.find((t) => t.id === connection.target);
+
+      // 折り畳み状態では「target側」へのリレーション接続を禁止（ただし add-column 接続は許可）
+      if (targetTable?.isCollapsed && !isAddColumnTarget) {
+        setIsConnectDragNotAllowed(true);
+        return false;
+      }
+
       const sourceColumn = sourceTable?.columns.find((c) => c.id === sourceColumnId);
       if (!sourceTable || !sourceColumn || !sourceColumn.isKey) {
         setIsConnectDragNotAllowed(true);
         return false;
       }
-
-      const isAddColumnTarget = connection.targetHandle.endsWith('__addColumn');
       if (isAddColumnTarget) {
         setIsConnectDragNotAllowed(false);
         return true;

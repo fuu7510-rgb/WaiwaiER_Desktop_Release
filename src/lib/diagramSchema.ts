@@ -21,7 +21,7 @@ function normalizeExportTargets(raw: unknown): Table['exportTargets'] {
  * - サポート対象は「直近2世代」(current と current-1 と current-2)。
  */
 
-export const DIAGRAM_SCHEMA_VERSION = 3 as const;
+export const DIAGRAM_SCHEMA_VERSION = 4 as const;
 export const MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION = Math.max(0, DIAGRAM_SCHEMA_VERSION - 2);
 
 export type DiagramEnvelopeV1 = {
@@ -36,6 +36,11 @@ export type DiagramEnvelopeV2 = {
 
 export type DiagramEnvelopeV3 = {
   schemaVersion: 3;
+  diagram: ERDiagram;
+};
+
+export type DiagramEnvelopeV4 = {
+  schemaVersion: 4;
   diagram: ERDiagram;
 };
 
@@ -118,6 +123,7 @@ function normalizeTable(raw: unknown, index: number, fallbackNow: string): Table
     columns: columnsRaw.map((c, i) => normalizeColumn(c, i)),
     position,
     color: typeof obj.color === 'string' ? obj.color : undefined,
+    isCollapsed: typeof obj.isCollapsed === 'boolean' ? obj.isCollapsed : false,
     exportTargets: normalizeExportTargets(obj.exportTargets),
     syncGroupId: typeof obj.syncGroupId === 'string' ? obj.syncGroupId : undefined,
     createdAt: (typeof obj.createdAt === 'string' && obj.createdAt) || fallbackNow,
@@ -233,7 +239,14 @@ function migrateV2ToV3(v2: DiagramEnvelopeV2): DiagramEnvelopeV3 {
   };
 }
 
-export function encodeDiagramEnvelope(diagram: ERDiagram): DiagramEnvelopeV3 {
+function migrateV3ToV4(v3: DiagramEnvelopeV3): DiagramEnvelopeV4 {
+  return {
+    schemaVersion: 4,
+    diagram: normalizeDiagram(v3.diagram),
+  };
+}
+
+export function encodeDiagramEnvelope(diagram: ERDiagram): DiagramEnvelopeV4 {
   // 書き込みは常に最新
   return {
     schemaVersion: DIAGRAM_SCHEMA_VERSION,
@@ -274,12 +287,20 @@ export function decodeAndMigrateDiagram(value: unknown): ERDiagram | null {
       );
     }
 
+    // v4
+    if (fromVersion === 4) {
+      if (!isLegacyDiagram(value.diagram)) {
+        return null;
+      }
+      return normalizeDiagram(value.diagram);
+    }
+
     // v3
     if (fromVersion === 3) {
       if (!isLegacyDiagram(value.diagram)) {
         return null;
       }
-      return normalizeDiagram(value.diagram);
+      return migrateV3ToV4({ schemaVersion: 3, diagram: value.diagram as ERDiagram }).diagram;
     }
 
     // v2
@@ -287,7 +308,8 @@ export function decodeAndMigrateDiagram(value: unknown): ERDiagram | null {
       if (!isLegacyDiagram(value.diagram)) {
         return null;
       }
-      return migrateV2ToV3({ schemaVersion: 2, diagram: value.diagram as ERDiagram }).diagram;
+      const v3 = migrateV2ToV3({ schemaVersion: 2, diagram: value.diagram as ERDiagram });
+      return migrateV3ToV4(v3).diagram;
     }
 
     // v1
@@ -296,7 +318,8 @@ export function decodeAndMigrateDiagram(value: unknown): ERDiagram | null {
         return null;
       }
       const v2 = migrateV1ToV2({ schemaVersion: 1, diagram: value.diagram as ERDiagram });
-      return migrateV2ToV3(v2).diagram;
+      const v3 = migrateV2ToV3(v2);
+      return migrateV3ToV4(v3).diagram;
     }
 
     if (fromVersion === 0) {

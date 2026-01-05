@@ -152,6 +152,8 @@
     "tables": "テーブル",
     "description": "テーブルの説明",
     "descriptionPlaceholder": "説明",
+    "collapse": "テーブルを折り畳む",
+    "expand": "テーブルを展開",
     "addColumn": "カラムを追加",
     "addCommonColumns": "共通カラムを追加",
     "columnName": "カラム名",
