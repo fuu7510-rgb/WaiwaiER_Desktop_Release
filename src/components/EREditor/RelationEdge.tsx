@@ -295,7 +295,7 @@ export const RelationEdge = memo(({
               <DynamicIcon
                 name={followerIconName}
                 size={followerIconSize}
-                fallback={DefaultFollowerIcon}
+                fallback={() => <DefaultFollowerIcon size={followerIconSize} />}
               />
             </div>
           </EdgeLabelRenderer>

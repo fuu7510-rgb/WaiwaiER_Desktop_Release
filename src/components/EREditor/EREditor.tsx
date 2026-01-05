@@ -623,7 +623,7 @@ function EREditorInner() {
   );
 
   const onNodeDragStop = useCallback(
-    (_: React.MouseEvent, node: Node, nodes: Node[]) => {
+    (_: React.MouseEvent, _node: Node, nodes: Node[]) => {
       // 複数ノードがドラッグされた場合はすべてのノードの位置を保存
       for (const n of nodes) {
         if (n.type === 'memoNode') {

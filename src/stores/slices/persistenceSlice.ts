@@ -224,10 +224,13 @@ export const createPersistenceSlice: SliceCreator<PersistenceSlice> = (set, get)
         columns: (table.columns ?? []).map((column) => ({
           ...column,
           id: oldToNewColumnId.get(column.id) ?? uuidv4(),
-          // Ref型のreferencedTableIdを更新
-          referencedTableId: column.referencedTableId
-            ? oldToNewTableId.get(column.referencedTableId) ?? column.referencedTableId
-            : column.referencedTableId,
+          constraints: {
+            ...column.constraints,
+            // Ref型の参照先テーブルIDを更新
+            refTableId: column.constraints?.refTableId
+              ? oldToNewTableId.get(column.constraints.refTableId) ?? column.constraints.refTableId
+              : column.constraints?.refTableId,
+          },
         })) as Column[],
       }));
 
