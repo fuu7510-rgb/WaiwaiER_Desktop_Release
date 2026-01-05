@@ -517,8 +517,7 @@
         "zoomIn": "Zoom In",
         "zoomOut": "Zoom Out",
         "fitView": "Fit View",
-        "switchToEditor": "Switch to Editor",
-        "switchToSimulator": "Switch to Simulator"
+        "toggleViewMode": "Toggle Editor/Simulator"
       }
     }
   },

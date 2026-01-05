@@ -500,8 +500,7 @@
         "zoomIn": "拡大",
         "zoomOut": "縮小",
         "fitView": "全体表示",
-        "switchToEditor": "エディタへ切替",
-        "switchToSimulator": "シミュレーターへ切替"
+        "toggleViewMode": "エディタ/シミュレーター切り替え"
       }
     }
   },

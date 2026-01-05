@@ -75,11 +75,8 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
             return true;
           }
           return false;
-        case 'switchToEditor':
-          setViewMode('editor');
-          return true;
-        case 'switchToSimulator':
-          setViewMode('simulator');
+        case 'toggleViewMode':
+          setViewMode(viewMode === 'editor' ? 'simulator' : 'editor');
           return true;
         case 'undo':
           if (historyIndex > 0) {
@@ -193,8 +190,10 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
           if (handled) {
             e.preventDefault();
             e.stopPropagation();
+            return;
           }
-          return;
+          // 同じキーが複数アクションに割り当てられている場合に備えて、
+          // handled=false なら次の候補もチェックする。
         }
       }
     };

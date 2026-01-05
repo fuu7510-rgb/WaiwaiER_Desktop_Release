@@ -102,15 +102,9 @@ export const SHORTCUT_ACTIONS: ShortcutActionDefinition[] = [
   },
   // ナビゲーション
   {
-    id: 'switchToEditor',
-    labelKey: 'settings.shortcuts.actions.switchToEditor',
-    defaultKey: 'Ctrl+1',
-    category: 'navigation',
-  },
-  {
-    id: 'switchToSimulator',
-    labelKey: 'settings.shortcuts.actions.switchToSimulator',
-    defaultKey: 'Ctrl+2',
+    id: 'toggleViewMode',
+    labelKey: 'settings.shortcuts.actions.toggleViewMode',
+    defaultKey: 'Tab',
     category: 'navigation',
   },
 ];
@@ -134,7 +128,16 @@ export function getMergedShortcutKeys(
 ): ShortcutKeySettings {
   const defaults = getDefaultShortcutKeys();
   if (!userSettings) return defaults;
-  return { ...defaults, ...userSettings };
+
+  // 後方互換: 旧設定（switchToEditor/switchToSimulator）が存在し、
+  // 新設定（toggleViewMode）が未設定なら引き継ぐ。
+  const merged = { ...defaults, ...userSettings } as Record<string, string>;
+  if (!merged.toggleViewMode) {
+    const legacy = merged.switchToEditor || merged.switchToSimulator;
+    if (legacy) merged.toggleViewMode = legacy;
+  }
+
+  return merged as ShortcutKeySettings;
 }
 
 /**
