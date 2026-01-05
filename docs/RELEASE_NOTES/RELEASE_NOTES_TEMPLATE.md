@@ -7,10 +7,10 @@
 - 配布形態: ストア不使用（手動アップデート）
 
 ## バージョン情報（互換性の目安）
-- ER図データ世代（diagram schema）
+- パッケージ内ER図データ世代（diagram schema）
   - 現行: v__DIAGRAM_SCHEMA_VERSION__
   - この版で読み込み可能: v__MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION__〜v__DIAGRAM_SCHEMA_VERSION__
-- `.waiwai` パッケージ世代（package format）
+- `.waiwai` パッケージ形式世代（package format）
   - 現行: v__PACKAGE_FORMAT_VERSION__
   - この版で読み込み可能: v__MIN_SUPPORTED_PACKAGE_FORMAT_VERSION__〜v__PACKAGE_FORMAT_VERSION__
 

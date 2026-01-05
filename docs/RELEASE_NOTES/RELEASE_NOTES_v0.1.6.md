@@ -156,10 +156,10 @@
 ## 互換性/移行
 
 ### バージョン情報（互換性の目安）
-- ER図データ世代（diagram schema）
+- パッケージ内ER図データ世代（diagram schema）
   - 現行: v4
   - この版で読み込み可能: v2〜v4
-- `.waiwai` パッケージ世代（package format）
+- `.waiwai` パッケージ形式世代（package format）
   - 現行: v1
   - この版で読み込み可能: v0〜v1
 
