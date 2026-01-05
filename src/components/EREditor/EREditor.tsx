@@ -15,15 +15,20 @@ import 'reactflow/dist/style.css';
 
 import { useERStore } from '../../stores';
 import { useUIStore } from '../../stores';
-import { Button } from '../common/Button';
 import { TableNode } from './TableNode';
 import { MemoNode } from './MemoNode';
 import { RelationEdge } from './RelationEdge';
+import { EditorToolbar } from './EditorToolbar';
+import {
+  ConnectDragOverlay,
+  ConnectFlashOverlay,
+  EdgeUpdateOverlay,
+  EdgeUpdaterHoverOverlay,
+} from './EditorOverlays';
+import { useConnectDrag, useEdgeUpdate, useRelatedGraph } from './hooks';
 import type { Table, Relation, Memo } from '../../types';
-import { useTranslation } from 'react-i18next';
 
 function EREditorInner() {
-  const { t } = useTranslation();
   const {
     tables,
     relations,
@@ -58,59 +63,57 @@ function EREditorInner() {
 
   const isEdgeAnimationEnabled = settings.edgeAnimationEnabled ?? true;
   const isEdgeFollowerIconEnabled = settings.edgeFollowerIconEnabled ?? false;
-  // ユーザー設定の追従アイコン設定（デフォルト用）
   const defaultFollowerIconName = settings.edgeFollowerIconName ?? 'arrow-right';
   const defaultFollowerIconSize = settings.edgeFollowerIconSize ?? 14;
   const defaultFollowerIconSpeed = settings.edgeFollowerIconSpeed ?? 90;
-  // パフォーマンス最適化: shallow比較で同じ値なら再レンダリングをスキップ
+  
   const zoom = useReactFlowStore((state) => state.transform[2], (a, b) => a === b);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-
   const lastPointerPosRef = useRef<{ x: number; y: number } | null>(null);
-  const connectFlashTimerRef = useRef<number | null>(null);
-  const [connectFlashPos, setConnectFlashPos] = useState<{ x: number; y: number } | null>(null);
-
-  const activeEdgeUpdateIdRef = useRef<string | null>(null);
-  const edgeUpdateSuccessfulRef = useRef(true);
-
-  const [isConnectDragging, setIsConnectDragging] = useState(false);
-  const [isConnectDragNotAllowed, setIsConnectDragNotAllowed] = useState(false);
-  const isConnectDragNotAllowedRef = useRef(false);
   const pointerRafRef = useRef<number | null>(null);
-  const [connectDragPos, setConnectDragPos] = useState<{ x: number; y: number } | null>(null);
-  const [isEdgeUpdating, setIsEdgeUpdating] = useState(false);
-  const isEdgeUpdatingRef = useRef(false);
-  const [edgeUpdatePos, setEdgeUpdatePos] = useState<{ x: number; y: number } | null>(null);
-  const [isEdgeUpdaterHovering, setIsEdgeUpdaterHovering] = useState(false);
-  const isEdgeUpdaterHoveringRef = useRef(false);
-  const [edgeUpdaterHoverPos, setEdgeUpdaterHoverPos] = useState<{ x: number; y: number } | null>(null);
 
-  useEffect(() => {
-    isConnectDragNotAllowedRef.current = isConnectDragNotAllowed;
-  }, [isConnectDragNotAllowed]);
+  // カスタムフックの使用
+  const {
+    isConnectDragging,
+    isConnectDragNotAllowed,
+    connectDragPos,
+    connectFlashPos,
+    isConnectDragNotAllowedRef,
+    setIsConnectDragNotAllowed,
+    setConnectDragPos,
+    flashConnectNotAllowed,
+    onConnectStart,
+    onConnectEnd,
+  } = useConnectDrag(lastPointerPosRef);
 
-  useEffect(() => {
-    isEdgeUpdatingRef.current = isEdgeUpdating;
-  }, [isEdgeUpdating]);
+  const {
+    isEdgeUpdating,
+    edgeUpdatePos,
+    isEdgeUpdaterHovering,
+    edgeUpdaterHoverPos,
+    isEdgeUpdatingRef,
+    isEdgeUpdaterHoveringRef,
+    activeEdgeUpdateIdRef,
+    setEdgeUpdatePos,
+    setIsEdgeUpdaterHovering,
+    setEdgeUpdaterHoverPos,
+    onEdgeUpdateStart,
+    onEdgeUpdate,
+    onEdgeUpdateEnd,
+    detachRelation,
+  } = useEdgeUpdate({
+    tables,
+    relations,
+    addColumn,
+    updateColumn,
+    updateRelation,
+    deleteRelation,
+    lastPointerPosRef,
+  });
 
-  useEffect(() => {
-    isEdgeUpdaterHoveringRef.current = isEdgeUpdaterHovering;
-  }, [isEdgeUpdaterHovering]);
+  const relatedGraph = useRelatedGraph(selectedTableId, relations, isRelationHighlightEnabled);
 
-  const flashConnectNotAllowed = useCallback(() => {
-    const pos = lastPointerPosRef.current;
-    if (!pos) return;
-
-    setConnectFlashPos({ x: pos.x, y: pos.y });
-
-    if (connectFlashTimerRef.current !== null) {
-      window.clearTimeout(connectFlashTimerRef.current);
-    }
-    connectFlashTimerRef.current = window.setTimeout(() => {
-      setConnectFlashPos(null);
-      connectFlashTimerRef.current = null;
-    }, 800);
-  }, []);
+  const [isAnimationTemporarilyEnabled, setIsAnimationTemporarilyEnabled] = useState(true);
 
   const isValidConnection = useCallback(
     (connection: Connection) => {
@@ -119,8 +122,6 @@ function EREditorInner() {
         return false;
       }
 
-      // ハンドル付け替えは独自実装で処理する（ReactFlowの接続開始に依存しない）
-
       const isAddColumnTarget = connection.targetHandle.endsWith('__addColumn');
 
       const sourceHandleParts = connection.sourceHandle.split('__');
@@ -128,7 +129,6 @@ function EREditorInner() {
       const sourceTable = tables.find((t) => t.id === connection.source);
       const targetTable = tables.find((t) => t.id === connection.target);
 
-      // 折り畳み状態では「target側」へのリレーション接続を禁止（ただし add-column 接続は許可）
       if (targetTable?.isCollapsed && !isAddColumnTarget) {
         setIsConnectDragNotAllowed(true);
         return false;
@@ -145,10 +145,8 @@ function EREditorInner() {
       }
 
       const targetColumnId = connection.targetHandle;
-
       const ignoreRelationId = activeEdgeUpdateIdRef.current;
 
-      // 既に他テーブルから参照されているカラムへの「上書き」を禁止
       const hasIncomingRelationToTargetColumn = relations.some(
         (r) =>
           r.id !== ignoreRelationId && r.targetTableId === connection.target && r.targetColumnId === targetColumnId
@@ -169,139 +167,10 @@ function EREditorInner() {
       setIsConnectDragNotAllowed(isDuplicate);
       return !isDuplicate;
     },
-    [relations, tables]
+    [activeEdgeUpdateIdRef, relations, setIsConnectDragNotAllowed, tables]
   );
 
-  const detachRelation = useCallback(
-    (relationId: string) => {
-      const relation = relations.find((r) => r.id === relationId);
-      if (!relation) {
-        deleteRelation(relationId);
-        return;
-      }
-
-      const targetTable = tables.find((t) => t.id === relation.targetTableId);
-      const targetColumn = targetTable?.columns.find((c) => c.id === relation.targetColumnId);
-
-      // 線=外部キー(Ref)とみなして、Refのときは解除する
-      const isRefWithSameTarget =
-        targetColumn?.type === 'Ref' &&
-        targetColumn.constraints.refTableId === relation.sourceTableId &&
-        targetColumn.constraints.refColumnId === relation.sourceColumnId;
-
-      // 参照制約が何らかの理由でズレていても、当該カラムに incoming relation が無ければ
-      // 「線を外した=Ref解除」とみなして確実にリセットする。
-      const hasOtherIncomingRelationToTargetColumn = relations.some(
-        (r) => r.id !== relationId && r.targetTableId === relation.targetTableId && r.targetColumnId === relation.targetColumnId
-      );
-
-      const shouldResetTargetColumnRef =
-        !!targetColumn && targetColumn.type === 'Ref' && (isRefWithSameTarget || !hasOtherIncomingRelationToTargetColumn);
-
-      if (targetColumn && shouldResetTargetColumnRef) {
-        updateColumn(relation.targetTableId, relation.targetColumnId, {
-          type: 'Text',
-          constraints: {
-            ...targetColumn.constraints,
-            refTableId: undefined,
-            refColumnId: undefined,
-          },
-        });
-        // updateColumn側でtargetColumnIdを参照するrelationsを掃除するため、ここではdeleteRelationしない。
-        return;
-      }
-
-      deleteRelation(relationId);
-    },
-    [deleteRelation, relations, tables, updateColumn]
-  );
-
-  const retargetRelationFromEdgeUpdate = useCallback(
-    (relationId: string, next: Connection) => {
-      const relation = relations.find((r) => r.id === relationId);
-      if (!relation) return;
-      if (!next.source || !next.target || !next.sourceHandle || !next.targetHandle) return;
-      const prevTargetTableId = relation.targetTableId;
-      const prevTargetColumnId = relation.targetColumnId;
-
-      const sourceColumnId = next.sourceHandle.split('__')[0];
-
-      const sourceTable = tables.find((t) => t.id === next.source);
-      const sourceColumn = sourceTable?.columns.find((c) => c.id === sourceColumnId);
-      if (!sourceTable || !sourceColumn || !sourceColumn.isKey) return;
-
-      const isAddColumnTarget = next.targetHandle.endsWith('__addColumn');
-      let targetColumnId = next.targetHandle;
-
-      if (isAddColumnTarget) {
-        const newColumnId = addColumn(next.target, {
-          name: sourceColumn.name,
-          type: 'Ref',
-          isKey: false,
-          isLabel: false,
-          constraints: {
-            refTableId: next.source,
-            refColumnId: sourceColumnId,
-          },
-        });
-        if (!newColumnId) return;
-        targetColumnId = newColumnId;
-      } else {
-        // 既に参照されているカラムへ上書きする操作は禁止（自分自身のリレーションは除外）
-        const hasIncomingRelationToTargetColumn = relations.some(
-          (r) => r.id !== relationId && r.targetTableId === next.target && r.targetColumnId === targetColumnId
-        );
-        if (hasIncomingRelationToTargetColumn) return;
-
-        updateColumn(next.target, targetColumnId, {
-          type: 'Ref',
-          constraints: {
-            refTableId: next.source,
-            refColumnId: sourceColumnId,
-          },
-        });
-      }
-
-      updateRelation(relationId, {
-        sourceTableId: next.source,
-        sourceColumnId,
-        targetTableId: next.target,
-        targetColumnId,
-      });
-
-      // 旧ターゲット側のRefを解除（新ターゲットと同一なら何もしない）
-      // ※ updateColumn(type:Text) は targetColumnId に紐づく relations を自動掃除するため、
-      //    先に updateRelation で付け替え完了させてから実行する。
-      // ※ 上の updateColumn/updateRelation 呼び出し後は tables/relations がクロージャで古い値を
-      //    参照している可能性があるため、useERStore.getState() で最新の状態を取得する。
-      if (prevTargetTableId !== next.target || prevTargetColumnId !== targetColumnId) {
-        const latestState = useERStore.getState();
-        const latestTables = latestState.tables;
-        const latestRelations = latestState.relations;
-        const oldTargetTable = latestTables.find((t) => t.id === prevTargetTableId);
-        const oldTargetColumn = oldTargetTable?.columns.find((c) => c.id === prevTargetColumnId);
-
-        // 旧ターゲットカラムが Ref 型で、かつ他のリレーションから参照されていなければ Text にリセット
-        const hasOtherIncomingRelation = latestRelations.some(
-          (r) => r.id !== relationId && r.targetTableId === prevTargetTableId && r.targetColumnId === prevTargetColumnId
-        );
-
-        if (oldTargetColumn && oldTargetColumn.type === 'Ref' && !hasOtherIncomingRelation) {
-          updateColumn(prevTargetTableId, prevTargetColumnId, {
-            type: 'Text',
-            constraints: {
-              ...oldTargetColumn.constraints,
-              refTableId: undefined,
-              refColumnId: undefined,
-            },
-          });
-        }
-      }
-    },
-    [addColumn, relations, tables, updateColumn, updateRelation]
-  );
-
-  // Keep these objects referentially stable to avoid React Flow warning #002.
+  // ノードタイプの定義（参照安定性のため）
   const nodeTypes = useMemo(
     () => ({
       tableNode: TableNode,
@@ -317,63 +186,7 @@ function EREditorInner() {
     []
   );
 
-  const relatedGraph = useMemo(() => {
-    const upstreamTableIds = new Set<string>();
-    const downstreamTableIds = new Set<string>();
-    const relatedEdgeIds = new Set<string>();
-
-    if (!selectedTableId || !isRelationHighlightEnabled) {
-      return {
-        hasSelection: false,
-        upstreamTableIds,
-        downstreamTableIds,
-        relatedEdgeIds,
-      };
-    }
-
-    const upstreamVisited = new Set<string>([selectedTableId]);
-    const downstreamVisited = new Set<string>([selectedTableId]);
-
-    // 上流（参照元=source）を辿る: target -> source
-    const upstreamQueue: string[] = [selectedTableId];
-    while (upstreamQueue.length > 0) {
-      const current = upstreamQueue.shift()!;
-      for (const relation of relations) {
-        if (relation.targetTableId !== current) continue;
-        relatedEdgeIds.add(relation.id);
-        if (!upstreamVisited.has(relation.sourceTableId)) {
-          upstreamVisited.add(relation.sourceTableId);
-          upstreamTableIds.add(relation.sourceTableId);
-          upstreamQueue.push(relation.sourceTableId);
-        }
-      }
-    }
-
-    // 下流（参照先=target）を辿る: source -> target
-    const downstreamQueue: string[] = [selectedTableId];
-    while (downstreamQueue.length > 0) {
-      const current = downstreamQueue.shift()!;
-      for (const relation of relations) {
-        if (relation.sourceTableId !== current) continue;
-        relatedEdgeIds.add(relation.id);
-        if (!downstreamVisited.has(relation.targetTableId)) {
-          downstreamVisited.add(relation.targetTableId);
-          downstreamTableIds.add(relation.targetTableId);
-          downstreamQueue.push(relation.targetTableId);
-        }
-      }
-    }
-
-    return {
-      hasSelection: true,
-      upstreamTableIds,
-      downstreamTableIds,
-      relatedEdgeIds,
-    };
-  }, [isRelationHighlightEnabled, relations, selectedTableId]);
-
-  // 選択されたテーブルは常に最前面（zIndex最大）になるようにする。
-  // これにより、選択時に表示されるミニツールバーが他テーブルの下に潜ってクリック不能になる問題を回避する。
+  // 選択されたテーブルは常に最前面（zIndex最大）になるようにする
   const zIndexCounterRef = useRef(1);
   const [tableNodeZIndexMap, setTableNodeZIndexMap] = useState<Record<string, number>>({});
 
@@ -477,9 +290,6 @@ function EREditorInner() {
     
     return result;
   }, [relations]);
-
-  // アニメーション一時停止（設定は変更しない）
-  const [isAnimationTemporarilyEnabled, setIsAnimationTemporarilyEnabled] = useState(true);
 
   // リレーションをReact Flowエッジに変換
   const relationToEdge = useCallback((relation: Relation): Edge => {
@@ -657,40 +467,6 @@ function EREditorInner() {
     [detachRelation, setEdges]
   );
 
-  const onEdgeUpdateStart = useCallback((_: unknown, edge: Edge) => {
-    activeEdgeUpdateIdRef.current = edge.id;
-    edgeUpdateSuccessfulRef.current = false;
-    setIsEdgeUpdating(true);
-    const pos = lastPointerPosRef.current;
-    setEdgeUpdatePos(pos ? { x: pos.x, y: pos.y } : null);
-  }, []);
-
-  const onEdgeUpdate = useCallback(
-    (oldEdge: Edge, newConnection: Connection) => {
-      edgeUpdateSuccessfulRef.current = true;
-      retargetRelationFromEdgeUpdate(oldEdge.id, newConnection);
-      // Note: updateEdge を呼ばない。ストアの relations が更新されると、
-      // useEffect が setEdges を呼んでエッジが正しく同期される。
-      // updateEdge を呼ぶと React Flow が新しい ID を生成してしまい、
-      // ストアのリレーションIDとの整合性が失われる。
-    },
-    [retargetRelationFromEdgeUpdate]
-  );
-
-  const onEdgeUpdateEnd = useCallback((event: MouseEvent | TouchEvent, edge: Edge) => {
-    if (!edgeUpdateSuccessfulRef.current) {
-      const targetEl = (event as MouseEvent).target as HTMLElement | null;
-      const droppedOnHandle = targetEl?.closest?.('.react-flow__handle') != null;
-      if (!droppedOnHandle) {
-        detachRelation(edge.id);
-      }
-    }
-    activeEdgeUpdateIdRef.current = null;
-    edgeUpdateSuccessfulRef.current = true;
-    setIsEdgeUpdating(false);
-    setEdgeUpdatePos(null);
-  }, [detachRelation]);
-
   const onConnect = useCallback(
     (connection: Connection) => {
       if (connection.source && connection.target && connection.sourceHandle && connection.targetHandle) {
@@ -770,16 +546,6 @@ function EREditorInner() {
     },
     [addRelation, addColumn, flashConnectNotAllowed, relations, settings.relationLabelInitialCustomText, settings.relationLabelInitialMode, updateColumn, tables]
   );
-
-  const onConnectStart = useCallback(() => {
-    setIsConnectDragging(true);
-  }, []);
-
-  const onConnectEnd = useCallback(() => {
-    setIsConnectDragging(false);
-    setIsConnectDragNotAllowed(false);
-    setConnectDragPos(null);
-  }, []);
 
   const onPaneClick = useCallback(() => {
     selectTable(null);
@@ -888,145 +654,34 @@ function EREditorInner() {
       </ReactFlow>
 
       {isConnectDragging && isConnectDragNotAllowed && connectDragPos && (
-        <div
-          className="pointer-events-none absolute z-50 flex items-center justify-center rounded-full border text-xs"
-          style={{
-            left: connectDragPos.x + 10,
-            top: connectDragPos.y + 10,
-            width: 24,
-            height: 24,
-            backgroundColor: 'var(--card)',
-            borderColor: 'var(--border)',
-            color: 'var(--text-secondary)',
-          }}
-          aria-hidden="true"
-        >
-          ×
-        </div>
+        <ConnectDragOverlay position={connectDragPos} />
       )}
 
       {connectFlashPos && (
-        <div
-          className="pointer-events-none absolute z-50 flex items-center justify-center rounded-full border text-xs"
-          style={{
-            left: connectFlashPos.x + 10,
-            top: connectFlashPos.y + 10,
-            width: 24,
-            height: 24,
-            backgroundColor: 'var(--card)',
-            borderColor: 'var(--border)',
-            color: 'var(--text-secondary)',
-          }}
-          aria-hidden="true"
-        >
-          ×
-        </div>
+        <ConnectFlashOverlay position={connectFlashPos} />
       )}
 
       {isEdgeUpdating && edgeUpdatePos && (
-        <div
-          className="pointer-events-none absolute z-50 select-none rounded-md border px-2 py-1 text-xs shadow-sm"
-          style={{
-            left: edgeUpdatePos.x + 12,
-            top: edgeUpdatePos.y + 12,
-            backgroundColor: 'var(--card)',
-            borderColor: 'var(--border)',
-            color: 'var(--text-secondary)',
-          }}
-          aria-hidden="true"
-        >
-          {t('editor.edgeRetargetHint')}
-        </div>
+        <EdgeUpdateOverlay position={edgeUpdatePos} />
       )}
 
       {!isEdgeUpdating && isEdgeUpdaterHovering && edgeUpdaterHoverPos && (
-        <div
-          className="pointer-events-none absolute z-50 select-none rounded-md border px-2 py-1 text-xs shadow-sm"
-          style={{
-            left: edgeUpdaterHoverPos.x + 12,
-            top: edgeUpdaterHoverPos.y + 12,
-            backgroundColor: 'var(--card)',
-            borderColor: 'var(--border)',
-            color: 'var(--text-secondary)',
-          }}
-          aria-hidden="true"
-        >
-          {t('editor.edgeRetargetHint')}
-        </div>
+        <EdgeUpdaterHoverOverlay position={edgeUpdaterHoverPos} />
       )}
 
-      <div className="absolute left-16 bottom-3 z-10 flex flex-col gap-2">
-        <div 
-          className="select-none rounded-md border px-2 py-1 text-xs shadow-sm"
-          style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
-        >
-          {t('editor.zoomLevel', { percent: Math.round(zoom * 100) })}
-        </div>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={toggleMemosVisible}
-          aria-pressed={isMemosVisible}
-          title={isMemosVisible ? t('editor.hideMemos') : t('editor.showMemos')}
-        >
-          {t('editor.memo')}: {isMemosVisible ? 'ON' : 'OFF'}
-        </Button>
-
-        {isMemosVisible && (
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={() => {
-            const offset = memos.length * 24;
-            addMemo({ x: 200 + offset, y: 200 + offset });
-          }}
-          title={t('editor.addMemoTooltip')}
-        >
-          {t('editor.addMemo')}
-        </Button>
-        )}
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={toggleRelationHighlight}
-          aria-pressed={isRelationHighlightEnabled}
-          title={
-            isRelationHighlightEnabled
-              ? t('editor.disableRelationHighlight')
-              : t('editor.enableRelationHighlight')
-          }
-        >
-          {t('editor.relationHighlight')}: {isRelationHighlightEnabled ? 'ON' : 'OFF'}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={toggleGridVisible}
-          aria-pressed={isGridVisible}
-          title={isGridVisible ? t('editor.hideGrid') : t('editor.showGrid')}
-        >
-          {t('editor.grid')}: {isGridVisible ? 'ON' : 'OFF'}
-        </Button>
-
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={() => setIsAnimationTemporarilyEnabled((v) => !v)}
-          aria-pressed={isAnimationTemporarilyEnabled}
-          title={
-            isAnimationTemporarilyEnabled
-              ? t('editor.disableAnimations')
-              : t('editor.enableAnimations')
-          }
-        >
-          {t('editor.animations')}: {isAnimationTemporarilyEnabled ? 'ON' : 'OFF'}
-        </Button>
-      </div>
+      <EditorToolbar
+        zoom={zoom}
+        isMemosVisible={isMemosVisible}
+        isRelationHighlightEnabled={isRelationHighlightEnabled}
+        isGridVisible={isGridVisible}
+        isAnimationTemporarilyEnabled={isAnimationTemporarilyEnabled}
+        memosLength={memos.length}
+        toggleMemosVisible={toggleMemosVisible}
+        toggleRelationHighlight={toggleRelationHighlight}
+        toggleGridVisible={toggleGridVisible}
+        toggleAnimationEnabled={() => setIsAnimationTemporarilyEnabled((v) => !v)}
+        addMemo={addMemo}
+      />
     </div>
   );
 }

@@ -84,7 +84,8 @@
 |------|---------|
 | コンポーネント | `src/components/{機能名}/` |
 | セクションコンポーネント | `src/components/{機能名}/sections/` |
-| カスタムフック | `src/hooks/` |
+| コンポーネントローカルフック | `src/components/{機能名}/hooks/` |
+| 共通カスタムフック | `src/hooks/` |
 | 状態管理 (Zustand) | `src/stores/` |
 | 型定義 | `src/types/index.ts` |
 | AppSheet関連ロジック | `src/lib/appsheet/` |

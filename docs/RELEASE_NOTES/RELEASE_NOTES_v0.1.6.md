@@ -110,6 +110,20 @@
   - ColumnRow / ColumnRowActionPanel / MiniMetaEditor / TableNodeHeader 等のサブコンポーネント化
   - 状態管理ロジックを `useColumnRowState` / `useColumnRowActions` フックに分離
   - 既存インポートとの後方互換性を維持（TableNode.tsx から再エクスポート）
+- 内部: RelationEdge（リレーション線）をリファクタリングし、保守性を改善
+  - ベジェ曲線パス計算ロジックを `src/components/EREditor/utils/bezierPath.ts` に分離
+  - フォロワーアイコンアニメーションを `src/hooks/useFollowerAnimation.ts` フックに分離
+  - ラベル編集ロジックを `src/hooks/useEdgeLabelEdit.ts` フックに分離
+  - ハードコード色をCSS変数（`--edge-color`, `--background` 等）に置換しテーマ対応を強化
+  - 約300行 → 約180行に簡素化
+- 内部: EREditor（ER図エディタ）をリファクタリングし、保守性を改善
+  - 1041行 → 631行に簡素化
+  - 接続ドラッグ状態管理を `useConnectDrag` フックに分離
+  - エッジ更新・リレーション管理を `useEdgeUpdate` フックに分離
+  - 関連テーブル・エッジのグラフ計算を `useRelatedGraph` フックに分離
+  - ツールバーを `EditorToolbar` コンポーネントに分離
+  - オーバーレイUIを `EditorOverlays` コンポーネントに分離
+  - フックは `src/components/EREditor/hooks/` に配置
 - ユーザー設定: 設定ダイアログを2カラム構成にリニューアル
   - 左サイドバー: セクション名をグループ別（基本設定/詳細設定/情報）にアイコン付きで表示
   - 右コンテンツエリア: 選択されたセクションの設定内容を表示
