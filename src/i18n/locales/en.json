@@ -625,5 +625,26 @@
     "refSettings": "For Ref type, set the referenced table and key column. This defines relationships between tables.",
     "numericSettings": "For numeric types (Number, Decimal, Percent, Price, Progress), set digits and display format.",
     "sampleData": "Set sample data displayed in the simulator. This data is also included in Excel exports."
+  },
+  "sqlExport": {
+    "title": "SQL / Markdown Export",
+    "description": "Export ER diagram as DDL and Markdown tables for AI-driven development",
+    "preview": "Preview",
+    "tabs": {
+      "ddl": "DDL (CREATE TABLE)",
+      "markdown": "Markdown (Data)",
+      "schema": "Markdown (Schema)"
+    },
+    "dialects": {
+      "generic": "Generic SQL"
+    },
+    "options": {
+      "dialect": "SQL Dialect",
+      "includeForeignKeys": "Include foreign keys",
+      "includeComments": "Include comments",
+      "includeDropTable": "Include DROP TABLE",
+      "maxRows": "Max rows"
+    },
+    "schemaHint": "Outputs schema definition focused on column type information"
   }
 }

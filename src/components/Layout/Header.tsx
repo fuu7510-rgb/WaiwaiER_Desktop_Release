@@ -20,6 +20,7 @@ export function Header() {
     openProjectDialog,
     openImportDialog,
     openExportDialog,
+    openSQLExportDialog,
     settings,
     setLanguage,
   } = useUIStore();
@@ -251,6 +252,16 @@ export function Header() {
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+          </button>
+          <button
+            onClick={openSQLExportDialog}
+            className="p-1 border-l transition-colors"
+            style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}
+            title={t('sqlExport.title')}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
             </svg>
           </button>
         </div>
