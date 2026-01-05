@@ -6,6 +6,14 @@
 - 対象OS: Windows
 - 配布形態: ストア不使用（手動アップデート）
 
+## バージョン情報（互換性の目安）
+- パッケージ内ER図データ世代（diagram schema）
+  - 現行: v__DIAGRAM_SCHEMA_VERSION__
+  - この版で読み込み可能: v__MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION__〜v__DIAGRAM_SCHEMA_VERSION__
+- `.waiwai` パッケージ形式世代（package format）
+  - 現行: v__PACKAGE_FORMAT_VERSION__
+  - この版で読み込み可能: v__MIN_SUPPORTED_PACKAGE_FORMAT_VERSION__〜v__PACKAGE_FORMAT_VERSION__
+
 ## ダウンロード
 - （ここに配布URL）
 
@@ -29,6 +37,13 @@
 ## 互換性/移行
 - 旧バージョンからの移行:
   - 
+
+### 段階アップデート（ブリッジ版）
+- もしインポート/読み込み時に「古すぎるため読み込めません。中間バージョンを経由して…」が表示された場合は、
+  - エラー内の「データ世代（vN）」と「この版のサポート範囲（vA〜vB）」を確認
+  - vN をサポートする中間版（ブリッジ版）で一度 **読み込み→保存（または .waiwai へエクスポート）** してから、最新版へ移行してください
+- ブリッジ版の入手先:
+  - （過去リリース一覧URL / 手順）
 
 ## 不具合報告
 - 手順/期待/実際の結果、OS、バージョン（設定→バージョン情報の値）を添えて連絡

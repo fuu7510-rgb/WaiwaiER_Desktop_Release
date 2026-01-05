@@ -110,6 +110,20 @@
   - ColumnRow / ColumnRowActionPanel / MiniMetaEditor / TableNodeHeader 等のサブコンポーネント化
   - 状態管理ロジックを `useColumnRowState` / `useColumnRowActions` フックに分離
   - 既存インポートとの後方互換性を維持（TableNode.tsx から再エクスポート）
+- 内部: RelationEdge（リレーション線）をリファクタリングし、保守性を改善
+  - ベジェ曲線パス計算ロジックを `src/components/EREditor/utils/bezierPath.ts` に分離
+  - フォロワーアイコンアニメーションを `src/hooks/useFollowerAnimation.ts` フックに分離
+  - ラベル編集ロジックを `src/hooks/useEdgeLabelEdit.ts` フックに分離
+  - ハードコード色をCSS変数（`--edge-color`, `--background` 等）に置換しテーマ対応を強化
+  - 約300行 → 約180行に簡素化
+- 内部: EREditor（ER図エディタ）をリファクタリングし、保守性を改善
+  - 1041行 → 631行に簡素化
+  - 接続ドラッグ状態管理を `useConnectDrag` フックに分離
+  - エッジ更新・リレーション管理を `useEdgeUpdate` フックに分離
+  - 関連テーブル・エッジのグラフ計算を `useRelatedGraph` フックに分離
+  - ツールバーを `EditorToolbar` コンポーネントに分離
+  - オーバーレイUIを `EditorOverlays` コンポーネントに分離
+  - フックは `src/components/EREditor/hooks/` に配置
 - ユーザー設定: 設定ダイアログを2カラム構成にリニューアル
   - 左サイドバー: セクション名をグループ別（基本設定/詳細設定/情報）にアイコン付きで表示
   - 右コンテンツエリア: 選択されたセクションの設定内容を表示
@@ -138,6 +152,21 @@
 
 ## 既知の制限
 - ALPHAのため、互換性（DB/プロジェクト形式）が将来変更される可能性があります。
+
+## 互換性/移行
+
+### バージョン情報（互換性の目安）
+- パッケージ内ER図データ世代（diagram schema）
+  - 現行: v4
+  - この版で読み込み可能: v2〜v4
+- `.waiwai` パッケージ形式世代（package format）
+  - 現行: v1
+  - この版で読み込み可能: v0〜v1
+
+### 段階アップデート（ブリッジ版）
+- もしインポート/読み込み時に「古すぎるため読み込めません。中間バージョンを経由して…」が表示された場合は、
+  - v0.1.6（この版）で一度 **読み込み→保存（または .waiwai へエクスポート）** して、データを引き上げてください
+  - その後、最新版で読み込みを再試行してください
 
 ## 不具合報告
 - 手順/期待/実際の結果、OS、バージョン（設定→バージョン情報の値）を添えて連絡

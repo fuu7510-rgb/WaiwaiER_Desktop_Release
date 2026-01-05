@@ -60,6 +60,24 @@ function normalizePackageFormatVersion(metadata: PackageMetadata): number {
 const PACKAGE_FORMAT_VERSION = 1;
 const MIN_SUPPORTED_PACKAGE_FORMAT_VERSION = Math.max(0, PACKAGE_FORMAT_VERSION - 2);
 
+function inferDiagramSchemaVersionFromJson(diagramJson: string): number | null {
+  try {
+    const parsed = JSON.parse(diagramJson) as unknown;
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    const asRecord = parsed as Record<string, unknown>;
+    const v = asRecord.schemaVersion;
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+
+    // legacy形式（envelopeなし）は v0 相当として扱う
+    if ('tables' in asRecord || 'relations' in asRecord || 'memos' in asRecord) return 0;
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export interface ImportPackageResult {
   success: boolean;
   error?: string;
@@ -217,19 +235,16 @@ export async function importPackageFromFile(
     // パッケージ形式の世代チェック（直近2世代のみ）
     const packageFormatVersion = normalizePackageFormatVersion(metadata);
     if (packageFormatVersion > PACKAGE_FORMAT_VERSION) {
-      return { success: false, error: 'このパッケージは新しいバージョンで作成されています。アプリをアップデートしてください。' };
+      return {
+        success: false,
+        error: `このパッケージは新しいバージョンで作成されています。アプリをアップデートしてください。（パッケージ世代: v${packageFormatVersion} / サポート: v${MIN_SUPPORTED_PACKAGE_FORMAT_VERSION}〜v${PACKAGE_FORMAT_VERSION}）`,
+      };
     }
     if (packageFormatVersion < MIN_SUPPORTED_PACKAGE_FORMAT_VERSION) {
-      return { success: false, error: 'このパッケージは古すぎるため、このバージョンではインポートできません。中間バージョンを経由してアップデートしてください。' };
-    }
-
-    // ダイアグラムスキーマ世代チェック（直近2世代のみ）
-    const diagramSchemaVersion = typeof metadata.diagramSchemaVersion === 'number' ? metadata.diagramSchemaVersion : 0;
-    if (diagramSchemaVersion > DIAGRAM_SCHEMA_VERSION) {
-      return { success: false, error: 'このパッケージ内のデータは新しいバージョンで作成されています。アプリをアップデートしてください。' };
-    }
-    if (diagramSchemaVersion < MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION) {
-      return { success: false, error: 'このパッケージ内のデータは古すぎるため、このバージョンではインポートできません。中間バージョンを経由してアップデートしてください。' };
+      return {
+        success: false,
+        error: `このパッケージは古すぎるため、このバージョンではインポートできません。中間バージョンを経由してアップデートしてください。（パッケージ世代: v${packageFormatVersion} / サポート: v${MIN_SUPPORTED_PACKAGE_FORMAT_VERSION}〜v${PACKAGE_FORMAT_VERSION}）`,
+      };
     }
 
     // 暗号化されている場合はパスフレーズが必要
@@ -259,6 +274,26 @@ export async function importPackageFromFile(
       } catch {
         return { success: false, error: 'パスフレーズが正しくありません' };
       }
+    }
+
+    // ダイアグラムスキーマ世代チェック（直近2世代のみ）
+    // metadata.diagramSchemaVersion が無い旧パッケージでも、実データから推定して誤判定を減らす。
+    const metadataDiagramSchemaVersion =
+      typeof metadata.diagramSchemaVersion === 'number' ? metadata.diagramSchemaVersion : null;
+    const inferredDiagramSchemaVersion = inferDiagramSchemaVersionFromJson(diagramJson);
+    const diagramSchemaVersion = metadataDiagramSchemaVersion ?? inferredDiagramSchemaVersion ?? 0;
+
+    if (diagramSchemaVersion > DIAGRAM_SCHEMA_VERSION) {
+      return {
+        success: false,
+        error: `このパッケージ内のデータは新しいバージョンで作成されています。アプリをアップデートしてください。（データ世代: v${diagramSchemaVersion} / サポート: v${MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION}〜v${DIAGRAM_SCHEMA_VERSION}）`,
+      };
+    }
+    if (diagramSchemaVersion < MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION) {
+      return {
+        success: false,
+        error: `このパッケージ内のデータは古すぎるため、このバージョンではインポートできません。中間バージョンを経由してアップデートしてください。（データ世代: v${diagramSchemaVersion} / サポート: v${MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION}〜v${DIAGRAM_SCHEMA_VERSION}）`,
+      };
     }
 
     // ダイアグラムは v0(legacy) / v1(envelope) の両方を受け入れてmigrate

@@ -274,7 +274,9 @@ export function decodeAndMigrateDiagram(value: unknown): ERDiagram | null {
     // 新しいバージョンで追加されたフィールドが「任意追加」だけの場合は、diagram 部分を正規化して読める。
     if (fromVersion > DIAGRAM_SCHEMA_VERSION) {
       if (!isLegacyDiagram(value.diagram)) {
-        throw new Error('このデータは新しいバージョンで作成されています。アプリをアップデートしてください。');
+        throw new Error(
+          `このデータは新しいバージョンで作成されています。アプリをアップデートしてください。（データ世代: v${fromVersion} / サポート: v${MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION}〜v${DIAGRAM_SCHEMA_VERSION}）`
+        );
       }
       return normalizeDiagram(value.diagram);
     }
@@ -283,7 +285,7 @@ export function decodeAndMigrateDiagram(value: unknown): ERDiagram | null {
     // ※ schemaVersion が負の値などの不正値を「救済」すると、無関係なデータを誤って受理するリスクがある。
     if (fromVersion < MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION) {
       throw new Error(
-        'このデータは古すぎるため、このバージョンでは読み込めません。中間バージョンを経由してアップデートしてください。'
+        `このデータは古すぎるため、このバージョンでは読み込めません。中間バージョンを経由してアップデートしてください。（データ世代: v${fromVersion} / サポート: v${MIN_SUPPORTED_DIAGRAM_SCHEMA_VERSION}〜v${DIAGRAM_SCHEMA_VERSION}）`
       );
     }
 
