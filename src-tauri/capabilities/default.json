@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "enables the default permissions",
+  "description": "enables the default permissions with security-focused fs scope",
   "windows": [
     "main"
   ],
@@ -19,11 +19,7 @@
       "identifier": "fs:scope",
       "allow": [
         "$DOCUMENT/**",
-        "$DOWNLOAD/**",
-        "$DESKTOP/**",
-        "$HOME/**",
-        "$APPDATA/**",
-        "$APPLOCALDATA/**"
+        "$DOWNLOAD/**"
       ]
     },
     "sql:default",
