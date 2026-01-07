@@ -10,7 +10,7 @@
     "beforeBuildCommand": "corepack pnpm build"
   },
   "app": {
-    "withGlobalTauri": true,
+    "withGlobalTauri": false,
     "windows": [
       {
         "title": "WaiwaiER Desktop",
