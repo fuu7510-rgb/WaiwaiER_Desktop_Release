@@ -155,6 +155,7 @@ function SidebarInner() {
         initialTopHeightPercent={55}
         minTopHeight={80}
         minBottomHeight={120}
+        className="flex-1 min-h-0"
         topPanel={
           /* Tables List */
           <div className="flex-1 overflow-y-auto h-full">
