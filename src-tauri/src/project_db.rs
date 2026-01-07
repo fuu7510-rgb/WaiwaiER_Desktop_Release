@@ -1,8 +1,18 @@
 use rusqlite::{params, Connection};
 use std::{fs, path::PathBuf};
 use tauri::Manager;
+use uuid::Uuid;
 
 type Result<T> = std::result::Result<T, String>;
+
+/// Validate that project_id is a valid UUID format to prevent path traversal attacks.
+/// This is a critical security measure to ensure project_id cannot contain
+/// malicious path components like "../" or absolute paths.
+fn validate_project_id(project_id: &str) -> Result<()> {
+    Uuid::parse_str(project_id)
+        .map_err(|_| format!("Invalid project_id: must be a valid UUID, got '{project_id}'"))?;
+    Ok(())
+}
 
 fn now_unix_ms() -> i64 {
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -13,13 +23,29 @@ fn now_unix_ms() -> i64 {
 }
 
 fn project_db_path(app: &tauri::AppHandle, project_id: &str) -> Result<PathBuf> {
+    // Security: Validate project_id is a valid UUID to prevent path traversal
+    validate_project_id(project_id)?;
+    
     let base = app
         .path()
         .app_data_dir()
         .map_err(|e| format!("Failed to get app data dir: {e}"))?;
     let dir = base.join("projects");
     fs::create_dir_all(&dir).map_err(|e| format!("Failed to create project db dir: {e}"))?;
-    Ok(dir.join(format!("{project_id}.db")))
+    
+    let db_path = dir.join(format!("{project_id}.db"));
+    
+    // Security: Additional defense-in-depth check - verify the resolved path is under projects dir
+    let canonical_dir = dir.canonicalize().unwrap_or_else(|_| dir.clone());
+    if let Ok(canonical_db) = db_path.canonicalize() {
+        if !canonical_db.starts_with(&canonical_dir) {
+            return Err(format!("Security error: resolved path escapes projects directory"));
+        }
+    }
+    // Note: If db_path doesn't exist yet (new project), canonicalize fails, which is OK
+    // The UUID validation above already ensures the filename is safe
+    
+    Ok(db_path)
 }
 
 fn open_project_conn(app: &tauri::AppHandle, project_id: &str, _passphrase: Option<&str>) -> Result<Connection> {

@@ -28,3 +28,4 @@ tauri-plugin-fs = "2"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 rust_xlsxwriter = "0.80"
 rusqlite = { version = "0.32", features = ["bundled"] }
+uuid = "1.11"
