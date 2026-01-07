@@ -151,7 +151,23 @@ export interface Table {
   isCollapsed?: boolean;
   /** テーブルごとのエクスポート先（未指定は全てにエクスポート） */
   exportTargets?: ExportTarget[];
+  /**
+   * 同期テーブルグループID。
+   * 同じsyncGroupIdを持つテーブルはカラム構造を共有し、
+   * 一方のカラムを変更すると他方にも自動反映される。
+   * AppSheetの「同じテーブルを複数回読み込む」機能を再現。
+   * 
+   * - undefined: 通常のテーブル（同期なし）
+   * - string(UUID): 同期グループの識別子。グループ内最初のテーブル(sourceTable)のIDを使用。
+   */
   syncGroupId?: string;
+  /**
+   * 同期テーブルかつ、同期グループのソース（マスター）テーブルであるかどうか。
+   * - true: このテーブルがカラム構造の「正」であり、他の同期テーブルはこれに追従。
+   * - false/undefined: 同期テーブルだが、ソースではない（追従側）。
+   * syncGroupIdが設定されている場合のみ意味を持つ。
+   */
+  isSyncSource?: boolean;
   createdAt: string;
   updatedAt: string;
 }

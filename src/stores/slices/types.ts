@@ -64,6 +64,16 @@ export interface TableActions {
   moveTable: (id: string, position: { x: number; y: number }) => void;
   reorderTables: (activeTableId: string, overTableId: string) => void;
   duplicateTable: (id: string) => string | null;
+  /**
+   * 同期テーブルを作成する。
+   * 元テーブルのカラム構造をコピーし、同じsyncGroupIdを共有する新しいテーブルを作成する。
+   * カラムの変更は同期グループ内で自動的に反映される。
+   */
+  createSyncTable: (id: string) => string | null;
+  /**
+   * 同期テーブルを解除し、独立したテーブルにする。
+   */
+  unlinkSyncTable: (id: string) => void;
 }
 
 export interface ColumnActions {

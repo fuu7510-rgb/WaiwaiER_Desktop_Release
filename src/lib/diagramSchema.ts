@@ -126,6 +126,7 @@ function normalizeTable(raw: unknown, index: number, fallbackNow: string): Table
     isCollapsed: typeof obj.isCollapsed === 'boolean' ? obj.isCollapsed : false,
     exportTargets: normalizeExportTargets(obj.exportTargets),
     syncGroupId: typeof obj.syncGroupId === 'string' ? obj.syncGroupId : undefined,
+    isSyncSource: typeof obj.isSyncSource === 'boolean' ? obj.isSyncSource : undefined,
     createdAt: (typeof obj.createdAt === 'string' && obj.createdAt) || fallbackNow,
     updatedAt: (typeof obj.updatedAt === 'string' && obj.updatedAt) || fallbackNow,
   };
