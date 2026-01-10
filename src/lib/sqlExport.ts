@@ -448,7 +448,8 @@ function generateMarkdownTable(
     const rows = sampleData.slice(0, maxRows);
     for (const row of rows) {
       const cells = visibleColumns.map(col => {
-        const value = row[col.name];
+        // サンプルデータは列ID（column.id）をキーとして保持している
+        const value = row[col.id];
         if (value === null || value === undefined) return '';
         // 文字列に変換し、パイプ文字をエスケープ
         return String(value).replace(/\|/g, '\\|').replace(/\n/g, ' ');
