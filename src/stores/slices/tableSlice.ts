@@ -237,4 +237,17 @@ export const createTableSlice: SliceCreator<TableSlice> = (set, get) => ({
     get().saveHistory(`テーブル「${table.name}」の同期を解除`);
     get().queueSaveToDB();
   },
+
+  setAllTablesCollapsed: (collapsed: boolean) => {
+    const tables = get().tables;
+    if (tables.length === 0) return;
+
+    set((state) => {
+      for (const table of state.tables) {
+        table.isCollapsed = collapsed;
+      }
+    });
+    get().saveHistory(collapsed ? 'すべてのテーブルを折り畳み' : 'すべてのテーブルを展開');
+    get().queueSaveToDB();
+  },
 });

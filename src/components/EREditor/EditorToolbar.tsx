@@ -8,11 +8,13 @@ interface EditorToolbarProps {
   isGridVisible: boolean;
   isAnimationTemporarilyEnabled: boolean;
   memosLength: number;
+  tablesCount: number;
   toggleMemosVisible: () => void;
   toggleRelationHighlight: () => void;
   toggleGridVisible: () => void;
   toggleAnimationEnabled: () => void;
   addMemo: (position: { x: number; y: number }) => void;
+  setAllTablesCollapsed: (collapsed: boolean) => void;
 }
 
 export function EditorToolbar({
@@ -22,11 +24,13 @@ export function EditorToolbar({
   isGridVisible,
   isAnimationTemporarilyEnabled,
   memosLength,
+  tablesCount,
   toggleMemosVisible,
   toggleRelationHighlight,
   toggleGridVisible,
   toggleAnimationEnabled,
   addMemo,
+  setAllTablesCollapsed,
 }: EditorToolbarProps) {
   const { t } = useTranslation();
 
@@ -102,6 +106,29 @@ export function EditorToolbar({
       >
         {t('editor.animations')}: {isAnimationTemporarilyEnabled ? 'ON' : 'OFF'}
       </Button>
+
+      {tablesCount > 0 && (
+        <>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => setAllTablesCollapsed(true)}
+            title={t('editor.collapseAllTables')}
+          >
+            {t('editor.collapseAll')}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => setAllTablesCollapsed(false)}
+            title={t('editor.expandAllTables')}
+          >
+            {t('editor.expandAll')}
+          </Button>
+        </>
+      )}
     </div>
   );
 }

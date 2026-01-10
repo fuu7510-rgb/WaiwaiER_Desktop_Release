@@ -65,6 +65,11 @@ export function useColumnRowActions({
   }, [currentAppFormula, miniMetaTab]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
+    // Ctrl/Shift/Meta + クリックの場合は、親ノードの複数選択を優先するため
+    // stopPropagationを呼ばない（ノードクリックイベントを親に伝播させる）
+    if (e.ctrlKey || e.shiftKey || e.metaKey) {
+      return;
+    }
     e.stopPropagation();
     selectColumn(tableId, column.id);
   }, [tableId, column.id, selectColumn]);
