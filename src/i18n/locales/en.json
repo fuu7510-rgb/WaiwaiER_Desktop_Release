@@ -160,7 +160,11 @@
     "hideGrid": "Hide grid",
     "animations": "Animations",
     "enableAnimations": "Turn animations ON",
-    "disableAnimations": "Turn animations OFF"
+    "disableAnimations": "Turn animations OFF",
+    "collapseAll": "Collapse All",
+    "expandAll": "Expand All",
+    "collapseAllTables": "Collapse all tables",
+    "expandAllTables": "Expand all tables"
   },
   "table": {
     "table": "Table",

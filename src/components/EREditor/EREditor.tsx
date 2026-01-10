@@ -51,6 +51,7 @@ function EREditorInner() {
     selectedRelationId,
     pendingSelectedTableIds,
     clearPendingSelectedTableIds,
+    setAllTablesCollapsed,
   } = useERStore();
   const {
     isRelationHighlightEnabled,
@@ -771,11 +772,13 @@ function EREditorInner() {
         isGridVisible={isGridVisible}
         isAnimationTemporarilyEnabled={isAnimationTemporarilyEnabled}
         memosLength={memos.length}
+        tablesCount={tables.length}
         toggleMemosVisible={toggleMemosVisible}
         toggleRelationHighlight={toggleRelationHighlight}
         toggleGridVisible={toggleGridVisible}
         toggleAnimationEnabled={() => setIsAnimationTemporarilyEnabled((v) => !v)}
         addMemo={addMemo}
+        setAllTablesCollapsed={setAllTablesCollapsed}
       />
     </div>
   );

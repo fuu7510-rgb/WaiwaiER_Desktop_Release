@@ -79,6 +79,10 @@ export interface TableActions {
    * 同期テーブルを解除し、独立したテーブルにする。
    */
   unlinkSyncTable: (id: string) => void;
+  /**
+   * すべてのテーブルの折りたたみ状態を一括設定する。
+   */
+  setAllTablesCollapsed: (collapsed: boolean) => void;
 }
 
 export interface ColumnActions {

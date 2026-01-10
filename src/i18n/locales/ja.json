@@ -142,7 +142,11 @@
     "hideGrid": "グリッドを非表示",
     "animations": "アニメーション",
     "enableAnimations": "アニメーションをON",
-    "disableAnimations": "アニメーションをOFF"
+    "disableAnimations": "アニメーションをOFF",
+    "collapseAll": "すべて折り畳む",
+    "expandAll": "すべて展開",
+    "collapseAllTables": "すべてのテーブルを折り畳む",
+    "expandAllTables": "すべてのテーブルを展開する"
   },
   "table": {
     "table": "テーブル",
