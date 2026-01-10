@@ -701,21 +701,41 @@ function EREditorInner() {
 
   // ノードクリック時のハンドラ
   // Shift/Ctrl/Meta + クリックで複数選択をサポート
-  const onNodeClick = useCallback(
+  // 単一選択は onNodeMouseDown で確定（微小ドラッグ扱いで onNodeClick が落ちるケース対策）
+  const onNodeMouseDown = useCallback(
     (event: React.MouseEvent, node: Node) => {
       if (event.shiftKey || event.ctrlKey || event.metaKey) {
-        // 複数選択: 現在の選択状態をトグル
-        // ストアの選択をクリア（複数選択時はストアの単一選択とは別管理）
-        selectTable(null);
-        setNodes((nds) =>
-          nds.map((n) =>
-            n.id === node.id ? { ...n, selected: !n.selected } : n
-          )
-        );
-      } else {
-        // 単一選択: ストアに選択を通知するだけ（useEffectで選択状態が反映される）
-        selectTable(node.id);
+        return;
       }
+
+      // ReactFlowの選択状態を即座に更新（ストア同期は後追いでもOK）
+      setNodes((nds) => nds.map((n) => ({ ...n, selected: n.id === node.id })));
+
+      // memoNode はストアのテーブル選択とは別扱いにしておく
+      if (node.type === 'memoNode') {
+        selectTable(null);
+        return;
+      }
+
+      selectTable(node.id);
+    },
+    [setNodes, selectTable]
+  );
+
+  const onNodeClick = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      if (!(event.shiftKey || event.ctrlKey || event.metaKey)) {
+        return;
+      }
+
+      // 複数選択: 現在の選択状態をトグル
+      // ストアの選択をクリア（複数選択時はストアの単一選択とは別管理）
+      selectTable(null);
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === node.id ? { ...n, selected: !n.selected } : n
+        )
+      );
     },
     [setNodes, selectTable]
   );
@@ -821,6 +841,7 @@ function EREditorInner() {
         onNodeDragStop={onNodeDragStop}
         onSelectionDragStart={onSelectionDragStart}
         onSelectionDragStop={onSelectionDragStop}
+        onNodeMouseDown={onNodeMouseDown}
         onNodeClick={onNodeClick}
         onConnect={onConnect}
         onConnectStart={onConnectStart}

@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useReactFlow } from 'reactflow';
 import { useERStore, useUIStore } from '../../../stores';
@@ -16,6 +16,8 @@ export const TableNodeHeader = memo(({ table }: TableNodeHeaderProps) => {
   const selectTable = useERStore((state) => state.selectTable);
   const isNameMaskEnabled = useUIStore((state) => state.isNameMaskEnabled);
   const { setNodes } = useReactFlow();
+
+  const lastNameClickRef = useRef<number | null>(null);
   
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(table.name);
@@ -38,14 +40,42 @@ export const TableNodeHeader = memo(({ table }: TableNodeHeaderProps) => {
           n.id === table.id ? { ...n, selected: !n.selected } : n
         )
       );
+      return;
     }
-  }, [table.id, setNodes]);
 
-  const handleDoubleClick = useCallback(() => {
+    // 単一選択: 先にカラムが選択されている場合でも確実にテーブル選択へ切り替える
+    // （ReactFlowのノードイベントが発火しないケースの保険）
+    selectTable(table.id);
+    setNodes((nds) => nds.map((n) => ({ ...n, selected: n.id === table.id })));
+  }, [table.id, setNodes, selectTable]);
+
+  // ブラウザの dblclick 判定は「直前の別要素クリック」を拾う環境があり、
+  // 単クリックでも稀に編集が始まることがあるため、同一要素上の2回クリックでのみ編集開始する。
+  const handleNameClick = useCallback((e: React.MouseEvent) => {
     if (isNameMaskEnabled) return;
-    setIsEditing(true);
-    setEditName(table.name);
-  }, [isNameMaskEnabled, table.name]);
+    if (isEditing) return;
+    if (e.ctrlKey || e.shiftKey || e.metaKey) return;
+
+    const now = performance.now();
+    const last = lastNameClickRef.current;
+
+    // クリックバウンス対策: 速すぎる連続クリックは無視
+    const MIN_DOUBLE_CLICK_MS = 60;
+    const MAX_DOUBLE_CLICK_MS = 350;
+
+    if (last != null) {
+      const dt = now - last;
+      if (dt >= MIN_DOUBLE_CLICK_MS && dt <= MAX_DOUBLE_CLICK_MS) {
+        e.stopPropagation();
+        setIsEditing(true);
+        setEditName(table.name);
+        lastNameClickRef.current = null;
+        return;
+      }
+    }
+
+    lastNameClickRef.current = now;
+  }, [isEditing, isNameMaskEnabled, table.name]);
 
   const handleNameSubmit = useCallback(() => {
     if (editName.trim() && editName !== table.name) {
@@ -96,7 +126,6 @@ export const TableNodeHeader = memo(({ table }: TableNodeHeaderProps) => {
       className="px-2.5 py-1.5 rounded-t font-medium text-white text-xs flex items-center justify-between"
       style={{ backgroundColor: table.color || '#6366f1' }}
       onClick={handleClick}
-      onDoubleClick={handleDoubleClick}
     >
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
         {/* 同期テーブルインジケーター */}
@@ -122,7 +151,9 @@ export const TableNodeHeader = memo(({ table }: TableNodeHeaderProps) => {
             aria-label={t('editor.tableName')}
           />
         ) : (
-          <span className="truncate">{isNameMaskEnabled ? maskIdentifier(table.name) : table.name}</span>
+          <span className="truncate" onClick={handleNameClick}>
+            {isNameMaskEnabled ? maskIdentifier(table.name) : table.name}
+          </span>
         )}
       </div>
       <span className="flex items-center gap-1.5">
