@@ -5,9 +5,6 @@
     "App": "App",
     "ChangeCounter": "ChangeCounter",
     "ChangeLocation": "ChangeLocation",
-    "ChangeTimestamp": "ChangeTimestamp",
-    "Color": "Color",
-    "Date": "Date",
     "DateTime": "DateTime",
     "Decimal": "Decimal",
     "Drawing": "Drawing",
@@ -567,11 +564,13 @@
     },
     "descriptions": {
       "json": "Save the ER diagram structure as JSON",
+      "dsl": "Lightweight format optimized for AI interactions",
       "excel": "For Google Sheets / AppSheet integration",
       "package": "Package for data migration"
     },
     "formats": {
       "json": "JSON",
+      "dsl": "DSL (Lightweight Text)",
       "excel": "Excel (.xlsx)",
       "package": "Package (.waiwai)"
     },
@@ -608,6 +607,13 @@
     "title": "Import",
     "selectFile": "Select File",
     "dropFile": "Drop file here",
+    "pasteHint": "Paste JSON or DSL text to import. Click 'Select File' to load from file.",
+    "pastePlaceholder": "Paste JSON or DSL here",
+    "pasteEmpty": "Text is empty",
+    "detectedFormat": {
+      "json": "JSON format detected",
+      "dsl": "DSL format (lightweight text) detected"
+    },
     "importSuccess": "Import completed",
     "importError": "Import failed",
     "invalidFormat": "Invalid file format",
@@ -615,7 +621,17 @@
     "modeOverwrite": "Overwrite (replace existing data)",
     "modeAppend": "Append (add to existing data)",
     "importOverwrite": "Overwrite Import",
-    "importAppend": "Append Import"
+    "importAppend": "Append Import",
+    "aiFixPromptTitle": "AI Fix Prompt",
+    "aiFixPromptHint": "Copy this prompt and give it to AI to regenerate JSON with errors fixed.",
+    "showFixPrompt": "Show Prompt",
+    "hideFixPrompt": "Hide Prompt",
+    "copyFixPrompt": "Copy",
+    "copyPromptTemplate": "Copy JSON Generation Prompt",
+    "copyPromptTemplateSuccess": "JSON generation prompt copied",
+    "copyDSLPromptTemplate": "Copy DSL Generation Prompt",
+    "copyJsonPrompt": "JSON Prompt",
+    "copyDslPrompt": "DSL Prompt"
   },
   "errors": {
     "generic": "An error occurred",
