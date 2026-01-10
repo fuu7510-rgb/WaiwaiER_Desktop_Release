@@ -157,6 +157,9 @@ function normalizeRelation(raw: unknown): Relation {
       ? Math.max(10, Math.min(1000, iconSpeedRaw))
       : 90;
 
+  const edgeVisibilityRaw = obj.edgeVisibility;
+  const edgeVisibility = edgeVisibilityRaw === 'rootOnly' ? 'rootOnly' : undefined;
+
   return {
     id: (typeof obj.id === 'string' && obj.id) || crypto.randomUUID(),
     sourceTableId: (typeof obj.sourceTableId === 'string' && obj.sourceTableId) || '',
@@ -175,6 +178,7 @@ function normalizeRelation(raw: unknown): Relation {
     edgeFollowerIconSize,
     edgeFollowerIconSpeed,
     edgeLineStyle,
+    edgeVisibility,
   };
 }
 

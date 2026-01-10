@@ -314,6 +314,14 @@
         "dotted": "点線"
       }
     },
+    "edgeVisibility": {
+      "title": "線の表示",
+      "description": "『根本のみ表示』にすると、線の途中を隠して端点付近だけ表示します。",
+      "modes": {
+        "full": "通常表示",
+        "rootOnly": "根本のみ表示（途中を隠す）"
+      }
+    },
     "deleteRelation": "リレーションを削除"
   },
   "simulator": {
@@ -506,6 +514,7 @@
         "toggleGrid": "グリッド表示切替",
         "toggleMemos": "メモ表示切替",
         "toggleRelationHighlight": "関連強調切替",
+        "toggleEdgeVisibility": "線の表示切替",
         "zoomIn": "拡大",
         "zoomOut": "縮小",
         "fitView": "全体表示",

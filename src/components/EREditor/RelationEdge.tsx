@@ -21,6 +21,49 @@ interface RelationEdgeData {
   followerIconName?: string;
   followerIconSize?: number;
   followerIconSpeed?: number;
+  edgeVisibility?: 'rootOnly';
+}
+
+function positionToDir(pos: 'left' | 'right' | 'top' | 'bottom'): { x: number; y: number } {
+  switch (pos) {
+    case 'left':
+      return { x: -1, y: 0 };
+    case 'right':
+      return { x: 1, y: 0 };
+    case 'top':
+      return { x: 0, y: -1 };
+    case 'bottom':
+      return { x: 0, y: 1 };
+  }
+}
+
+function clamp(n: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, n));
+}
+
+function buildRootOnlyPath(args: {
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  sourcePosition: 'left' | 'right' | 'top' | 'bottom';
+  targetPosition: 'left' | 'right' | 'top' | 'bottom';
+}): string {
+  const { sourceX, sourceY, targetX, targetY, sourcePosition: _sourcePosition, targetPosition } = args;
+
+  const dx = targetX - sourceX;
+  const dy = targetY - sourceY;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  // 短めに。距離に応じて少し伸びるが上限は小さく。
+  const stubLen = clamp(distance * 0.06, 6, 20);
+
+  const tDir = positionToDir(targetPosition);
+  const tx2 = targetX + tDir.x * stubLen;
+  const ty2 = targetY + tDir.y * stubLen;
+
+  // 子(ターゲット)テーブル側だけ残す
+  return `M ${tx2} ${ty2} L ${targetX} ${targetY}`;
 }
 
 // スタイル定数
@@ -65,6 +108,7 @@ export const RelationEdge = memo(({
   const rawLabel = data?.rawLabel;
   const autoLabel = data?.autoLabel;
   const isDimmed = data?.isDimmed ?? false;
+  const isRootOnly = data?.edgeVisibility === 'rootOnly';
 
   // 曲線のオフセット量を計算
   const curvature = useMemo(
@@ -72,8 +116,8 @@ export const RelationEdge = memo(({
     [offsetIndex, totalEdges]
   );
 
-  // カスタムベジェパスを生成
-  const [edgePath, labelX, labelY] = useMemo(
+  // カスタムベジェパス（通常表示用）を生成
+  const [fullEdgePath, labelX, labelY] = useMemo(
     () =>
       getCustomBezierPath({
         sourceX,
@@ -87,9 +131,21 @@ export const RelationEdge = memo(({
     [sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, curvature]
   );
 
+  const edgePath = useMemo(() => {
+    if (!isRootOnly) return fullEdgePath;
+    return buildRootOnlyPath({
+      sourceX,
+      sourceY,
+      targetX,
+      targetY,
+      sourcePosition,
+      targetPosition,
+    });
+  }, [isRootOnly, fullEdgePath, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition]);
+
   // フォロワーアイコンのアニメーション
   const { pathRef: followerPathRef, followerRef: followerElRef } = useFollowerAnimation({
-    enabled: followerIconEnabled,
+    enabled: followerIconEnabled && !isRootOnly,
     speed: followerIconSpeed,
     edgePath,
   });
@@ -132,7 +188,7 @@ export const RelationEdge = memo(({
         interactionWidth={20}
       />
 
-      {followerIconEnabled && (
+      {followerIconEnabled && !isRootOnly && (
         <>
           <path ref={followerPathRef} d={edgePath} fill="none" stroke="none" pointerEvents="none" />
           <EdgeLabelRenderer>
@@ -159,7 +215,7 @@ export const RelationEdge = memo(({
         </>
       )}
 
-      {label && (
+      {!isRootOnly && label && (
         <text
           x={labelX}
           y={labelY}
@@ -182,7 +238,7 @@ export const RelationEdge = memo(({
         </text>
       )}
 
-      {!isEditing && rawLabel === '' && (
+      {!isRootOnly && !isEditing && rawLabel === '' && (
         <EdgeLabelRenderer>
           <div
             className="nodrag nopan"
@@ -204,7 +260,7 @@ export const RelationEdge = memo(({
         </EdgeLabelRenderer>
       )}
 
-      {isEditing && (
+      {!isRootOnly && isEditing && (
         <EdgeLabelRenderer>
           <div
             className="nodrag nopan"

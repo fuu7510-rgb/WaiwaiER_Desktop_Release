@@ -221,6 +221,13 @@ export interface Relation {
    * - undefined: 実線として扱う（後方互換のため）
    */
   edgeLineStyle?: 'solid' | 'dashed' | 'dotted';
+
+  /**
+   * 線(リレーション)の表示モード。
+   * - undefined: 通常表示（後方互換のため）
+   * - 'rootOnly': 根本だけ表示し、途中は非表示
+   */
+  edgeVisibility?: 'rootOnly';
 }
 
 export interface Memo {
@@ -341,6 +348,7 @@ export type ShortcutActionId =
   | 'toggleGrid'
   | 'toggleMemos'
   | 'toggleRelationHighlight'
+  | 'toggleEdgeVisibility'
   | 'zoomIn'
   | 'zoomOut'
   | 'fitView'

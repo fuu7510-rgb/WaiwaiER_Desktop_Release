@@ -41,7 +41,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
     isAboutDialogOpen,
   } = useUIStore();
 
-  const { undo, redo, addTable, historyIndex, history, saveToDB } = useERStore();
+  const { undo, redo, addTable, historyIndex, history, saveToDB, selectedRelationId, updateRelation, relations } = useERStore();
   const { currentProjectId } = useProjectStore();
 
   // ダイアログが開いているときはショートカットを無効化
@@ -114,6 +114,16 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
             return true;
           }
           return false;
+        case 'toggleEdgeVisibility':
+          if (viewMode === 'editor' && selectedRelationId) {
+            const rel = relations.find((r) => r.id === selectedRelationId);
+            if (rel) {
+              const newVisibility = rel.edgeVisibility === 'rootOnly' ? undefined : 'rootOnly';
+              updateRelation(selectedRelationId, { edgeVisibility: newVisibility });
+              return true;
+            }
+          }
+          return false;
         case 'zoomIn':
           if (viewMode === 'editor') {
             setZoom(Math.min(zoom + 0.1, 3));
@@ -148,6 +158,8 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
       history.length,
       zoom,
       currentProjectId,
+      selectedRelationId,
+      relations,
       openProjectDialog,
       openSettings,
       openImportDialog,
@@ -160,6 +172,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
       toggleGridVisible,
       toggleMemosVisible,
       toggleRelationHighlight,
+      updateRelation,
       setZoom,
       onFitView,
       saveToDB,

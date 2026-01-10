@@ -331,6 +331,14 @@
         "dotted": "Dotted"
       }
     },
+    "edgeVisibility": {
+      "title": "Edge Visibility",
+      "description": "When set to 'Root-only', only short segments near endpoints are shown.",
+      "modes": {
+        "full": "Full",
+        "rootOnly": "Root-only (hide middle)"
+      }
+    },
     "deleteRelation": "Delete Relation"
   },
   "simulator": {
@@ -523,6 +531,7 @@
         "toggleGrid": "Toggle Grid",
         "toggleMemos": "Toggle Memos",
         "toggleRelationHighlight": "Toggle Relation Highlight",
+        "toggleEdgeVisibility": "Toggle Edge Visibility",
         "zoomIn": "Zoom In",
         "zoomOut": "Zoom Out",
         "fitView": "Fit View",
