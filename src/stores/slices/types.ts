@@ -33,6 +33,8 @@ export interface SelectionState {
   selectedTableId: string | null;
   selectedColumnId: string | null;
   selectedRelationId: string | null;
+  /** 複数エッジ選択用のリレーションIDセット */
+  selectedRelationIds: Set<string>;
   /** インポート時に選択状態にするテーブルIDのセット（一時的な状態） */
   pendingSelectedTableIds: Set<string>;
 }
@@ -129,6 +131,10 @@ export interface SelectionActions {
   selectTable: (id: string | null) => void;
   selectColumn: (tableId: string | null, columnId: string | null) => void;
   selectRelation: (relationId: string | null) => void;
+  /** 複数エッジを選択状態にする */
+  selectRelations: (relationIds: Set<string>) => void;
+  /** 複数エッジの edgeVisibility を一括切り替え */
+  toggleRelationsVisibility: () => void;
 }
 
 export interface HistoryActions {

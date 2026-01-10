@@ -47,9 +47,11 @@ function EREditorInner() {
     deleteRelation,
     selectTable,
     selectRelation,
+    selectRelations,
     selectedTableId,
     selectedColumnId,
     selectedRelationId,
+    selectedRelationIds,
     pendingSelectedTableIds,
     clearPendingSelectedTableIds,
     setAllTablesCollapsed,
@@ -371,6 +373,9 @@ function EREditorInner() {
     // 根本のみ表示モードでは付け替え機能を無効化（クリック選択のみ）
     const isRootOnly = relation.edgeVisibility === 'rootOnly';
 
+    // 複数選択または単一選択をチェック
+    const isSelected = selectedRelationIds.has(relation.id) || relation.id === selectedRelationId;
+
     return {
       id: relation.id,
       source: relation.sourceTableId,
@@ -379,7 +384,7 @@ function EREditorInner() {
       targetHandle: relation.targetColumnId,
       type: 'relationEdge',
       updatable: !isRootOnly,
-      selected: relation.id === selectedRelationId,
+      selected: isSelected,
       // 標準 animated は使わず、style側のanimationで制御する。
       animated: false,
       style: hasMergedStyle ? mergedStyle : undefined,
@@ -397,7 +402,7 @@ function EREditorInner() {
         edgeVisibility: relation.edgeVisibility,
       },
     };
-  }, [edgeOffsetMap, isAnimationTemporarilyEnabled, isEdgeAnimationEnabled, isEdgeFollowerIconEnabled, defaultFollowerIconName, defaultFollowerIconSize, defaultFollowerIconSpeed, relatedGraph, selectedRelationId]);
+  }, [edgeOffsetMap, isAnimationTemporarilyEnabled, isEdgeAnimationEnabled, isEdgeFollowerIconEnabled, defaultFollowerIconName, defaultFollowerIconSize, defaultFollowerIconSpeed, relatedGraph, selectedRelationId, selectedRelationIds]);
 
   // パフォーマンス最適化: ノードとエッジを useMemo で計算し、依存関係が変わらない限り同じ参照を維持
   const computedNodes = useMemo(() => [
@@ -665,16 +670,41 @@ function EREditorInner() {
   const onPaneClick = useCallback(() => {
     // ストアの選択をクリア
     selectTable(null);
+    // エッジ選択もクリア
+    selectRelations(new Set());
     // ReactFlowの複数選択状態もクリア
     setNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
-  }, [selectTable, setNodes]);
+  }, [selectTable, selectRelations, setNodes]);
 
   const onEdgeClick = useCallback(
     (event: React.MouseEvent, edge: Edge) => {
       event.stopPropagation();
-      selectRelation(edge.id);
+      if (event.shiftKey || event.ctrlKey || event.metaKey) {
+        // 複数選択: 現在の選択状態にトグル
+        const newIds = new Set(selectedRelationIds);
+        if (newIds.has(edge.id)) {
+          newIds.delete(edge.id);
+        } else {
+          newIds.add(edge.id);
+        }
+        selectRelations(newIds);
+      } else {
+        // 単一選択
+        selectRelation(edge.id);
+      }
     },
-    [selectRelation]
+    [selectRelation, selectRelations, selectedRelationIds]
+  );
+
+  // 範囲選択によるエッジ選択を処理
+  const onSelectionChange = useCallback(
+    ({ edges: selectedEdges }: { nodes: Node[]; edges: Edge[] }) => {
+      if (selectedEdges.length > 0) {
+        const edgeIds = new Set(selectedEdges.map((e) => e.id));
+        selectRelations(edgeIds);
+      }
+    },
+    [selectRelations]
   );
 
   return (
@@ -743,6 +773,7 @@ function EREditorInner() {
         isValidConnection={isValidConnection}
         onPaneClick={onPaneClick}
         onEdgeClick={onEdgeClick}
+        onSelectionChange={onSelectionChange}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView

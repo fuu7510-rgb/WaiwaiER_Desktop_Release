@@ -14,6 +14,7 @@ export const createHistorySlice: SliceCreator<HistorySlice> = (set, get) => ({
   selectedTableId: null,
   selectedColumnId: null,
   selectedRelationId: null,
+  selectedRelationIds: new Set<string>(),
   pendingSelectedTableIds: new Set<string>(),
 
   selectTable: (id) => {
@@ -22,6 +23,7 @@ export const createHistorySlice: SliceCreator<HistorySlice> = (set, get) => ({
       // テーブル選択時はカラム選択を常にクリアする
       state.selectedColumnId = null;
       state.selectedRelationId = null;
+      state.selectedRelationIds = new Set();
     });
   },
 
@@ -30,6 +32,7 @@ export const createHistorySlice: SliceCreator<HistorySlice> = (set, get) => ({
       state.selectedTableId = tableId;
       state.selectedColumnId = columnId;
       state.selectedRelationId = null;
+      state.selectedRelationIds = new Set();
     });
   },
 
@@ -38,7 +41,43 @@ export const createHistorySlice: SliceCreator<HistorySlice> = (set, get) => ({
       state.selectedTableId = null;
       state.selectedColumnId = null;
       state.selectedRelationId = relationId;
+      state.selectedRelationIds = relationId ? new Set([relationId]) : new Set();
     });
+  },
+
+  selectRelations: (relationIds) => {
+    set((state) => {
+      state.selectedTableId = null;
+      state.selectedColumnId = null;
+      // 単一選択も維持（最初のIDを使用）
+      const firstId = relationIds.size > 0 ? [...relationIds][0] : null;
+      state.selectedRelationId = firstId;
+      state.selectedRelationIds = relationIds;
+    });
+  },
+
+  toggleRelationsVisibility: () => {
+    const { selectedRelationIds, relations } = get();
+    if (selectedRelationIds.size === 0) return;
+
+    // 選択されたリレーションを取得
+    const selectedRelations = relations.filter((r) => selectedRelationIds.has(r.id));
+    if (selectedRelations.length === 0) return;
+
+    // すべてが rootOnly かどうかを確認
+    const allAreRootOnly = selectedRelations.every((r) => r.edgeVisibility === 'rootOnly');
+    // トグル: 全部 rootOnly なら undefined に、そうでなければ rootOnly に
+    const newVisibility = allAreRootOnly ? undefined : 'rootOnly';
+
+    set((state) => {
+      for (const relation of state.relations) {
+        if (selectedRelationIds.has(relation.id)) {
+          relation.edgeVisibility = newVisibility;
+        }
+      }
+    });
+    get().saveHistory('リレーションの表示を切り替え');
+    get().queueSaveToDB();
   },
 
   undo: () => {
