@@ -56,6 +56,22 @@ export const createMemoSlice: SliceCreator<MemoSlice> = (set, get) => ({
     get().queueSaveToDB();
   },
 
+  moveMemos: (moves) => {
+    if (moves.length === 0) return;
+    const now = new Date().toISOString();
+    set((state) => {
+      for (const move of moves) {
+        const memo = state.memos.find((m) => m.id === move.id);
+        if (memo) {
+          memo.position = move.position;
+          memo.updatedAt = now;
+        }
+      }
+    });
+    get().saveHistory(moves.length === 1 ? 'メモを移動' : `${moves.length}個のメモを移動`);
+    get().queueSaveToDB();
+  },
+
   deleteMemo: (id) => {
     set((state) => {
       state.memos = state.memos.filter((m) => m.id !== id);

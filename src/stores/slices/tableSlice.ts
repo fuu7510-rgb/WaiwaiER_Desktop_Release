@@ -108,6 +108,20 @@ export const createTableSlice: SliceCreator<TableSlice> = (set, get) => ({
     get().queueSaveToDB();
   },
 
+  moveTables: (moves) => {
+    if (moves.length === 0) return;
+    set((state) => {
+      for (const move of moves) {
+        const table = state.tables.find((t) => t.id === move.id);
+        if (table) {
+          table.position = move.position;
+        }
+      }
+    });
+    get().saveHistory(moves.length === 1 ? 'テーブルを移動' : `${moves.length}個のテーブルを移動`);
+    get().queueSaveToDB();
+  },
+
   reorderTables: (activeTableId, overTableId) => {
     if (activeTableId === overTableId) return;
     set((state) => {
