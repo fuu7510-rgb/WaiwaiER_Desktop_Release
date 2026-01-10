@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Input, Select } from '../../common';
 import { useUIStore } from '../../../stores';
@@ -32,6 +32,22 @@ export function CommonColumnsSection() {
   const selectedCommonColumn = selectedCommonColumnId
     ? commonColumns.find((c) => c.id === selectedCommonColumnId) ?? null
     : null;
+
+  const [enumValuesDraft, setEnumValuesDraft] = useState<string>('');
+
+  useEffect(() => {
+    if (!selectedCommonColumn) {
+      setEnumValuesDraft('');
+      return;
+    }
+    setEnumValuesDraft((selectedCommonColumn.constraints?.enumValues ?? []).join('\n'));
+  }, [selectedCommonColumnId]);
+
+  const parseEnumValues = (raw: string) =>
+    raw
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
 
   const applyCommonColumnsSetting = (next: CommonColumnDefinition[]) => {
     updateSettings({ commonColumns: next });
@@ -251,12 +267,16 @@ export function CommonColumnsSection() {
                       className="w-full px-2 py-1.5 text-xs border rounded focus:outline-none focus:ring-2 theme-input-bg theme-input-border theme-text-primary"
                       rows={4}
                       placeholder={t('settings.commonColumns.enumHint')}
-                      value={(selectedCommonColumn.constraints?.enumValues ?? []).join('\n')}
+                      value={enumValuesDraft}
                       onChange={(e) => {
-                        const lines = e.target.value
-                          .split('\n')
-                          .map((s) => s.trim())
-                          .filter((s) => s.length > 0);
+                        const raw = e.target.value;
+                        setEnumValuesDraft(raw);
+                        const lines = parseEnumValues(raw);
+                        updateCommonColumnConstraints(selectedCommonColumn.id, { enumValues: lines.length > 0 ? lines : undefined });
+                      }}
+                      onBlur={() => {
+                        const lines = parseEnumValues(enumValuesDraft);
+                        setEnumValuesDraft(lines.join('\n'));
                         updateCommonColumnConstraints(selectedCommonColumn.id, { enumValues: lines.length > 0 ? lines : undefined });
                       }}
                     />

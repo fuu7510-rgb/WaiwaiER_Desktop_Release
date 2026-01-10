@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useERStore, useProjectStore, useUIStore } from '../../stores';
 import { Button, Input, ConfirmDialog, InfoTooltip } from '../common';
-import { TABLE_COLOR_PALETTE, TABLE_COLOR_PICKER_CLASSES } from '../../lib/constants';
+import { TABLE_COLOR_GRID } from '../../lib/constants';
 import type { Table } from '../../types';
 
 const ALL_EXPORT_TARGETS = ['excel', 'json', 'package'] as const;
@@ -100,19 +100,27 @@ export function TableEditor() {
         >
           {t('table.color')}
         </label>
-        <div className="flex flex-wrap gap-1.5">
-          {TABLE_COLOR_PALETTE.map((color) => (
-            <button
-              key={color}
-              type="button"
-              className={`w-5 h-5 rounded-full border transition-all ${TABLE_COLOR_PICKER_CLASSES[color]} ${
-                selectedTable.color === color ? 'ring-2 ring-offset-1 ring-indigo-400 scale-110' : 'hover:scale-110'
-              }`}
-              onClick={() => handleUpdate({ color })}
-              title={color}
-              aria-label={color}
-            />
-          ))}
+        <div className="grid gap-0.5" style={{ gridTemplateColumns: 'repeat(9, 1fr)' }}>
+          {TABLE_COLOR_GRID.map((colorRow, rowIndex) =>
+            colorRow.map((color, colIndex) => (
+              <button
+                key={color}
+                type="button"
+                className={`w-4 h-4 rounded-sm border transition-all ${
+                  selectedTable.color === color ? 'ring-2 ring-offset-1 ring-indigo-400 scale-110' : 'hover:scale-110'
+                }`}
+                style={{
+                  backgroundColor: color,
+                  borderColor: color,
+                  gridRow: rowIndex + 1,
+                  gridColumn: colIndex + 1,
+                }}
+                onClick={() => handleUpdate({ color })}
+                title={color}
+                aria-label={color}
+              />
+            ))
+          )}
         </div>
       </div>
 

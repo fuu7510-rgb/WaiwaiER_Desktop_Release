@@ -3,7 +3,7 @@ import { Handle, Position } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { useTranslation } from 'react-i18next';
 import { useERStore } from '../../../stores';
-import { TABLE_NODE_STYLE_CLASSES, DEFAULT_TABLE_COLOR } from '../../../lib/constants';
+import { DEFAULT_TABLE_COLOR } from '../../../lib/constants';
 import { TableNodeHeader } from './TableNodeHeader';
 import { CollapsedColumnHandles } from './CollapsedColumnHandles';
 import { SortableColumns } from './SortableColumns';
@@ -26,7 +26,7 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
   const highlight = data.highlight;
   const isDimmed = highlight?.isDimmed ?? false;
   const isRelated = highlight?.isRelated ?? false;
-  const colorClasses = TABLE_NODE_STYLE_CLASSES[table.color?.toLowerCase() || DEFAULT_TABLE_COLOR] || TABLE_NODE_STYLE_CLASSES[DEFAULT_TABLE_COLOR];
+  const borderColor = table.color || DEFAULT_TABLE_COLOR;
 
   return (
     <div
@@ -35,12 +35,11 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
         border-2 border-solid transition-all duration-200
         ${isSelected ? 'ring-2 ring-indigo-400/50 ring-offset-1' : isRelated ? 'ring-1 ring-indigo-300/40' : 'hover:shadow-xl'}
         ${isDimmed ? 'opacity-30 saturate-50' : ''}
-        ${colorClasses.border}
       `}
-      style={{ backgroundColor: 'var(--card)' }}
+      style={{ backgroundColor: 'var(--card)', borderColor }}
     >
       {/* Header */}
-      <TableNodeHeader table={table} colorClasses={colorClasses} />
+      <TableNodeHeader table={table} />
 
       {/* Columns */}
       {isCollapsed ? <CollapsedColumnHandles table={table} /> : <SortableColumns table={table} />}

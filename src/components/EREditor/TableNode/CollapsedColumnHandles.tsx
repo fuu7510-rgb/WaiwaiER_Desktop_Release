@@ -2,13 +2,15 @@ import { Handle, Position } from 'reactflow';
 import { useCallback, useMemo } from 'react';
 import { COLLAPSED_STRIP_HEIGHT } from './constants';
 import type { Table } from './types';
-import { useERStore } from '../../../stores';
+import { useERStore, useUIStore } from '../../../stores';
+import { maskIdentifier } from '../../../lib/masking';
 
 interface CollapsedColumnHandlesProps {
   table: Table;
 }
 
 export function CollapsedColumnHandles({ table }: CollapsedColumnHandlesProps) {
+  const isNameMaskEnabled = useUIStore((s) => s.isNameMaskEnabled);
   // IMPORTANT:
   // useSyncExternalStore (used internally by Zustand) requires getSnapshot to be referentially stable
   // when the store hasn't changed. Returning a newly allocated Array/Set each call can trigger
@@ -143,7 +145,7 @@ export function CollapsedColumnHandles({ table }: CollapsedColumnHandlesProps) {
                   className="min-w-0 truncate text-[10px]"
                   style={{ color: 'var(--text-secondary)' }}
                 >
-                  {column.name}
+                  {isNameMaskEnabled ? maskIdentifier(column.name) : column.name}
                 </span>
 
                 {column.isKey && (

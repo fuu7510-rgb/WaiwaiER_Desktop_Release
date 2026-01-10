@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useERStore } from '../../../../stores';
+import { useERStore, useUIStore } from '../../../../stores';
 import type { Column, MiniMetaTab, EditableState, ColumnDerivedState } from '../types';
 
 interface UseColumnRowStateProps {
@@ -8,6 +8,7 @@ interface UseColumnRowStateProps {
 }
 
 export function useColumnRowState({ column, tableId }: UseColumnRowStateProps) {
+  const isNameMaskEnabled = useUIStore((state) => state.isNameMaskEnabled);
   // Selection state
   const isSelectedSelector = useCallback(
     (state: { selectedColumnId: string | null }) => state.selectedColumnId === column.id,
@@ -107,6 +108,13 @@ export function useColumnRowState({ column, tableId }: UseColumnRowStateProps) {
       inputRef.current?.select();
     }
   }, [isEditingName]);
+
+  useEffect(() => {
+    if (isNameMaskEnabled && isEditingName) {
+      setIsEditingName(false);
+      setEditName(column.name);
+    }
+  }, [isNameMaskEnabled, isEditingName, column.name]);
 
   useEffect(() => {
     if (!isSelected) {

@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+
 import { InfoTooltip } from '../../common';
 
 import type { Column, ColumnConstraints } from '../../../types';
@@ -16,6 +18,18 @@ type Props = {
 
 export function ColumnConstraintsSection({ selectedColumn, handleConstraintUpdate, labels }: Props) {
   const { labelEnJa, helpText, labelKey } = labels;
+
+  const [enumValuesDraft, setEnumValuesDraft] = useState('');
+
+  useEffect(() => {
+    setEnumValuesDraft(selectedColumn.constraints.enumValues?.join('\n') ?? '');
+  }, [selectedColumn.id]);
+
+  const parseEnumValues = (raw: string) =>
+    raw
+      .split(/\r?\n/)
+      .map((v) => v.trim())
+      .filter((v) => v.length > 0);
 
   return (
     <div className="border-t pt-3" style={{ borderColor: 'var(--border)' }}>
@@ -54,15 +68,18 @@ export function ColumnConstraintsSection({ selectedColumn, handleConstraintUpdat
               {labelKey('column.constraints.enumValues')}
             </label>
             <textarea
-              value={selectedColumn.constraints.enumValues?.join('\n') || ''}
-              onChange={(e) =>
-                handleConstraintUpdate({
-                  enumValues: e.target.value
-                    .split('\n')
-                    .map((v) => v.trim())
-                    .filter((v) => v.length > 0),
-                })
-              }
+              value={enumValuesDraft}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setEnumValuesDraft(raw);
+                const parsed = parseEnumValues(raw);
+                handleConstraintUpdate({ enumValues: parsed.length > 0 ? parsed : undefined });
+              }}
+              onBlur={() => {
+                const parsed = parseEnumValues(enumValuesDraft);
+                setEnumValuesDraft(parsed.join('\n'));
+                handleConstraintUpdate({ enumValues: parsed.length > 0 ? parsed : undefined });
+              }}
               className="w-full px-2.5 py-1.5 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
               style={{ backgroundColor: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
               rows={3}

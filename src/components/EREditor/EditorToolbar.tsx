@@ -7,11 +7,13 @@ interface EditorToolbarProps {
   isRelationHighlightEnabled: boolean;
   isGridVisible: boolean;
   isAnimationTemporarilyEnabled: boolean;
+  isNameMaskEnabled: boolean;
   memosLength: number;
   tablesCount: number;
   toggleMemosVisible: () => void;
   toggleRelationHighlight: () => void;
   toggleGridVisible: () => void;
+  toggleNameMask: () => void;
   toggleAnimationEnabled: () => void;
   addMemo: (position: { x: number; y: number }) => void;
   setAllTablesCollapsed: (collapsed: boolean) => void;
@@ -23,11 +25,13 @@ export function EditorToolbar({
   isRelationHighlightEnabled,
   isGridVisible,
   isAnimationTemporarilyEnabled,
+  isNameMaskEnabled,
   memosLength,
   tablesCount,
   toggleMemosVisible,
   toggleRelationHighlight,
   toggleGridVisible,
+  toggleNameMask,
   toggleAnimationEnabled,
   addMemo,
   setAllTablesCollapsed,
@@ -42,6 +46,17 @@ export function EditorToolbar({
       >
         {t('editor.zoomLevel', { percent: Math.round(zoom * 100) })}
       </div>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={toggleNameMask}
+        aria-pressed={isNameMaskEnabled}
+        title={t('editor.maskNames')}
+      >
+        {t('editor.maskNames')}: {isNameMaskEnabled ? 'ON' : 'OFF'}
+      </Button>
+
       <Button
         type="button"
         variant="secondary"

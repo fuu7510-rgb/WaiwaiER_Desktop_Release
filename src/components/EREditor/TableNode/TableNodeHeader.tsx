@@ -1,24 +1,32 @@
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useReactFlow } from 'reactflow';
-import { useERStore } from '../../../stores';
+import { useERStore, useUIStore } from '../../../stores';
+import { maskIdentifier } from '../../../lib/masking';
 import { Tooltip } from '../../common';
 import type { Table } from './types';
 
 interface TableNodeHeaderProps {
   table: Table;
-  colorClasses: { bg: string; border: string };
 }
 
-export const TableNodeHeader = memo(({ table, colorClasses }: TableNodeHeaderProps) => {
+export const TableNodeHeader = memo(({ table }: TableNodeHeaderProps) => {
   const { t } = useTranslation();
   const updateTable = useERStore((state) => state.updateTable);
   const selectTable = useERStore((state) => state.selectTable);
+  const isNameMaskEnabled = useUIStore((state) => state.isNameMaskEnabled);
   const { setNodes } = useReactFlow();
   
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(table.name);
   const isCollapsed = table.isCollapsed ?? false;
+
+  useEffect(() => {
+    if (isNameMaskEnabled && isEditing) {
+      setIsEditing(false);
+      setEditName(table.name);
+    }
+  }, [isNameMaskEnabled, isEditing, table.name]);
 
   // Ctrl/Shift/Meta + クリックでの複数選択
   const handleClick = useCallback((e: React.MouseEvent) => {
@@ -34,9 +42,10 @@ export const TableNodeHeader = memo(({ table, colorClasses }: TableNodeHeaderPro
   }, [table.id, setNodes]);
 
   const handleDoubleClick = useCallback(() => {
+    if (isNameMaskEnabled) return;
     setIsEditing(true);
     setEditName(table.name);
-  }, [table.name]);
+  }, [isNameMaskEnabled, table.name]);
 
   const handleNameSubmit = useCallback(() => {
     if (editName.trim() && editName !== table.name) {
@@ -84,7 +93,8 @@ export const TableNodeHeader = memo(({ table, colorClasses }: TableNodeHeaderPro
 
   return (
     <div
-      className={`px-2.5 py-1.5 rounded-t font-medium text-white text-xs flex items-center justify-between ${colorClasses.bg}`}
+      className="px-2.5 py-1.5 rounded-t font-medium text-white text-xs flex items-center justify-between"
+      style={{ backgroundColor: table.color || '#6366f1' }}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
     >
@@ -112,7 +122,7 @@ export const TableNodeHeader = memo(({ table, colorClasses }: TableNodeHeaderPro
             aria-label={t('editor.tableName')}
           />
         ) : (
-          <span className="truncate">{table.name}</span>
+          <span className="truncate">{isNameMaskEnabled ? maskIdentifier(table.name) : table.name}</span>
         )}
       </div>
       <span className="flex items-center gap-1.5">

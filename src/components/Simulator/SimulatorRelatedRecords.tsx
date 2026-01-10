@@ -43,27 +43,27 @@ export function SimulatorRelatedRecords({
             <div key={`${section.childTable.id}:${section.refColumn.id}`}>
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="text-xs font-medium text-zinc-700 truncate">{title}</div>
-                  <span className="text-[10px] text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded">
+                  <div className="text-xs font-medium theme-text-primary truncate">{title}</div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded theme-text-muted theme-bg-muted">
                     {section.rows.length}
                   </span>
                 </div>
               </div>
 
-              <div className="border border-zinc-200 rounded bg-white overflow-hidden">
+              <div className="border rounded overflow-hidden theme-border theme-bg-card">
                 {section.rows.length === 0 ? (
-                  <div className="px-3 py-6 text-center text-xs text-zinc-400">
+                  <div className="px-3 py-6 text-center text-xs theme-text-muted">
                     {t('common.noResults', '該当なし')}
                   </div>
                 ) : (
                   <div className="max-h-[260px] overflow-auto">
                     <table className="min-w-full border-collapse">
-                      <thead className="sticky top-0 z-10 bg-zinc-50 border-b border-zinc-200">
+                      <thead className="sticky top-0 z-10 border-b theme-border theme-bg-muted">
                         <tr>
                           {section.childTable.columns.map((c) => (
                             <th
                               key={c.id}
-                              className="px-3 py-2 text-left text-[10px] font-medium text-zinc-500 uppercase tracking-wider whitespace-nowrap"
+                              className="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wider whitespace-nowrap theme-text-muted"
                             >
                               {c.name}
                             </th>
@@ -71,7 +71,7 @@ export function SimulatorRelatedRecords({
                           <th className="px-2 py-2 w-8" />
                         </tr>
                       </thead>
-                      <tbody className="bg-white">
+                      <tbody className="theme-bg-card">
                         {section.rows.map(({ row, rowIndex }) => {
                           const computedRow = computeRowWithAppFormulas({
                             tables,
@@ -84,13 +84,14 @@ export function SimulatorRelatedRecords({
                           return (
                             <tr
                               key={rowIndex}
-                              className="border-b border-zinc-100 hover:bg-zinc-50 cursor-pointer"
+                              className="border-b cursor-pointer theme-hover-bg-muted"
+                              style={{ borderBottomColor: 'var(--border)' }}
                               onClick={() => onSelectRelatedRow(section.childTable.id, row, rowIndex)}
                             >
                               {section.childTable.columns.map((c) => (
                                 <td
                                   key={c.id}
-                                  className="px-3 py-2 text-xs text-zinc-700 whitespace-nowrap"
+                                  className="px-3 py-2 text-xs whitespace-nowrap theme-text-primary"
                                 >
                                   {c.type === 'Ref'
                                     ? getRefDisplayLabel({
@@ -102,7 +103,7 @@ export function SimulatorRelatedRecords({
                                     : formatValue(computedRow[c.id], c.type)}
                                 </td>
                               ))}
-                              <td className="px-2 py-2 text-right text-zinc-400">
+                              <td className="px-2 py-2 text-right theme-text-muted">
                                 <span aria-hidden="true">›</span>
                               </td>
                             </tr>
@@ -113,7 +114,7 @@ export function SimulatorRelatedRecords({
                   </div>
                 )}
 
-                <div className="border-t border-zinc-200 bg-zinc-50 px-2 py-1.5 flex items-center justify-end">
+                <div className="border-t px-2 py-1.5 flex items-center justify-end theme-border theme-bg-muted">
                   <Button
                     type="button"
                     variant="secondary"
