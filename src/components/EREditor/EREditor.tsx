@@ -73,6 +73,9 @@ function EREditorInner() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const lastPointerPosRef = useRef<{ x: number; y: number } | null>(null);
   const pointerRafRef = useRef<number | null>(null);
+  
+  // ノードドラッグ中かどうかを追跡（ドラッグ中は位置の同期をスキップするため）
+  const isNodeDraggingRef = useRef(false);
 
   // カスタムフックの使用
   const {
@@ -409,34 +412,37 @@ function EREditorInner() {
   // 計算済みの配列を直接使用して不要な再計算を防止
   // 重要: ReactFlowの複数選択状態とドラッグ中の位置はストアとは別に管理されているため、
   //       既存ノードの selected 状態と position を保持しながらマージする必要がある
+  // 
+  // 位置の同期戦略:
+  // - ドラッグ中: 位置の同期をスキップ（onNodesChangeで位置が管理される）
+  // - ドラッグ後: ストア(tables)の位置を使用（信頼できる唯一のソース）
+  // - 選択状態: ReactFlowの現在の選択状態を維持（複数選択対応）
+  // 
+  // Note: ドラッグ停止時にonNodeDragStopでストアが更新されるため、
+  //       このuseEffectが発火したときにはストアの位置が最新になっている
   useEffect(() => {
+    // ドラッグ中は位置の同期をスキップ
+    // （ドラッグ中の位置はonNodesChangeで管理されるため）
+    if (isNodeDraggingRef.current) {
+      return;
+    }
+    
     setNodes((currentNodes) => {
-      // 現在のノードの状態をマップに保持
-      const currentNodeStateMap = new Map<string, { selected: boolean; position: { x: number; y: number } }>();
+      // 現在のノードの選択状態をマップに保持
+      const currentNodeSelectedMap = new Map<string, boolean>();
       for (const node of currentNodes) {
-        currentNodeStateMap.set(node.id, {
-          selected: node.selected ?? false,
-          position: node.position,
-        });
+        currentNodeSelectedMap.set(node.id, node.selected ?? false);
       }
-      // computedNodesに既存の状態をマージ
+      
+      // computedNodesに既存の選択状態をマージ
+      // 位置は常にストア(computedNodes)の値を使用
       return computedNodes.map((node) => {
-        const currentState = currentNodeStateMap.get(node.id);
-        if (currentState) {
-          // 既存ノード: 位置とselected状態を保持
-          // ただし、ストアの位置と大きく異なる場合はストアの位置を使用
-          // （例：Undo/Redo操作時）
-          const storePos = node.position;
-          const currentPos = currentState.position;
-          const positionDiff = Math.abs(storePos.x - currentPos.x) + Math.abs(storePos.y - currentPos.y);
-          // 位置差が1未満なら現在の位置を保持（ドラッグ中の微小な差異を無視）
-          // 位置差が1以上ならストアの位置を使用（Undo/Redo等による意図的な変更）
-          const useStorePosition = positionDiff >= 1;
-          
+        const currentSelected = currentNodeSelectedMap.get(node.id);
+        if (currentSelected !== undefined) {
+          // 既存ノード: 選択状態はReactFlowの状態を維持、位置はストアを使用
           return {
             ...node,
-            position: useStorePosition ? storePos : currentPos,
-            selected: node.selected || currentState.selected,
+            selected: node.selected || currentSelected,
           };
         }
         // 新規ノード: そのまま使用
@@ -480,15 +486,20 @@ function EREditorInner() {
     [deleteTable, setNodes, tables]
   );
 
+  // ノードドラッグ開始時にフラグをセット
+  const onNodeDragStart = useCallback(() => {
+    isNodeDraggingRef.current = true;
+  }, []);
+
   const onNodeDragStop = useCallback(
-    (_: React.MouseEvent, _node: Node, _nodes: Node[]) => {
-      // ReactFlowの内部状態から選択されたすべてのノードを取得
-      // （onNodeDragStopのnodesパラメータは信頼できない場合があるため）
-      const allNodes = getNodes();
-      const selectedNodes = allNodes.filter((n) => n.selected);
+    (_: React.MouseEvent, _node: Node, draggedNodes: Node[]) => {
+      // ドラッグ終了フラグをセット
+      isNodeDraggingRef.current = false;
       
-      // 選択されたノードがない場合は、引数のノードを使う（単一ノードドラッグの場合）
-      const nodesToUpdate = selectedNodes.length > 0 ? selectedNodes : [_node];
+      // draggedNodes には実際にドラッグされたすべてのノードが含まれる
+      // （複数選択時は選択されたすべてのノード）
+      // 注意: draggedNodes が空の場合は _node を使用（単一ノードドラッグの場合）
+      const nodesToUpdate = draggedNodes.length > 0 ? draggedNodes : [_node];
       
       const tableMoves: Array<{ id: string; position: { x: number; y: number } }> = [];
       const memoMoves: Array<{ id: string; position: { x: number; y: number } }> = [];
@@ -509,7 +520,7 @@ function EREditorInner() {
         moveMemos(memoMoves);
       }
     },
-    [getNodes, moveMemos, moveTables]
+    [moveMemos, moveTables]
   );
 
   const onEdgesChange = useCallback(
@@ -605,6 +616,28 @@ function EREditorInner() {
     [addRelation, addColumn, flashConnectNotAllowed, relations, settings.relationLabelInitialCustomText, settings.relationLabelInitialMode, updateColumn, tables]
   );
 
+  // ノードクリック時のハンドラ
+  // Shift/Ctrl/Meta + クリックで複数選択をサポート
+  const onNodeClick = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      if (event.shiftKey || event.ctrlKey || event.metaKey) {
+        // 複数選択: 現在の選択状態をトグル
+        setNodes((nds) =>
+          nds.map((n) =>
+            n.id === node.id ? { ...n, selected: !n.selected } : n
+          )
+        );
+      } else {
+        // 単一選択: このノードのみ選択、他は解除
+        setNodes((nds) =>
+          nds.map((n) => ({ ...n, selected: n.id === node.id }))
+        );
+        selectTable(node.id);
+      }
+    },
+    [setNodes, selectTable]
+  );
+
   const onPaneClick = useCallback(() => {
     selectTable(null);
   }, [selectTable]);
@@ -674,7 +707,9 @@ function EREditorInner() {
         onEdgeUpdate={onEdgeUpdate}
         onEdgeUpdateStart={onEdgeUpdateStart}
         onEdgeUpdateEnd={onEdgeUpdateEnd}
+        onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
+        onNodeClick={onNodeClick}
         onConnect={onConnect}
         onConnectStart={onConnectStart}
         onConnectEnd={onConnectEnd}

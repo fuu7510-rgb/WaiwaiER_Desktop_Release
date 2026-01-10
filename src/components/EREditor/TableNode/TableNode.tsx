@@ -13,14 +13,8 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
   const { table } = data;
   const { t } = useTranslation();
   
-  const selectTable = useERStore((state) => state.selectTable);
   const addColumn = useERStore((state) => state.addColumn);
   const isTableSelected = useERStore((state) => state.selectedTableId === table.id);
-
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    selectTable(table.id);
-  }, [table.id, selectTable]);
 
   const handleAddColumn = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -44,7 +38,6 @@ export const TableNode = memo(({ data, selected }: NodeProps<TableNodeData>) => 
         ${colorClasses.border}
       `}
       style={{ backgroundColor: 'var(--card)' }}
-      onClick={handleClick}
     >
       {/* Header */}
       <TableNodeHeader table={table} colorClasses={colorClasses} />
