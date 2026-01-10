@@ -26,7 +26,7 @@ export function DetailView({ table }: DetailViewProps) {
 
   return (
     <div className="max-w-xl mx-auto">
-      <div className="bg-white rounded-lg shadow-sm border border-zinc-100 overflow-hidden">
+      <div className="theme-bg-card rounded-lg shadow-sm border theme-border overflow-hidden">
         {/* Header */}
         <div 
           className="px-4 py-3 text-white"
@@ -39,11 +39,11 @@ export function DetailView({ table }: DetailViewProps) {
         </div>
 
         {/* Fields */}
-        <div className="divide-y divide-zinc-100">
+        <div className="divide-y theme-divide-y">
           {table.columns.map((column) => (
             <div key={column.id} className="px-4 py-2.5 flex items-start">
               <div className="flex-1">
-                <label className="flex items-center text-[10px] font-medium text-zinc-400 mb-0.5">
+                <label className="flex items-center text-[10px] font-medium mb-0.5 theme-text-muted">
                   {column.isKey && (
                     <svg className="w-2.5 h-2.5 text-amber-500 mr-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
@@ -52,9 +52,9 @@ export function DetailView({ table }: DetailViewProps) {
                   {column.name}
                   {column.constraints.required && <span className="text-red-400 ml-0.5">*</span>}
                 </label>
-                <p className="text-xs text-zinc-700">{String(sampleData[column.id] ?? '-')}</p>
+                <p className="text-xs theme-text-primary">{String(sampleData[column.id] ?? '-')}</p>
               </div>
-              <span className="text-[9px] text-zinc-400 bg-zinc-50 px-1.5 py-0.5 rounded">
+              <span className="text-[9px] px-1.5 py-0.5 rounded theme-text-muted theme-bg-muted">
                 {t(`columnTypes.${column.type}`)}
               </span>
             </div>

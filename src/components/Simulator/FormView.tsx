@@ -35,7 +35,7 @@ function getInputType(column: Column): string {
 
 function renderFormField(column: Column, columnId: string) {
   const inputType = getInputType(column);
-  const baseInputClass = "w-full px-2.5 py-1.5 text-xs border border-zinc-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400";
+  const baseInputClass = "w-full px-2.5 py-1.5 text-xs border rounded focus:outline-none theme-input-bg theme-input-border theme-text-primary";
 
   if (column.type === 'Yes/No') {
     return (
@@ -68,9 +68,9 @@ function renderFormField(column: Column, columnId: string) {
             <input 
               type="checkbox" 
               id={`${columnId}-${index}`}
-              className="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600" 
+              className="w-3.5 h-3.5 rounded" 
             />
-            <span className="text-xs text-zinc-600">{opt}</span>
+            <span className="text-xs theme-text-secondary">{opt}</span>
           </label>
         ))}
       </div>
@@ -79,13 +79,13 @@ function renderFormField(column: Column, columnId: string) {
 
   if (column.type === 'Image' || column.type === 'File') {
     return (
-      <div className="border-2 border-dashed border-zinc-200 rounded p-4 text-center hover:border-indigo-300 transition-colors">
-        <div className="text-zinc-400">
+      <div className="border-2 border-dashed rounded p-4 text-center transition-colors theme-border">
+        <div className="theme-text-muted">
           <svg className="mx-auto h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
           </svg>
           <p className="mt-1 text-[10px]">クリックしてファイルを選択</p>
-          <p className="text-[9px] text-zinc-300">またはドラッグ＆ドロップ</p>
+          <p className="text-[9px]" style={{ color: 'var(--text-placeholder)' }}>またはドラッグ＆ドロップ</p>
         </div>
         <input id={columnId} type="file" className="hidden" title={column.name} />
       </div>
@@ -124,7 +124,7 @@ export function FormView({ table }: FormViewProps) {
 
   return (
     <div className="max-w-xl mx-auto">
-      <div className="bg-white rounded-lg shadow-sm border border-zinc-100 overflow-hidden">
+      <div className="theme-bg-card rounded-lg shadow-sm border theme-border overflow-hidden">
         {/* Header */}
         <div 
           className="px-4 py-3 text-white"
@@ -140,7 +140,7 @@ export function FormView({ table }: FormViewProps) {
             <div key={column.id}>
               <label 
                 htmlFor={column.id}
-                className="flex items-center text-[10px] font-medium text-zinc-500 mb-1"
+                className="flex items-center text-[10px] font-medium mb-1 theme-text-secondary"
               >
                 {column.isKey && (
                   <svg className="w-2.5 h-2.5 text-amber-500 mr-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -149,19 +149,19 @@ export function FormView({ table }: FormViewProps) {
                 )}
                 {column.name}
                 {column.constraints.required && <span className="text-red-400 ml-0.5">*</span>}
-                <span className="text-[9px] text-zinc-400 ml-1.5">
+                <span className="text-[9px] ml-1.5 theme-text-muted">
                   ({t(`columnTypes.${column.type}`)})
                 </span>
               </label>
               {renderFormField(column, column.id)}
               {column.description && (
-                <p className="mt-0.5 text-[9px] text-zinc-400">{column.description}</p>
+                <p className="mt-0.5 text-[9px] theme-text-muted">{column.description}</p>
               )}
             </div>
           ))}
 
           {/* Submit buttons */}
-          <div className="flex justify-end gap-2 pt-3 border-t border-zinc-100">
+          <div className="flex justify-end gap-2 pt-3 border-t theme-border">
             <Button type="button" variant="secondary" size="sm">
               {t('common.cancel')}
             </Button>

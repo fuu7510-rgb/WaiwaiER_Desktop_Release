@@ -103,11 +103,11 @@ export function SimulatorDetailPanel({
       </div>
 
       {/* Content */}
-      <div className="divide-y divide-zinc-100">
+      <div className="divide-y theme-divide-y">
         {table.columns.map((column) => (
           <div key={column.id} className="px-4 py-2.5 flex items-start gap-3">
             <div className="w-[120px] shrink-0">
-              <label className="flex items-center text-[10px] font-medium text-zinc-400">
+              <label className="flex items-center text-[10px] font-medium theme-text-muted">
                 {column.isKey && (
                   <svg
                     className="w-2.5 h-2.5 text-amber-500 mr-0.5"
@@ -125,10 +125,10 @@ export function SimulatorDetailPanel({
                 {column.constraints.required && <span className="text-red-400 ml-0.5">*</span>}
               </label>
               {column.description && (
-                <p className="mt-0.5 text-[9px] text-zinc-400 line-clamp-2">{column.description}</p>
+                <p className="mt-0.5 text-[9px] theme-text-muted line-clamp-2">{column.description}</p>
               )}
             </div>
-            <div className="flex-1 min-w-0 text-xs text-zinc-700 break-words">
+            <div className="flex-1 min-w-0 text-xs theme-text-primary break-words">
               {!isEditing ? (
                 <ColumnValueDisplay
                   column={column}

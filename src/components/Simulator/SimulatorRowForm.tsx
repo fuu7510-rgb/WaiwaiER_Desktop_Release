@@ -117,11 +117,11 @@ export function SimulatorRowForm({
               [column.id]: nextValue,
             }));
           }}
-          className="w-4 h-4 rounded border-zinc-300"
+          className="w-4 h-4 rounded"
           aria-label={column.name}
           title={column.name}
         />
-        <span className="text-xs text-zinc-600">{checked ? 'Yes' : 'No'}</span>
+        <span className="text-xs theme-text-secondary">{checked ? 'Yes' : 'No'}</span>
       </label>
     );
   }
@@ -154,7 +154,7 @@ export function SimulatorRowForm({
     return (
       <div className="space-y-1">
         {options.length === 0 ? (
-          <div className="text-xs text-zinc-400">{t('common.noOptions', '選択肢なし')}</div>
+          <div className="text-xs theme-text-muted">{t('common.noOptions', '選択肢なし')}</div>
         ) : (
           options.map((opt) => {
             const isChecked = selected.has(opt);
@@ -173,11 +173,11 @@ export function SimulatorRowForm({
                       [column.id]: nextValue,
                     }));
                   }}
-                  className="w-4 h-4 rounded border-zinc-300"
+                  className="w-4 h-4 rounded"
                   aria-label={`${column.name}:${opt}`}
                   title={`${column.name}:${opt}`}
                 />
-                <span className="text-xs text-zinc-600">{opt}</span>
+                <span className="text-xs theme-text-secondary">{opt}</span>
               </label>
             );
           })
@@ -245,7 +245,7 @@ export function SimulatorRowForm({
           [column.id]: nextValue,
         }));
       }}
-      className="w-full text-xs px-2 py-1 border border-zinc-200 rounded bg-white"
+      className="w-full text-xs px-2 py-1 border rounded theme-input-bg theme-input-border theme-text-primary"
     />
   );
 }
