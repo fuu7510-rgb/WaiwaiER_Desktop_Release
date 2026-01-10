@@ -204,6 +204,49 @@ describe('diagramSchema', () => {
       });
     });
 
+    describe('リレーションのedgeVisibilityの正規化', () => {
+      it('未指定の場合はundefinedのまま（=通常表示）', () => {
+        const envelope = {
+          schemaVersion: 4,
+          diagram: {
+            tables: [createMinimalTable({ id: 't1' }), createMinimalTable({ id: 't2' })],
+            relations: [createMinimalRelation({ id: 'r1' })],
+            memos: [],
+          },
+        };
+
+        const result = decodeAndMigrateDiagram(envelope);
+        expect(result).not.toBeNull();
+
+        const rel = result!.relations[0];
+        expect(rel.edgeVisibility).toBeUndefined();
+      });
+
+      it('rootOnlyのみ許可され、それ以外はundefinedに正規化される', () => {
+        const legacy = {
+          tables: [createMinimalTable({ id: 't1' }), createMinimalTable({ id: 't2' })],
+          relations: [
+            createMinimalRelation({
+              id: 'r1',
+              // @ts-expect-error legacy/unknown values
+              edgeVisibility: 'nope',
+            }),
+            createMinimalRelation({
+              id: 'r2',
+              edgeVisibility: 'rootOnly',
+            }),
+          ],
+        };
+
+        const result = decodeAndMigrateDiagram(legacy);
+        expect(result).not.toBeNull();
+
+        const [r1, r2] = result!.relations;
+        expect(r1.edgeVisibility).toBeUndefined();
+        expect(r2.edgeVisibility).toBe('rootOnly');
+      });
+    });
+
     describe('レガシー形式（エンベロープなし）の処理', () => {
       it('エンベロープなしのダイアグラムをV1にマイグレートできる', () => {
         const legacyDiagram = {

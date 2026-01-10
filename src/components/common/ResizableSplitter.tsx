@@ -93,7 +93,7 @@ export function ResizableSplitter({
   }, [isDragging, storageKey, topHeightPercent]);
 
   return (
-    <div ref={containerRef} className={`flex flex-col h-full ${className}`}>
+    <div ref={containerRef} className={`flex flex-col min-h-0 ${className}`}>
       {/* 上部パネル */}
       <div
         className="overflow-hidden flex flex-col min-h-0"

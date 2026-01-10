@@ -22,7 +22,7 @@ export function parseJSONDiagramText(content: string): ERDiagram {
 
 export async function readJSONDiagramTextFromFile(): Promise<string | null> {
   const filePath = await open({
-    filters: [{ name: 'JSON', extensions: ['json'] }],
+    filters: [{ name: 'JSON / DSL', extensions: ['json', 'dsl'] }],
     multiple: false,
   });
 

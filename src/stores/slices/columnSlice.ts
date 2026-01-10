@@ -2,8 +2,8 @@
  * カラム操作スライス
  */
 import { v4 as uuidv4 } from 'uuid';
-import type { Column } from '../../types';
-import type { ColumnActions, SliceCreator } from './types';
+import type { Column, Table } from '../../types';
+import type { ColumnActions, SliceCreator, ERState } from './types';
 import { useUIStore } from '../uiStore';
 import {
   createDefaultColumn,
@@ -17,6 +17,95 @@ import {
 import { DEFAULT_SAMPLE_ROWS } from './types';
 
 export type ColumnSlice = ColumnActions;
+
+/**
+ * 同期グループ内の他のテーブルにカラム変更を反映するヘルパー
+ */
+function syncColumnToGroup(
+  state: ERState,
+  sourceTable: Table,
+  action: 'add' | 'update' | 'delete' | 'reorder',
+  columnId: string,
+  updates?: Partial<Column>,
+  newColumn?: Column
+) {
+  if (!sourceTable.syncGroupId) return;
+
+  const syncedTables = state.tables.filter(
+    (t) => t.syncGroupId === sourceTable.syncGroupId && t.id !== sourceTable.id
+  );
+  if (syncedTables.length === 0) return;
+
+  for (const syncedTable of syncedTables) {
+    switch (action) {
+      case 'add': {
+        if (newColumn && !syncedTable.columns.some((c) => c.id === newColumn.id)) {
+          syncedTable.columns.push({ ...newColumn });
+          syncedTable.updatedAt = new Date().toISOString();
+          const synced = syncSampleRowsToTableSchema({
+            table: syncedTable,
+            currentRows: state.sampleDataByTableId[syncedTable.id],
+          });
+          state.sampleDataByTableId = normalizeRefValues({
+            tables: state.tables,
+            sampleDataByTableId: { ...state.sampleDataByTableId, [syncedTable.id]: synced },
+          });
+        }
+        break;
+      }
+      case 'update': {
+        const col = syncedTable.columns.find((c) => c.id === columnId);
+        if (col && updates) {
+          Object.assign(col, updates);
+          syncedTable.updatedAt = new Date().toISOString();
+          const synced = syncSampleRowsToTableSchema({
+            table: syncedTable,
+            currentRows: state.sampleDataByTableId[syncedTable.id],
+          });
+          state.sampleDataByTableId = normalizeRefValues({
+            tables: state.tables,
+            sampleDataByTableId: { ...state.sampleDataByTableId, [syncedTable.id]: synced },
+          });
+        }
+        break;
+      }
+      case 'delete': {
+        syncedTable.columns = syncedTable.columns.filter((c) => c.id !== columnId);
+        syncedTable.updatedAt = new Date().toISOString();
+        const synced = syncSampleRowsToTableSchema({
+          table: syncedTable,
+          currentRows: state.sampleDataByTableId[syncedTable.id],
+        });
+        state.sampleDataByTableId = normalizeRefValues({
+          tables: state.tables,
+          sampleDataByTableId: { ...state.sampleDataByTableId, [syncedTable.id]: synced },
+        });
+        // 同期グループ内のテーブルに関連するリレーションも削除
+        state.relations = state.relations.filter(
+          (r) =>
+            !(
+              (r.sourceTableId === syncedTable.id || r.targetTableId === syncedTable.id) &&
+              (r.sourceColumnId === columnId || r.targetColumnId === columnId)
+            )
+        );
+        break;
+      }
+      case 'reorder': {
+        // ソーステーブルのカラム順序をコピー
+        const orderMap = new Map(sourceTable.columns.map((c) => [c.id, c.order]));
+        for (const col of syncedTable.columns) {
+          const order = orderMap.get(col.id);
+          if (order !== undefined) {
+            col.order = order;
+          }
+        }
+        syncedTable.columns.sort((a, b) => a.order - b.order);
+        syncedTable.updatedAt = new Date().toISOString();
+        break;
+      }
+    }
+  }
+}
 
 export const createColumnSlice: SliceCreator<ColumnSlice> = (set, get) => ({
   addColumn: (tableId, column) => {
@@ -36,6 +125,9 @@ export const createColumnSlice: SliceCreator<ColumnSlice> = (set, get) => ({
         t.updatedAt = new Date().toISOString();
         const synced = syncSampleRowsToTableSchema({ table: t, currentRows: state.sampleDataByTableId[tableId] });
         state.sampleDataByTableId = normalizeRefValues({ tables: state.tables, sampleDataByTableId: { ...state.sampleDataByTableId, [tableId]: synced } });
+
+        // 同期グループ内の他のテーブルにもカラムを追加
+        syncColumnToGroup(state, t, 'add', newColumn.id, undefined, newColumn);
       }
     });
     get().saveHistory(`カラム「${newColumn.name}」を追加`);
@@ -195,6 +287,18 @@ export const createColumnSlice: SliceCreator<ColumnSlice> = (set, get) => ({
             tables: state.tables,
             sampleDataByTableId: { ...state.sampleDataByTableId, [tableId]: nextRows },
           });
+
+          // 同期グループ内の他のテーブルにも変更を反映（Ref制約は除く、各テーブルで独立）
+          const syncUpdates = { ...updates };
+          // Ref型の参照先は同期テーブルごとに異なる可能性があるため、constraintsから除外
+          if (syncUpdates.constraints) {
+            syncUpdates.constraints = {
+              ...syncUpdates.constraints,
+              refTableId: undefined,
+              refColumnId: undefined,
+            };
+          }
+          syncColumnToGroup(state, table, 'update', columnId, syncUpdates);
         }
       }
     });
@@ -207,6 +311,9 @@ export const createColumnSlice: SliceCreator<ColumnSlice> = (set, get) => ({
       const table = state.tables.find((t) => t.id === tableId);
       if (table) {
         const selectedRelationId = state.selectedRelationId;
+
+        // 同期グループ内の他のテーブルからもカラムを削除
+        syncColumnToGroup(state, table, 'delete', columnId);
 
         table.columns = table.columns.filter((c) => c.id !== columnId);
         table.updatedAt = new Date().toISOString();
@@ -282,6 +389,9 @@ export const createColumnSlice: SliceCreator<ColumnSlice> = (set, get) => ({
           table.updatedAt = new Date().toISOString();
           const synced = syncSampleRowsToTableSchema({ table, currentRows: state.sampleDataByTableId[tableId] });
           state.sampleDataByTableId = normalizeRefValues({ tables: state.tables, sampleDataByTableId: { ...state.sampleDataByTableId, [tableId]: synced } });
+
+          // 同期グループ内の他のテーブルにもカラム順序を反映
+          syncColumnToGroup(state, table, 'reorder', columnId);
         }
       }
     });

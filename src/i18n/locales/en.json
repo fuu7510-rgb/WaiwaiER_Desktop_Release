@@ -5,9 +5,6 @@
     "App": "App",
     "ChangeCounter": "ChangeCounter",
     "ChangeLocation": "ChangeLocation",
-    "ChangeTimestamp": "ChangeTimestamp",
-    "Color": "Color",
-    "Date": "Date",
     "DateTime": "DateTime",
     "Decimal": "Decimal",
     "Drawing": "Drawing",
@@ -35,6 +32,7 @@
     "Video": "Video",
     "XY": "XY",
     "Yes/No": "Yes/No",
+    "copy": "Copy",
     "paste": "Paste",
     "undo": "Undo",
     "redo": "Redo",
@@ -193,6 +191,13 @@
     "deleteTable": "Delete Table",
     "deleteTableConfirm": "Are you sure you want to delete table \"{{name}}\"?",
     "duplicateTable": "Duplicate Table",
+    "createSyncTable": "Create Sync Table",
+    "unlinkSyncTable": "Unlink Sync",
+    "syncGroup": "Sync group",
+    "syncGroupCount": " tables",
+    "syncSource": "source",
+    "syncIndicator": "Sync",
+    "syncTableTooltip": "Sync table: Column structure is shared with other tables",
     "color": "Color",
     "createdAt": "Created",
     "updatedAt": "Updated",
@@ -324,6 +329,14 @@
         "solid": "Solid",
         "dashed": "Dashed",
         "dotted": "Dotted"
+      }
+    },
+    "edgeVisibility": {
+      "title": "Edge Visibility",
+      "description": "When set to 'Root-only', only short segments near endpoints are shown.",
+      "modes": {
+        "full": "Full",
+        "rootOnly": "Root-only (hide middle)"
       }
     },
     "deleteRelation": "Delete Relation"
@@ -518,6 +531,7 @@
         "toggleGrid": "Toggle Grid",
         "toggleMemos": "Toggle Memos",
         "toggleRelationHighlight": "Toggle Relation Highlight",
+        "toggleEdgeVisibility": "Toggle Edge Visibility",
         "zoomIn": "Zoom In",
         "zoomOut": "Zoom Out",
         "fitView": "Fit View",
@@ -560,11 +574,13 @@
     },
     "descriptions": {
       "json": "Save the ER diagram structure as JSON",
+      "dsl": "Lightweight format optimized for AI interactions",
       "excel": "For Google Sheets / AppSheet integration",
       "package": "Package for data migration"
     },
     "formats": {
       "json": "JSON",
+      "dsl": "DSL (Lightweight Text)",
       "excel": "Excel (.xlsx)",
       "package": "Package (.waiwai)"
     },
@@ -601,6 +617,13 @@
     "title": "Import",
     "selectFile": "Select File",
     "dropFile": "Drop file here",
+    "pasteHint": "Paste JSON or DSL text to import. Click 'Select File' to load from file.",
+    "pastePlaceholder": "Paste JSON or DSL here",
+    "pasteEmpty": "Text is empty",
+    "detectedFormat": {
+      "json": "JSON format detected",
+      "dsl": "DSL format (lightweight text) detected"
+    },
     "importSuccess": "Import completed",
     "importError": "Import failed",
     "invalidFormat": "Invalid file format",
@@ -608,7 +631,17 @@
     "modeOverwrite": "Overwrite (replace existing data)",
     "modeAppend": "Append (add to existing data)",
     "importOverwrite": "Overwrite Import",
-    "importAppend": "Append Import"
+    "importAppend": "Append Import",
+    "aiFixPromptTitle": "AI Fix Prompt",
+    "aiFixPromptHint": "Copy this prompt and give it to AI to regenerate JSON with errors fixed.",
+    "showFixPrompt": "Show Prompt",
+    "hideFixPrompt": "Hide Prompt",
+    "copyFixPrompt": "Copy",
+    "copyPromptTemplate": "Copy JSON Generation Prompt",
+    "copyPromptTemplateSuccess": "JSON generation prompt copied",
+    "copyDSLPromptTemplate": "Copy DSL Generation Prompt",
+    "copyJsonPrompt": "JSON Prompt",
+    "copyDslPrompt": "DSL Prompt"
   },
   "errors": {
     "generic": "An error occurred",

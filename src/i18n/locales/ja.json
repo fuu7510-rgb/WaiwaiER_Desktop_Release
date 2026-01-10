@@ -22,8 +22,6 @@
     "settings": "設定",
     "export": "エクスポート",
     "open": "開く",
-    "import": "インポート",
-    "duplicate": "複製",
     "copy": "コピー",
     "paste": "貼り付け",
     "undo": "元に戻す",
@@ -175,6 +173,13 @@
     "deleteTable": "テーブルを削除",
     "deleteTableConfirm": "テーブル「{{name}}」を削除しますか？",
     "duplicateTable": "テーブルを複製",
+    "createSyncTable": "同期テーブルを作成",
+    "unlinkSyncTable": "同期を解除",
+    "syncGroup": "同期グループ",
+    "syncGroupCount": "テーブル",
+    "syncSource": "ソース",
+    "syncIndicator": "同期",
+    "syncTableTooltip": "同期テーブル: カラム構造が他のテーブルと共有されています",
     "color": "色",
     "hasIncomingRelation": "他テーブルから参照されています",
     "createdAt": "作成日",
@@ -307,6 +312,14 @@
         "solid": "実線",
         "dashed": "破線",
         "dotted": "点線"
+      }
+    },
+    "edgeVisibility": {
+      "title": "線の表示",
+      "description": "『根本のみ表示』にすると、線の途中を隠して端点付近だけ表示します。",
+      "modes": {
+        "full": "通常表示",
+        "rootOnly": "根本のみ表示（途中を隠す）"
       }
     },
     "deleteRelation": "リレーションを削除"
@@ -501,6 +514,7 @@
         "toggleGrid": "グリッド表示切替",
         "toggleMemos": "メモ表示切替",
         "toggleRelationHighlight": "関連強調切替",
+        "toggleEdgeVisibility": "線の表示切替",
         "zoomIn": "拡大",
         "zoomOut": "縮小",
         "fitView": "全体表示",
@@ -540,11 +554,13 @@
     },
     "descriptions": {
       "json": "ER図の構造をJSON形式で保存",
+      "dsl": "AIとのやり取りに最適な軽量形式",
       "excel": "Googleスプレッドシート連携用",
       "package": "データ移行用パッケージ"
     },
     "formats": {
       "json": "JSON",
+      "dsl": "DSL (軽量テキスト)",
       "excel": "Excel (.xlsx)",
       "package": "パッケージ (.waiwai)"
     },
@@ -581,9 +597,13 @@
     "title": "インポート",
     "selectFile": "ファイルを選択",
     "dropFile": "ファイルをドロップ",
-    "pasteHint": "JSONテキストを貼り付けてインポートできます。ファイルから読み込む場合は「ファイルを選択」を押してください。",
-    "pastePlaceholder": "ここにJSONを貼り付け",
-    "pasteEmpty": "JSONテキストが空です",
+    "pasteHint": "JSONまたはDSLテキストを貼り付けてインポートできます。ファイルから読み込む場合は「ファイルを選択」を押してください。",
+    "pastePlaceholder": "ここにJSONまたはDSLを貼り付け",
+    "pasteEmpty": "テキストが空です",
+    "detectedFormat": {
+      "json": "JSON形式を検出しました",
+      "dsl": "DSL形式（軽量テキスト）を検出しました"
+    },
     "importSuccess": "インポートが完了しました",
     "importError": "インポートに失敗しました",
     "invalidFormat": "無効なファイル形式です",
@@ -591,7 +611,17 @@
     "modeOverwrite": "上書き（既存データを置き換え）",
     "modeAppend": "追加（既存データに追加）",
     "importOverwrite": "上書きインポート",
-    "importAppend": "追加インポート"
+    "importAppend": "追加インポート",
+    "aiFixPromptTitle": "AI修正プロンプト",
+    "aiFixPromptHint": "このプロンプトをコピーしてAIに渡すと、エラーを修正したJSONを再生成できます。",
+    "showFixPrompt": "プロンプトを表示",
+    "hideFixPrompt": "プロンプトを隠す",
+    "copyFixPrompt": "コピー",
+    "copyPromptTemplate": "JSON生成用プロンプトをコピー",
+    "copyPromptTemplateSuccess": "JSON生成用プロンプトをコピーしました",
+    "copyDSLPromptTemplate": "DSL生成用プロンプトをコピー",
+    "copyJsonPrompt": "JSONプロンプト",
+    "copyDslPrompt": "DSLプロンプト"
   },
   "errors": {
     "generic": "エラーが発生しました",

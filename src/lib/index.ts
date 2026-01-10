@@ -5,4 +5,5 @@ export * from './crypto';
 export * from './license';
 export * from './package';
 export * from './exportFilter';
+export * from './dslFormat';
 export { cn } from './cn';

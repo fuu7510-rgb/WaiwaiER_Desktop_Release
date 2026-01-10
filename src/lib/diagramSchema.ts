@@ -126,6 +126,7 @@ function normalizeTable(raw: unknown, index: number, fallbackNow: string): Table
     isCollapsed: typeof obj.isCollapsed === 'boolean' ? obj.isCollapsed : false,
     exportTargets: normalizeExportTargets(obj.exportTargets),
     syncGroupId: typeof obj.syncGroupId === 'string' ? obj.syncGroupId : undefined,
+    isSyncSource: typeof obj.isSyncSource === 'boolean' ? obj.isSyncSource : undefined,
     createdAt: (typeof obj.createdAt === 'string' && obj.createdAt) || fallbackNow,
     updatedAt: (typeof obj.updatedAt === 'string' && obj.updatedAt) || fallbackNow,
   };
@@ -156,6 +157,9 @@ function normalizeRelation(raw: unknown): Relation {
       ? Math.max(10, Math.min(1000, iconSpeedRaw))
       : 90;
 
+  const edgeVisibilityRaw = obj.edgeVisibility;
+  const edgeVisibility = edgeVisibilityRaw === 'rootOnly' ? 'rootOnly' : undefined;
+
   return {
     id: (typeof obj.id === 'string' && obj.id) || crypto.randomUUID(),
     sourceTableId: (typeof obj.sourceTableId === 'string' && obj.sourceTableId) || '',
@@ -174,6 +178,7 @@ function normalizeRelation(raw: unknown): Relation {
     edgeFollowerIconSize,
     edgeFollowerIconSpeed,
     edgeLineStyle,
+    edgeVisibility,
   };
 }
 

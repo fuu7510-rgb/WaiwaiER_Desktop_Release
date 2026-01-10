@@ -9,6 +9,7 @@ import ReactFlow, {
   applyEdgeChanges,
   ReactFlowProvider,
   useStore as useReactFlowStore,
+  useReactFlow,
 } from 'reactflow';
 import type { Connection, Edge, Node, NodeChange, EdgeChange } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -33,8 +34,8 @@ function EREditorInner() {
     tables,
     relations,
     memos,
-    moveTable,
-    moveMemo,
+    moveTables,
+    moveMemos,
     addMemo,
     addRelation,
     addColumn,
@@ -68,6 +69,7 @@ function EREditorInner() {
   const defaultFollowerIconSpeed = settings.edgeFollowerIconSpeed ?? 90;
   
   const zoom = useReactFlowStore((state) => state.transform[2], (a, b) => a === b);
+  const { getNodes } = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const lastPointerPosRef = useRef<{ x: number; y: number } | null>(null);
   const pointerRafRef = useRef<number | null>(null);
@@ -361,6 +363,9 @@ function EREditorInner() {
       ? (relation.edgeFollowerIconSpeed ?? defaultFollowerIconSpeed)
       : defaultFollowerIconSpeed;
 
+    // 根本のみ表示モードでは付け替え機能を無効化（クリック選択のみ）
+    const isRootOnly = relation.edgeVisibility === 'rootOnly';
+
     return {
       id: relation.id,
       source: relation.sourceTableId,
@@ -368,7 +373,7 @@ function EREditorInner() {
       sourceHandle: `${relation.sourceColumnId}__source`,
       targetHandle: relation.targetColumnId,
       type: 'relationEdge',
-      updatable: true,
+      updatable: !isRootOnly,
       selected: relation.id === selectedRelationId,
       // 標準 animated は使わず、style側のanimationで制御する。
       animated: false,
@@ -384,6 +389,7 @@ function EREditorInner() {
         followerIconName,
         followerIconSize,
         followerIconSpeed,
+        edgeVisibility: relation.edgeVisibility,
       },
     };
   }, [edgeOffsetMap, isAnimationTemporarilyEnabled, isEdgeAnimationEnabled, isEdgeFollowerIconEnabled, defaultFollowerIconName, defaultFollowerIconSize, defaultFollowerIconSpeed, relatedGraph, selectedRelationId]);
@@ -401,8 +407,42 @@ function EREditorInner() {
 
   // ストアの変更を監視してノードとエッジを更新
   // 計算済みの配列を直接使用して不要な再計算を防止
+  // 重要: ReactFlowの複数選択状態とドラッグ中の位置はストアとは別に管理されているため、
+  //       既存ノードの selected 状態と position を保持しながらマージする必要がある
   useEffect(() => {
-    setNodes(computedNodes);
+    setNodes((currentNodes) => {
+      // 現在のノードの状態をマップに保持
+      const currentNodeStateMap = new Map<string, { selected: boolean; position: { x: number; y: number } }>();
+      for (const node of currentNodes) {
+        currentNodeStateMap.set(node.id, {
+          selected: node.selected ?? false,
+          position: node.position,
+        });
+      }
+      // computedNodesに既存の状態をマージ
+      return computedNodes.map((node) => {
+        const currentState = currentNodeStateMap.get(node.id);
+        if (currentState) {
+          // 既存ノード: 位置とselected状態を保持
+          // ただし、ストアの位置と大きく異なる場合はストアの位置を使用
+          // （例：Undo/Redo操作時）
+          const storePos = node.position;
+          const currentPos = currentState.position;
+          const positionDiff = Math.abs(storePos.x - currentPos.x) + Math.abs(storePos.y - currentPos.y);
+          // 位置差が1未満なら現在の位置を保持（ドラッグ中の微小な差異を無視）
+          // 位置差が1以上ならストアの位置を使用（Undo/Redo等による意図的な変更）
+          const useStorePosition = positionDiff >= 1;
+          
+          return {
+            ...node,
+            position: useStorePosition ? storePos : currentPos,
+            selected: node.selected || currentState.selected,
+          };
+        }
+        // 新規ノード: そのまま使用
+        return node;
+      });
+    });
   }, [computedNodes, setNodes]);
 
   // pendingSelectedTableIds がセットされたときにノードの選択状態を更新
@@ -441,17 +481,35 @@ function EREditorInner() {
   );
 
   const onNodeDragStop = useCallback(
-    (_: React.MouseEvent, _node: Node, nodes: Node[]) => {
-      // 複数ノードがドラッグされた場合はすべてのノードの位置を保存
-      for (const n of nodes) {
+    (_: React.MouseEvent, _node: Node, _nodes: Node[]) => {
+      // ReactFlowの内部状態から選択されたすべてのノードを取得
+      // （onNodeDragStopのnodesパラメータは信頼できない場合があるため）
+      const allNodes = getNodes();
+      const selectedNodes = allNodes.filter((n) => n.selected);
+      
+      // 選択されたノードがない場合は、引数のノードを使う（単一ノードドラッグの場合）
+      const nodesToUpdate = selectedNodes.length > 0 ? selectedNodes : [_node];
+      
+      const tableMoves: Array<{ id: string; position: { x: number; y: number } }> = [];
+      const memoMoves: Array<{ id: string; position: { x: number; y: number } }> = [];
+      
+      for (const n of nodesToUpdate) {
         if (n.type === 'memoNode') {
-          moveMemo(n.id, n.position);
+          memoMoves.push({ id: n.id, position: n.position });
         } else {
-          moveTable(n.id, n.position);
+          tableMoves.push({ id: n.id, position: n.position });
         }
       }
+      
+      // バッチ更新（履歴保存は各メソッド内で1回のみ）
+      if (tableMoves.length > 0) {
+        moveTables(tableMoves);
+      }
+      if (memoMoves.length > 0) {
+        moveMemos(memoMoves);
+      }
     },
-    [moveMemo, moveTable]
+    [getNodes, moveMemos, moveTables]
   );
 
   const onEdgesChange = useCallback(

@@ -10,13 +10,14 @@ import {
   type NoteParamInfo,
 } from '../../lib/appsheet/noteParameters';
 import { filterDiagramForExport, filterTablesForExport } from '../../lib/exportFilter';
+import { exportToDSL } from '../../lib/dslFormat';
 
 interface ExportDialogProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-type ExportFormat = 'json' | 'excel' | 'package';
+type ExportFormat = 'json' | 'dsl' | 'excel' | 'package';
 
 export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
   const { t } = useTranslation();
@@ -50,6 +51,23 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
       setCopyStatus('idle');
     } catch (error) {
       console.error('Export failed:', error);
+      alert(t('export.exportError'));
+    } finally {
+      setIsExporting(false);
+    }
+  }, [exportDiagram, t]);
+
+  const handleExportDSL = useCallback(async () => {
+    try {
+      setIsExporting(true);
+      const diagram = filterDiagramForExport(exportDiagram(), 'json');
+      const dslString = exportToDSL(diagram, { includeHeader: true });
+
+      // DSL形式もコピー用テキストとして表示する
+      setJsonExportText(dslString);
+      setCopyStatus('idle');
+    } catch (error) {
+      console.error('DSL Export failed:', error);
       alert(t('export.exportError'));
     } finally {
       setIsExporting(false);
@@ -137,6 +155,9 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
       case 'json':
         await handleExportJSON();
         break;
+      case 'dsl':
+        await handleExportDSL();
+        break;
       case 'excel':
         await handleExportExcel();
         break;
@@ -146,10 +167,11 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
         openProjectDialog();
         break;
     }
-  }, [format, handleExportJSON, handleExportExcel, handleClose, openProjectDialog]);
+  }, [format, handleExportJSON, handleExportDSL, handleExportExcel, handleClose, openProjectDialog]);
 
   const formats: { id: ExportFormat; label: string; description: string }[] = [
     { id: 'json', label: t('export.formats.json'), description: t('export.descriptions.json') },
+    { id: 'dsl', label: t('export.formats.dsl'), description: t('export.descriptions.dsl') },
     { id: 'excel', label: t('export.formats.excel'), description: t('export.descriptions.excel') },
     { id: 'package', label: t('export.formats.package'), description: t('export.descriptions.package') },
   ];
@@ -158,7 +180,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
     <Dialog
       isOpen={isOpen}
       onClose={handleClose}
-      title={jsonExportText ? t('menu.exportJson') : t('export.title')}
+      title={jsonExportText ? (format === 'dsl' ? t('export.formats.dsl') : t('menu.exportJson')) : t('export.title')}
       size={jsonExportText ? 'xl' : 'md'}
     >
       {jsonExportText ? (

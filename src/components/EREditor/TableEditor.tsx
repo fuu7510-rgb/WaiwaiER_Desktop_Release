@@ -9,12 +9,17 @@ const ALL_EXPORT_TARGETS = ['excel', 'json', 'package'] as const;
 
 export function TableEditor() {
   const { t } = useTranslation();
-  const { tables, selectedTableId, updateTable, deleteTable, duplicateTable, applyCommonColumnsToTable } = useERStore();
+  const { tables, selectedTableId, updateTable, deleteTable, duplicateTable, createSyncTable, unlinkSyncTable, applyCommonColumnsToTable } = useERStore();
   const { currentProjectId, canAddTable } = useProjectStore();
   const commonColumns = useUIStore((s) => s.settings.commonColumns) ?? [];
   
   const selectedTable = tables.find((t) => t.id === selectedTableId);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  // 同期グループ内のテーブル数を取得
+  const syncGroupTableCount = selectedTable?.syncGroupId
+    ? tables.filter((t) => t.syncGroupId === selectedTable.syncGroupId).length
+    : 0;
 
   const handleUpdate = useCallback((updates: Partial<Table>) => {
     if (selectedTableId) {
@@ -33,6 +38,18 @@ export function TableEditor() {
       duplicateTable(selectedTableId);
     }
   }, [selectedTableId, currentProjectId, canAddTable, tables.length, duplicateTable]);
+
+  const handleCreateSyncTable = useCallback(() => {
+    if (selectedTableId && currentProjectId && canAddTable(currentProjectId, tables.length)) {
+      createSyncTable(selectedTableId);
+    }
+  }, [selectedTableId, currentProjectId, canAddTable, tables.length, createSyncTable]);
+
+  const handleUnlinkSyncTable = useCallback(() => {
+    if (selectedTableId) {
+      unlinkSyncTable(selectedTableId);
+    }
+  }, [selectedTableId, unlinkSyncTable]);
 
   const handleApplyCommonColumns = useCallback(() => {
     if (!selectedTableId) return;
@@ -161,6 +178,14 @@ export function TableEditor() {
           <p>{t('column.columns')}: <span style={{ color: 'var(--text-secondary)' }} className="font-medium">{selectedTable.columns.length}</span></p>
           <p>{t('table.createdAt')}: <span style={{ color: 'var(--text-secondary)' }}>{new Date(selectedTable.createdAt).toLocaleString()}</span></p>
           <p>{t('table.updatedAt')}: <span style={{ color: 'var(--text-secondary)' }}>{new Date(selectedTable.updatedAt).toLocaleString()}</span></p>
+          {selectedTable.syncGroupId && (
+            <p>
+              {t('table.syncGroup')}: <span style={{ color: 'var(--text-secondary)' }} className="font-medium">
+                {syncGroupTableCount}{t('table.syncGroupCount')}
+                {selectedTable.isSyncSource && ` (${t('table.syncSource')})`}
+              </span>
+            </p>
+          )}
         </div>
       </div>
       
@@ -175,6 +200,14 @@ export function TableEditor() {
         <Button variant="secondary" size="sm" onClick={handleDuplicate} className="w-full">
           {t('table.duplicateTable')}
         </Button>
+        <Button variant="secondary" size="sm" onClick={handleCreateSyncTable} className="w-full">
+          {t('table.createSyncTable')}
+        </Button>
+        {selectedTable.syncGroupId && (
+          <Button variant="secondary" size="sm" onClick={handleUnlinkSyncTable} className="w-full">
+            {t('table.unlinkSyncTable')}
+          </Button>
+        )}
         <Button variant="danger" size="sm" onClick={() => setIsDeleteDialogOpen(true)} className="w-full">
           {t('table.deleteTable')}
         </Button>

@@ -7,6 +7,7 @@ type LabelMode = 'auto' | 'hidden' | 'custom';
 type EdgeAnimationMode = 'default' | 'on' | 'off';
 type EdgeLineStyleMode = 'default' | 'solid' | 'dashed' | 'dotted';
 type FollowerIconMode = 'default' | 'on' | 'off';
+type EdgeVisibilityMode = 'full' | 'rootOnly';
 
 function getLabelMode(label: string | undefined): LabelMode {
   if (label === undefined) return 'auto';
@@ -81,6 +82,14 @@ export function RelationEditor() {
     [t]
   );
 
+  const edgeVisibilityOptions = useMemo(
+    () => [
+      { value: 'full', label: t('relation.edgeVisibility.modes.full') },
+      { value: 'rootOnly', label: t('relation.edgeVisibility.modes.rootOnly') },
+    ],
+    [t]
+  );
+
   // 追従アイコンは自由入力(datalist)で指定する
 
   const handleUpdate = useCallback(
@@ -150,6 +159,9 @@ export function RelationEditor() {
       ? 'default'
       : selectedRelation.edgeLineStyle as EdgeLineStyleMode;
 
+  const edgeVisibilityMode: EdgeVisibilityMode =
+    selectedRelation.edgeVisibility === 'rootOnly' ? 'rootOnly' : 'full';
+
   const followerIconMode: FollowerIconMode =
     selectedRelation.edgeFollowerIconEnabled === undefined
       ? 'default'
@@ -198,6 +210,21 @@ export function RelationEditor() {
             onChange={(e) => handleEdgeLineStyleUpdate(e.target.value as EdgeLineStyleMode)}
             options={edgeLineStyleOptions}
           />
+
+          <Select
+            label={t('relation.edgeVisibility.title')}
+            value={edgeVisibilityMode}
+            onChange={(e) => {
+              const mode = e.target.value as EdgeVisibilityMode;
+              if (mode === 'full') {
+                updateRelation(relationId, { edgeVisibility: undefined });
+                return;
+              }
+              updateRelation(relationId, { edgeVisibility: 'rootOnly' });
+            }}
+            options={edgeVisibilityOptions}
+          />
+          <p className="-mt-2 text-[10px] theme-text-muted">{t('relation.edgeVisibility.description')}</p>
 
           <Select
             label={t('relation.label.title')}

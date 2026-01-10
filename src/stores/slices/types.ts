@@ -62,8 +62,23 @@ export interface TableActions {
   updateTable: (id: string, updates: Partial<Table>) => void;
   deleteTable: (id: string) => void;
   moveTable: (id: string, position: { x: number; y: number }) => void;
+  /**
+   * 複数のテーブルを一度に移動する（バッチ更新）。
+   * 履歴保存は1回のみ行われる。
+   */
+  moveTables: (moves: Array<{ id: string; position: { x: number; y: number } }>) => void;
   reorderTables: (activeTableId: string, overTableId: string) => void;
   duplicateTable: (id: string) => string | null;
+  /**
+   * 同期テーブルを作成する。
+   * 元テーブルのカラム構造をコピーし、同じsyncGroupIdを共有する新しいテーブルを作成する。
+   * カラムの変更は同期グループ内で自動的に反映される。
+   */
+  createSyncTable: (id: string) => string | null;
+  /**
+   * 同期テーブルを解除し、独立したテーブルにする。
+   */
+  unlinkSyncTable: (id: string) => void;
 }
 
 export interface ColumnActions {
@@ -98,6 +113,11 @@ export interface MemoActions {
   addMemo: (position?: { x: number; y: number }, initialText?: string) => string;
   updateMemo: (id: string, updates: Partial<Memo>) => void;
   moveMemo: (id: string, position: { x: number; y: number }) => void;
+  /**
+   * 複数のメモを一度に移動する（バッチ更新）。
+   * 履歴保存は1回のみ行われる。
+   */
+  moveMemos: (moves: Array<{ id: string; position: { x: number; y: number } }>) => void;
   deleteMemo: (id: string) => void;
 }
 

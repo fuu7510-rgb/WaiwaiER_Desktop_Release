@@ -83,6 +83,12 @@ export const SHORTCUT_ACTIONS: ShortcutActionDefinition[] = [
     category: 'view',
   },
   {
+    id: 'toggleEdgeVisibility',
+    labelKey: 'settings.shortcuts.actions.toggleEdgeVisibility',
+    defaultKey: 'Ctrl+L',
+    category: 'edit',
+  },
+  {
     id: 'zoomIn',
     labelKey: 'settings.shortcuts.actions.zoomIn',
     defaultKey: 'Ctrl+=',

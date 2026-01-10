@@ -53,20 +53,33 @@ export const TableNodeHeader = memo(({ table, colorClasses }: TableNodeHeaderPro
       className={`px-2.5 py-1.5 rounded-t font-medium text-white text-xs flex items-center justify-between ${colorClasses.bg}`}
       onDoubleClick={handleDoubleClick}
     >
-      {isEditing ? (
-        <input
-          type="text"
-          value={editName}
-          onChange={(e) => setEditName(e.target.value)}
-          onBlur={handleNameSubmit}
-          onKeyDown={handleKeyDown}
-          className="bg-transparent border-none outline-none text-white w-full text-xs"
-          autoFocus
-          aria-label={t('editor.tableName')}
-        />
-      ) : (
-        <span className="truncate">{table.name}</span>
-      )}
+      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+        {/* 同期テーブルインジケーター */}
+        {table.syncGroupId && (
+          <Tooltip content={t('table.syncTableTooltip')}>
+            <span 
+              className="flex-shrink-0 px-1 py-0.5 text-[8px] font-bold rounded bg-white/20 leading-none"
+              title={t('table.syncTableTooltip')}
+            >
+              {t('table.syncIndicator')}
+            </span>
+          </Tooltip>
+        )}
+        {isEditing ? (
+          <input
+            type="text"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            onBlur={handleNameSubmit}
+            onKeyDown={handleKeyDown}
+            className="bg-transparent border-none outline-none text-white w-full text-xs"
+            autoFocus
+            aria-label={t('editor.tableName')}
+          />
+        ) : (
+          <span className="truncate">{table.name}</span>
+        )}
+      </div>
       <span className="flex items-center gap-1.5">
         <Tooltip content={isCollapsed ? t('table.expand') : t('table.collapse')}>
           <button

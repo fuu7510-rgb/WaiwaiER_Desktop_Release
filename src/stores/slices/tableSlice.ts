@@ -62,6 +62,7 @@ export const createTableSlice: SliceCreator<TableSlice> = (set, get) => ({
 
   deleteTable: (id) => {
     const table = get().tables.find((t) => t.id === id);
+    const syncGroupId = table?.syncGroupId;
     set((state) => {
       const selectedRelation = state.selectedRelationId
         ? state.relations.find((r) => r.id === state.selectedRelationId)
@@ -79,6 +80,16 @@ export const createTableSlice: SliceCreator<TableSlice> = (set, get) => ({
         state.selectedTableId = null;
         state.selectedColumnId = null;
       }
+
+      // 同期グループに1つしか残らない場合、残りも同期解除
+      if (syncGroupId) {
+        const remainingSyncedTables = state.tables.filter((t) => t.syncGroupId === syncGroupId);
+        if (remainingSyncedTables.length === 1) {
+          remainingSyncedTables[0].syncGroupId = undefined;
+          remainingSyncedTables[0].isSyncSource = undefined;
+          remainingSyncedTables[0].updatedAt = new Date().toISOString();
+        }
+      }
     });
     if (table) {
       get().saveHistory(`テーブル「${table.name}」を削除`);
@@ -94,6 +105,20 @@ export const createTableSlice: SliceCreator<TableSlice> = (set, get) => ({
       }
     });
     get().saveHistory('テーブルを移動');
+    get().queueSaveToDB();
+  },
+
+  moveTables: (moves) => {
+    if (moves.length === 0) return;
+    set((state) => {
+      for (const move of moves) {
+        const table = state.tables.find((t) => t.id === move.id);
+        if (table) {
+          table.position = move.position;
+        }
+      }
+    });
+    get().saveHistory(moves.length === 1 ? 'テーブルを移動' : `${moves.length}個のテーブルを移動`);
     get().queueSaveToDB();
   },
 
@@ -132,5 +157,84 @@ export const createTableSlice: SliceCreator<TableSlice> = (set, get) => ({
     get().saveHistory(`テーブル「${source.name}」を複製`);
     get().queueSaveToDB();
     return newTable.id;
+  },
+
+  createSyncTable: (id) => {
+    const source = get().tables.find((t) => t.id === id);
+    if (!source) return null;
+
+    // syncGroupIdを決定（ソースがすでに同期グループに属していればそれを使用、なければソースのIDを使用）
+    const syncGroupId = source.syncGroupId || source.id;
+
+    // 元テーブルが同期グループに属していない場合、ソーステーブルとしてマーク
+    if (!source.syncGroupId) {
+      set((state) => {
+        const sourceTable = state.tables.find((t) => t.id === id);
+        if (sourceTable) {
+          sourceTable.syncGroupId = syncGroupId;
+          sourceTable.isSyncSource = true;
+          sourceTable.updatedAt = new Date().toISOString();
+        }
+      });
+    }
+
+    // 新しい同期テーブルを作成（カラムIDはそのまま共有）
+    const newTable = createDefaultTable(
+      `${source.name}_sync`,
+      { x: source.position.x + 80, y: source.position.y + 60 }
+    );
+    // 同期テーブルはカラムを完全にコピー（IDも含めて）
+    newTable.columns = source.columns.map((col) => ({
+      ...col,
+    }));
+    newTable.color = source.color;
+    newTable.description = source.description;
+    newTable.exportTargets = source.exportTargets ? [...source.exportTargets] : undefined;
+    newTable.syncGroupId = syncGroupId;
+    newTable.isSyncSource = false;
+
+    set((state) => {
+      state.tables.push(newTable);
+      state.sampleDataByTableId[newTable.id] = syncSampleRowsToTableSchema({ table: newTable, currentRows: undefined });
+    });
+    get().saveHistory(`テーブル「${source.name}」の同期テーブルを作成`);
+    get().queueSaveToDB();
+    return newTable.id;
+  },
+
+  unlinkSyncTable: (id) => {
+    const table = get().tables.find((t) => t.id === id);
+    if (!table || !table.syncGroupId) return;
+
+    const syncGroupId = table.syncGroupId;
+    const syncedTables = get().tables.filter((t) => t.syncGroupId === syncGroupId);
+
+    set((state) => {
+      const targetTable = state.tables.find((t) => t.id === id);
+      if (targetTable) {
+        // 同期を解除（カラムは新しいIDで独立させる）
+        targetTable.columns = targetTable.columns.map((col) => ({
+          ...col,
+          id: uuidv4(),
+        }));
+        targetTable.syncGroupId = undefined;
+        targetTable.isSyncSource = undefined;
+        targetTable.updatedAt = new Date().toISOString();
+      }
+
+      // 同期グループに1つしか残らない場合、残りも解除
+      if (syncedTables.length === 2) {
+        const remainingTable = state.tables.find(
+          (t) => t.syncGroupId === syncGroupId && t.id !== id
+        );
+        if (remainingTable) {
+          remainingTable.syncGroupId = undefined;
+          remainingTable.isSyncSource = undefined;
+          remainingTable.updatedAt = new Date().toISOString();
+        }
+      }
+    });
+    get().saveHistory(`テーブル「${table.name}」の同期を解除`);
+    get().queueSaveToDB();
   },
 });
