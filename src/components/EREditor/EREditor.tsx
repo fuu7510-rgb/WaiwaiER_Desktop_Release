@@ -75,7 +75,7 @@ function EREditorInner() {
   const defaultFollowerIconSpeed = settings.edgeFollowerIconSpeed ?? 90;
   
   const zoom = useReactFlowStore((state) => state.transform[2], (a, b) => a === b);
-  useReactFlow();
+  const { getNodes } = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const lastPointerPosRef = useRef<{ x: number; y: number } | null>(null);
   const pointerRafRef = useRef<number | null>(null);
@@ -524,16 +524,26 @@ function EREditorInner() {
       // draggedNodes には実際にドラッグされたすべてのノードが含まれる
       // （複数選択時は選択されたすべてのノード）
       // 注意: draggedNodes が空の場合は _node を使用（単一ノードドラッグの場合）
-      const nodesToUpdate = draggedNodes.length > 0 ? draggedNodes : [_node];
+      const nodeIdsToUpdate = draggedNodes.length > 0 
+        ? draggedNodes.map(n => n.id) 
+        : [_node.id];
+      
+      // ReactFlowの内部ストアから最新のノード位置を取得
+      // （draggedNodes の position は古い値を持っている可能性があるため）
+      const currentNodes = getNodes();
+      const nodeMap = new Map(currentNodes.map(n => [n.id, n]));
       
       const tableMoves: Array<{ id: string; position: { x: number; y: number } }> = [];
       const memoMoves: Array<{ id: string; position: { x: number; y: number } }> = [];
       
-      for (const n of nodesToUpdate) {
-        if (n.type === 'memoNode') {
-          memoMoves.push({ id: n.id, position: n.position });
+      for (const nodeId of nodeIdsToUpdate) {
+        const node = nodeMap.get(nodeId);
+        if (!node) continue;
+        
+        if (node.type === 'memoNode') {
+          memoMoves.push({ id: node.id, position: node.position });
         } else {
-          tableMoves.push({ id: n.id, position: n.position });
+          tableMoves.push({ id: node.id, position: node.position });
         }
       }
       
@@ -552,7 +562,48 @@ function EREditorInner() {
         isNodeDraggingRef.current = false;
       });
     },
-    [moveMemos, moveTables]
+    [getNodes, moveMemos, moveTables]
+  );
+
+  // 範囲選択でのドラッグ開始時にフラグをセット
+  const onSelectionDragStart = useCallback(() => {
+    isNodeDraggingRef.current = true;
+  }, []);
+
+  // 範囲選択でのドラッグ終了時に位置を保存
+  const onSelectionDragStop = useCallback(
+    (_: React.MouseEvent, selectedNodes: Node[]) => {
+      // ReactFlowの内部ストアから最新のノード位置を取得
+      const currentNodes = getNodes();
+      const nodeMap = new Map(currentNodes.map(n => [n.id, n]));
+      
+      const tableMoves: Array<{ id: string; position: { x: number; y: number } }> = [];
+      const memoMoves: Array<{ id: string; position: { x: number; y: number } }> = [];
+      
+      for (const selectedNode of selectedNodes) {
+        const node = nodeMap.get(selectedNode.id);
+        if (!node) continue;
+        
+        if (node.type === 'memoNode') {
+          memoMoves.push({ id: node.id, position: node.position });
+        } else {
+          tableMoves.push({ id: node.id, position: node.position });
+        }
+      }
+      
+      // バッチ更新
+      if (tableMoves.length > 0) {
+        moveTables(tableMoves);
+      }
+      if (memoMoves.length > 0) {
+        moveMemos(memoMoves);
+      }
+      
+      requestAnimationFrame(() => {
+        isNodeDraggingRef.current = false;
+      });
+    },
+    [getNodes, moveMemos, moveTables]
   );
 
   const onEdgesChange = useCallback(
@@ -768,6 +819,8 @@ function EREditorInner() {
         onEdgeUpdateEnd={onEdgeUpdateEnd}
         onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
+        onSelectionDragStart={onSelectionDragStart}
+        onSelectionDragStop={onSelectionDragStop}
         onNodeClick={onNodeClick}
         onConnect={onConnect}
         onConnectStart={onConnectStart}
@@ -783,7 +836,7 @@ function EREditorInner() {
         snapGrid={[15, 15]}
         deleteKeyCode="Delete"
         selectionOnDrag
-        panOnDrag={[1, 2]}
+        panOnDrag={[1]}
         selectionMode={SelectionMode.Partial}
         nodeDragThreshold={5}
         // Increase edge-updater hit radius (visual is hidden via CSS).
