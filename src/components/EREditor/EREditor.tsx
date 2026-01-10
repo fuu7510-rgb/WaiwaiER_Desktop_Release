@@ -10,6 +10,7 @@ import ReactFlow, {
   ReactFlowProvider,
   useStore as useReactFlowStore,
   useReactFlow,
+  SelectionMode,
 } from 'reactflow';
 import type { Connection, Edge, Node, NodeChange, EdgeChange } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -417,7 +418,7 @@ function EREditorInner() {
   // 
   // 位置の同期戦略:
   // - ドラッグ中: 位置の同期をスキップ（onNodesChangeで位置が管理される）
-  // - ドラッグ後: ストア(tables)の位置を使用（信頼できる唯一のソース）
+  // - ドラッグ後: ストア(tables)の位置を使用（ただし移動済みのノードは現在位置を維持）
   useEffect(() => {
     // ドラッグ中は位置の同期をスキップ
     if (isNodeDraggingRef.current) {
@@ -425,28 +426,49 @@ function EREditorInner() {
     }
     
     setNodes((currentNodes) => {
-      // 現在のReactFlowノードの選択状態をマップに保持
-      const currentNodeSelectedMap = new Map<string, boolean>();
+      // 現在のReactFlowノードをマップ化（位置と選択状態を取得するため）
+      const currentNodeMap = new Map<string, Node>();
       for (const node of currentNodes) {
-        currentNodeSelectedMap.set(node.id, node.selected ?? false);
+        currentNodeMap.set(node.id, node);
       }
       
       // 複数選択中かどうかを判定（2つ以上のノードが選択されている場合）
-      const selectedCount = [...currentNodeSelectedMap.values()].filter(Boolean).length;
+      const selectedCount = currentNodes.filter(n => n.selected).length;
       const isMultiSelect = selectedCount > 1;
+
+      // computedNodes をマップ化
+      const computedNodeMap = new Map<string, Node>();
+      for (const node of computedNodes) {
+        computedNodeMap.set(node.id, node);
+      }
       
-      return computedNodes.map((node) => {
-        if (isMultiSelect) {
-          // 複数選択中: ReactFlowの選択状態を維持
-          const currentSelected = currentNodeSelectedMap.get(node.id) ?? false;
-          return {
-            ...node,
-            selected: currentSelected,
-          };
+      // 新規ノードの追加と既存ノードの更新
+      const resultNodes: Node[] = [];
+      const processedIds = new Set<string>();
+      
+      for (const computedNode of computedNodes) {
+        const currentNode = currentNodeMap.get(computedNode.id);
+        processedIds.add(computedNode.id);
+        
+        if (!currentNode) {
+          // 新規ノード: computedNode をそのまま追加
+          resultNodes.push(computedNode);
+        } else {
+          // 既存ノード: 位置は currentNode から継承、その他は computedNode から
+          // （ストアとReactFlowの位置が同じなら問題なし、ドラッグ直後でも currentNode の位置が正しい）
+          const selected = isMultiSelect 
+            ? (currentNode.selected ?? false)
+            : computedNode.selected;
+          
+          resultNodes.push({
+            ...computedNode,
+            position: currentNode.position, // ReactFlow側の位置を維持
+            selected,
+          });
         }
-        // 単一選択: ストアの selectedTableId（computedNodes.selected）を使用
-        return node;
-      });
+      }
+      
+      return resultNodes;
     });
   }, [computedNodes, setNodes]);
 
@@ -492,9 +514,6 @@ function EREditorInner() {
 
   const onNodeDragStop = useCallback(
     (_: React.MouseEvent, _node: Node, draggedNodes: Node[]) => {
-      // ドラッグ終了フラグをセット
-      isNodeDraggingRef.current = false;
-      
       // draggedNodes には実際にドラッグされたすべてのノードが含まれる
       // （複数選択時は選択されたすべてのノード）
       // 注意: draggedNodes が空の場合は _node を使用（単一ノードドラッグの場合）
@@ -518,6 +537,13 @@ function EREditorInner() {
       if (memoMoves.length > 0) {
         moveMemos(memoMoves);
       }
+      
+      // ストア更新後にドラッグフラグをリセット
+      // 遅延を入れることで、ストアの更新がReactに伝播してから
+      // useEffectで位置同期が行われるようにする
+      requestAnimationFrame(() => {
+        isNodeDraggingRef.current = false;
+      });
     },
     [moveMemos, moveTables]
   );
@@ -723,7 +749,9 @@ function EREditorInner() {
         snapToGrid
         snapGrid={[15, 15]}
         deleteKeyCode="Delete"
-        selectionKeyCode={null}
+        selectionOnDrag
+        panOnDrag={[1, 2]}
+        selectionMode={SelectionMode.Partial}
         nodeDragThreshold={5}
         // Increase edge-updater hit radius (visual is hidden via CSS).
         edgeUpdaterRadius={10}
