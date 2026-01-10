@@ -353,4 +353,117 @@ MEMO "設計メモ"
       expect(isJSONFormat('TABLE users')).toBe(false);
     });
   });
+
+  describe('階層配置アルゴリズム', () => {
+    it('親テーブルが左、子テーブルが右に配置される', () => {
+      // 3階層: orgs → departments → users
+      const dsl = `
+TABLE users "ユーザー" PK=id
+COL users.id Number req uniq
+REF users.dept_id -> departments.id req
+
+TABLE departments "部署" PK=id
+COL departments.id Number req uniq
+REF departments.org_id -> orgs.id req
+
+TABLE orgs "組織" PK=id
+COL orgs.id Number req uniq
+      `.trim();
+
+      const result = parseDSL(dsl);
+
+      const orgs = result.tables.find(t => t.name === 'orgs');
+      const departments = result.tables.find(t => t.name === 'departments');
+      const users = result.tables.find(t => t.name === 'users');
+
+      // orgsが最も左（親）
+      expect(orgs?.position.x).toBe(0);
+      // departmentsが中央
+      expect(departments?.position.x).toBe(400);
+      // usersが最も右（子）
+      expect(users?.position.x).toBe(800);
+    });
+
+    it('同階層のテーブルは縦に並ぶ', () => {
+      // orgsを参照する複数の子テーブル
+      const dsl = `
+TABLE orgs "組織" PK=id
+COL orgs.id Number req uniq
+
+TABLE users "ユーザー" PK=id
+COL users.id Number req uniq
+REF users.org_id -> orgs.id req
+
+TABLE projects "プロジェクト" PK=id
+COL projects.id Number req uniq
+REF projects.org_id -> orgs.id req
+
+TABLE assets "資産" PK=id
+COL assets.id Number req uniq
+REF assets.org_id -> orgs.id req
+      `.trim();
+
+      const result = parseDSL(dsl);
+
+      const orgs = result.tables.find(t => t.name === 'orgs');
+      const users = result.tables.find(t => t.name === 'users');
+      const projects = result.tables.find(t => t.name === 'projects');
+      const assets = result.tables.find(t => t.name === 'assets');
+
+      // orgsが左側（階層0）
+      expect(orgs?.position.x).toBe(0);
+      expect(orgs?.position.y).toBe(0);
+
+      // 子テーブルはすべて右側（階層1）で同じx座標
+      expect(users?.position.x).toBe(400);
+      expect(projects?.position.x).toBe(400);
+      expect(assets?.position.x).toBe(400);
+
+      // 子テーブルは縦に並ぶ（異なるy座標）
+      const childYPositions = [users?.position.y, projects?.position.y, assets?.position.y];
+      const uniqueYPositions = new Set(childYPositions);
+      expect(uniqueYPositions.size).toBe(3); // 3つとも異なるy座標
+    });
+
+    it('独立したテーブル（参照なし）は階層0に配置される', () => {
+      const dsl = `
+TABLE users PK=id
+COL users.id Number req uniq
+
+TABLE products PK=id
+COL products.id Number req uniq
+
+TABLE settings PK=id
+COL settings.id Number req uniq
+      `.trim();
+
+      const result = parseDSL(dsl);
+
+      // すべて階層0なので同じx座標
+      for (const table of result.tables) {
+        expect(table.position.x).toBe(0);
+      }
+
+      // それぞれ異なるy座標
+      const yPositions = result.tables.map(t => t.position.y);
+      const uniqueYPositions = new Set(yPositions);
+      expect(uniqueYPositions.size).toBe(3);
+    });
+
+    it('循環参照があっても無限ループにならない', () => {
+      const dsl = `
+TABLE a PK=id
+COL a.id Number req uniq
+REF a.b_id -> b.id
+
+TABLE b PK=id
+COL b.id Number req uniq
+REF b.a_id -> a.id
+      `.trim();
+
+      // 無限ループにならずにパースが完了すること
+      const result = parseDSL(dsl);
+      expect(result.tables).toHaveLength(2);
+    });
+  });
 });

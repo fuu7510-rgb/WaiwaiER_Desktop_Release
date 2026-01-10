@@ -96,14 +96,28 @@ export function parseDSL(dslText: string): ERDiagram {
     }
   }
 
+  // 親子関係に基づいてテーブルを並び替え（親が左、子が右）
+  const sortedTableNames = sortTablesByHierarchy(tableMap);
+
   // ParsedTable → Table に変換
   const tables: Table[] = [];
   const tableIdMap = new Map<string, string>(); // name → id
-  let tableIndex = 0;
 
-  for (const [name, parsed] of tableMap.entries()) {
-    const tableId = crypto.randomUUID();
-    tableIdMap.set(name, tableId);
+  // まずすべてのテーブルIDを生成（参照解決のため）
+  for (const name of sortedTableNames) {
+    tableIdMap.set(name, crypto.randomUUID());
+  }
+
+  // 階層ごとにグループ化して位置を計算
+  const tableHierarchy = calculateTableHierarchy(tableMap);
+  const hierarchyGroups = groupTablesByHierarchy(sortedTableNames, tableHierarchy);
+  const tablePositions = calculateHierarchicalPositions(hierarchyGroups);
+
+  for (const name of sortedTableNames) {
+    const parsed = tableMap.get(name);
+    if (!parsed) continue;
+
+    const tableId = tableIdMap.get(name)!;
 
     const columns: Column[] = parsed.columns.map((col, colIndex) => ({
       id: crypto.randomUUID(),
@@ -120,22 +134,18 @@ export function parseDSL(dslText: string): ERDiagram {
       order: colIndex,
     }));
 
-    // 位置を自動計算（3列配置）
-    const row = Math.floor(tableIndex / 3);
-    const col = tableIndex % 3;
+    const position = tablePositions.get(name) ?? { x: 0, y: 0 };
 
     tables.push({
       id: tableId,
       name: name,
       description: parsed.description,
       columns,
-      position: { x: col * 400, y: row * 500 },
+      position,
       color: parsed.color,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
-
-    tableIndex++;
   }
 
   // Ref型カラムの参照先IDを解決 & Relations生成
@@ -496,4 +506,131 @@ export function isDSLFormat(text: string): boolean {
 export function isJSONFormat(text: string): boolean {
   const trimmed = text.trim();
   return trimmed.startsWith('{') || trimmed.startsWith('[');
+}
+
+// ============================================
+// 階層配置アルゴリズム
+// ============================================
+
+/**
+ * テーブルの階層を計算（親テーブルは階層0、子テーブルは階層1以上）
+ * 階層 = そのテーブルに到達する最長パスの長さ
+ */
+function calculateTableHierarchy(tableMap: Map<string, ParsedTable>): Map<string, number> {
+  const hierarchy = new Map<string, number>();
+  const tableNames = Array.from(tableMap.keys());
+
+  // 依存関係グラフを構築: テーブル名 → 参照先テーブル名のSet
+  const dependencies = new Map<string, Set<string>>();
+  for (const [name, table] of tableMap.entries()) {
+    const deps = new Set<string>();
+    for (const col of table.columns) {
+      if (col.refTarget && tableMap.has(col.refTarget.tableName)) {
+        deps.add(col.refTarget.tableName);
+      }
+    }
+    dependencies.set(name, deps);
+  }
+
+  // 各テーブルの階層を計算（メモ化再帰）
+  function getHierarchy(name: string, visited: Set<string>): number {
+    if (hierarchy.has(name)) {
+      return hierarchy.get(name)!;
+    }
+
+    // 循環参照検出
+    if (visited.has(name)) {
+      return 0;
+    }
+
+    const deps = dependencies.get(name) ?? new Set();
+    if (deps.size === 0) {
+      // 親テーブル（他を参照していない）
+      hierarchy.set(name, 0);
+      return 0;
+    }
+
+    visited.add(name);
+    let maxParentHierarchy = -1;
+    for (const parentName of deps) {
+      const parentLevel = getHierarchy(parentName, visited);
+      maxParentHierarchy = Math.max(maxParentHierarchy, parentLevel);
+    }
+    visited.delete(name);
+
+    const level = maxParentHierarchy + 1;
+    hierarchy.set(name, level);
+    return level;
+  }
+
+  for (const name of tableNames) {
+    getHierarchy(name, new Set());
+  }
+
+  return hierarchy;
+}
+
+/**
+ * テーブルを階層順にソート（親が先、子が後）
+ * 同じ階層内ではDSLでの出現順を維持
+ */
+function sortTablesByHierarchy(tableMap: Map<string, ParsedTable>): string[] {
+  const hierarchy = calculateTableHierarchy(tableMap);
+  const tableNames = Array.from(tableMap.keys());
+
+  return tableNames.sort((a, b) => {
+    const levelA = hierarchy.get(a) ?? 0;
+    const levelB = hierarchy.get(b) ?? 0;
+    return levelA - levelB;
+  });
+}
+
+/**
+ * テーブルを階層ごとにグループ化
+ */
+function groupTablesByHierarchy(
+  sortedTableNames: string[],
+  hierarchy: Map<string, number>
+): Map<number, string[]> {
+  const groups = new Map<number, string[]>();
+  
+  for (const name of sortedTableNames) {
+    const level = hierarchy.get(name) ?? 0;
+    if (!groups.has(level)) {
+      groups.set(level, []);
+    }
+    groups.get(level)!.push(name);
+  }
+
+  return groups;
+}
+
+/**
+ * 階層ベースでテーブル位置を計算
+ * - X軸: 階層（0=左端、階層が増えるほど右へ）
+ * - Y軸: 同階層内での順番
+ */
+function calculateHierarchicalPositions(
+  hierarchyGroups: Map<number, string[]>
+): Map<string, { x: number; y: number }> {
+  const positions = new Map<string, { x: number; y: number }>();
+  
+  const TABLE_WIDTH = 400;   // テーブル間の水平間隔
+  const TABLE_HEIGHT = 350;  // テーブル間の垂直間隔
+
+  const levels = Array.from(hierarchyGroups.keys()).sort((a, b) => a - b);
+  
+  for (const level of levels) {
+    const tablesAtLevel = hierarchyGroups.get(level) ?? [];
+    
+    for (let i = 0; i < tablesAtLevel.length; i++) {
+      const name = tablesAtLevel[i];
+      positions.set(name, {
+        x: level * TABLE_WIDTH,
+        y: i * TABLE_HEIGHT,
+      });
+    }
+  }
+
+  return positions;
 }
