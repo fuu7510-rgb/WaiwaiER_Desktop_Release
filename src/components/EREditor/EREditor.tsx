@@ -410,43 +410,41 @@ function EREditorInner() {
   const [edges, setEdges] = useEdgesState(computedEdges);
 
   // ストアの変更を監視してノードとエッジを更新
-  // 計算済みの配列を直接使用して不要な再計算を防止
-  // 重要: ReactFlowの複数選択状態とドラッグ中の位置はストアとは別に管理されているため、
-  //       既存ノードの selected 状態と position を保持しながらマージする必要がある
+  // 
+  // 選択状態の管理戦略:
+  // - 単一選択: ストアの selectedTableId を信頼できるソースとする（computedNodesから）
+  // - 複数選択: ReactFlowの選択状態を維持（currentNodesから）
   // 
   // 位置の同期戦略:
   // - ドラッグ中: 位置の同期をスキップ（onNodesChangeで位置が管理される）
   // - ドラッグ後: ストア(tables)の位置を使用（信頼できる唯一のソース）
-  // - 選択状態: ReactFlowの現在の選択状態を維持（複数選択対応）
-  // 
-  // Note: ドラッグ停止時にonNodeDragStopでストアが更新されるため、
-  //       このuseEffectが発火したときにはストアの位置が最新になっている
   useEffect(() => {
     // ドラッグ中は位置の同期をスキップ
-    // （ドラッグ中の位置はonNodesChangeで管理されるため）
     if (isNodeDraggingRef.current) {
       return;
     }
     
     setNodes((currentNodes) => {
-      // 現在のノードの選択状態をマップに保持
+      // 現在のReactFlowノードの選択状態をマップに保持
       const currentNodeSelectedMap = new Map<string, boolean>();
       for (const node of currentNodes) {
         currentNodeSelectedMap.set(node.id, node.selected ?? false);
       }
       
-      // computedNodesに既存の選択状態をマージ
-      // 位置は常にストア(computedNodes)の値を使用
+      // 複数選択中かどうかを判定（2つ以上のノードが選択されている場合）
+      const selectedCount = [...currentNodeSelectedMap.values()].filter(Boolean).length;
+      const isMultiSelect = selectedCount > 1;
+      
       return computedNodes.map((node) => {
-        const currentSelected = currentNodeSelectedMap.get(node.id);
-        if (currentSelected !== undefined) {
-          // 既存ノード: 選択状態はReactFlowの状態を維持、位置はストアを使用
+        if (isMultiSelect) {
+          // 複数選択中: ReactFlowの選択状態を維持
+          const currentSelected = currentNodeSelectedMap.get(node.id) ?? false;
           return {
             ...node,
-            selected: node.selected || currentSelected,
+            selected: currentSelected,
           };
         }
-        // 新規ノード: そのまま使用
+        // 単一選択: ストアの selectedTableId（computedNodes.selected）を使用
         return node;
       });
     });
@@ -623,16 +621,15 @@ function EREditorInner() {
     (event: React.MouseEvent, node: Node) => {
       if (event.shiftKey || event.ctrlKey || event.metaKey) {
         // 複数選択: 現在の選択状態をトグル
+        // ストアの選択をクリア（複数選択時はストアの単一選択とは別管理）
+        selectTable(null);
         setNodes((nds) =>
           nds.map((n) =>
             n.id === node.id ? { ...n, selected: !n.selected } : n
           )
         );
       } else {
-        // 単一選択: このノードのみ選択、他は解除
-        setNodes((nds) =>
-          nds.map((n) => ({ ...n, selected: n.id === node.id }))
-        );
+        // 単一選択: ストアに選択を通知するだけ（useEffectで選択状態が反映される）
         selectTable(node.id);
       }
     },
@@ -640,8 +637,11 @@ function EREditorInner() {
   );
 
   const onPaneClick = useCallback(() => {
+    // ストアの選択をクリア
     selectTable(null);
-  }, [selectTable]);
+    // ReactFlowの複数選択状態もクリア
+    setNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
+  }, [selectTable, setNodes]);
 
   const onEdgeClick = useCallback(
     (event: React.MouseEvent, edge: Edge) => {
