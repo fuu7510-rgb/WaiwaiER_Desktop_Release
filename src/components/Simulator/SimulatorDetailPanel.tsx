@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '../common';
-import { TABLE_BG_COLOR_CLASSES } from '../../lib/constants';
 import { formatValue } from '../../lib';
 import type { Column, SampleDataByTableId, SampleRow, Table } from '../../types';
 import { getRefDisplayLabel, getRowLabel } from './recordLabel';
@@ -55,9 +54,8 @@ export function SimulatorDetailPanel({
     >
       {/* Header */}
       <div
-        className={`px-4 py-3 text-white ${
-          TABLE_BG_COLOR_CLASSES[table.color || '#6366f1'] || 'bg-indigo-500'
-        }`}
+        className="px-4 py-3 text-white"
+        style={{ backgroundColor: table.color || '#6366f1' }}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

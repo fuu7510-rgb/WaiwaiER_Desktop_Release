@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next';
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { TABLE_BG_COLOR_CLASSES } from '../../lib/constants';
 import type { Table } from '../../types';
 
 interface SimulatorNavPanelProps {
@@ -145,7 +144,8 @@ function SortableSimulatorTableNavItem(props: SortableSimulatorTableNavItemProps
         <span
           {...attributes}
           {...listeners}
-          className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-sm cursor-grab ${TABLE_BG_COLOR_CLASSES[table.color || '#6366f1'] || 'bg-indigo-500'}`}
+          className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm cursor-grab"
+          style={{ backgroundColor: table.color || '#6366f1' }}
           aria-hidden="true"
         />
         {/* クリック可能なテーブル名 */}

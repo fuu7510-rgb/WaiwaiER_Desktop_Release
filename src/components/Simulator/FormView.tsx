@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '../common';
-import { TABLE_BG_COLOR_CLASSES } from '../../lib/constants';
 import type { Table, Column } from '../../types';
 
 interface FormViewProps {
@@ -128,7 +127,8 @@ export function FormView({ table }: FormViewProps) {
       <div className="bg-white rounded-lg shadow-sm border border-zinc-100 overflow-hidden">
         {/* Header */}
         <div 
-          className={`px-4 py-3 text-white ${TABLE_BG_COLOR_CLASSES[table.color || '#6366f1'] || 'bg-indigo-500'}`}
+          className="px-4 py-3 text-white"
+          style={{ backgroundColor: table.color || '#6366f1' }}
         >
           <h2 className="text-sm font-medium">{table.name}</h2>
           <p className="text-[10px] opacity-75">新規作成フォーム</p>

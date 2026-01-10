@@ -5,7 +5,6 @@ import { Button, Input, ResizableSplitter } from '../common';
 import { TableEditor } from '../EREditor/TableEditor';
 import { ColumnEditor } from '../EREditor/ColumnEditor';
 import { RelationEditor } from '../EREditor/RelationEditor';
-import { TABLE_BG_COLOR_CLASSES } from '../../lib/constants';
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -275,7 +274,8 @@ function TableListItem({
     >
       <div className="flex items-center gap-3">
         <div
-          className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-sm ${TABLE_BG_COLOR_CLASSES[table.color || '#6366f1'] || 'bg-indigo-500'}`}
+          className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
+          style={{ backgroundColor: table.color || '#6366f1' }}
         />
         <span 
           className="text-sm font-medium truncate"

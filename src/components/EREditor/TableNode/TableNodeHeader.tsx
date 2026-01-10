@@ -8,10 +8,9 @@ import type { Table } from './types';
 
 interface TableNodeHeaderProps {
   table: Table;
-  colorClasses: { bg: string; border: string };
 }
 
-export const TableNodeHeader = memo(({ table, colorClasses }: TableNodeHeaderProps) => {
+export const TableNodeHeader = memo(({ table }: TableNodeHeaderProps) => {
   const { t } = useTranslation();
   const updateTable = useERStore((state) => state.updateTable);
   const selectTable = useERStore((state) => state.selectTable);
@@ -94,7 +93,8 @@ export const TableNodeHeader = memo(({ table, colorClasses }: TableNodeHeaderPro
 
   return (
     <div
-      className={`px-2.5 py-1.5 rounded-t font-medium text-white text-xs flex items-center justify-between ${colorClasses.bg}`}
+      className="px-2.5 py-1.5 rounded-t font-medium text-white text-xs flex items-center justify-between"
+      style={{ backgroundColor: table.color || '#6366f1' }}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
     >
