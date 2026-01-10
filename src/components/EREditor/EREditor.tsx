@@ -723,6 +723,7 @@ function EREditorInner() {
         snapGrid={[15, 15]}
         deleteKeyCode="Delete"
         selectionKeyCode={null}
+        nodeDragThreshold={5}
         // Increase edge-updater hit radius (visual is hidden via CSS).
         edgeUpdaterRadius={10}
         style={{ backgroundColor: 'var(--background)' }}

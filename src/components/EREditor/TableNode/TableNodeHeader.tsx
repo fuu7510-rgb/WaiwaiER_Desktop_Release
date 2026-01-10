@@ -1,5 +1,6 @@
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useReactFlow } from 'reactflow';
 import { useERStore } from '../../../stores';
 import { Tooltip } from '../../common';
 import type { Table } from './types';
@@ -13,10 +14,24 @@ export const TableNodeHeader = memo(({ table, colorClasses }: TableNodeHeaderPro
   const { t } = useTranslation();
   const updateTable = useERStore((state) => state.updateTable);
   const selectTable = useERStore((state) => state.selectTable);
+  const { setNodes } = useReactFlow();
   
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(table.name);
   const isCollapsed = table.isCollapsed ?? false;
+
+  // Ctrl/Shift/Meta + クリックでの複数選択
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    if (e.ctrlKey || e.shiftKey || e.metaKey) {
+      e.stopPropagation();
+      // 複数選択: 現在の選択状態をトグル
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === table.id ? { ...n, selected: !n.selected } : n
+        )
+      );
+    }
+  }, [table.id, setNodes]);
 
   const handleDoubleClick = useCallback(() => {
     setIsEditing(true);
@@ -41,6 +56,10 @@ export const TableNodeHeader = memo(({ table, colorClasses }: TableNodeHeaderPro
 
   const handleToggleCollapsed = useCallback(
     (e: React.MouseEvent) => {
+      // Ctrl/Shift/Meta + クリックの場合は、親ノードの複数選択を優先
+      if (e.ctrlKey || e.shiftKey || e.metaKey) {
+        return;
+      }
       e.stopPropagation();
       selectTable(table.id);
       updateTable(table.id, { isCollapsed: !isCollapsed });
@@ -48,9 +67,25 @@ export const TableNodeHeader = memo(({ table, colorClasses }: TableNodeHeaderPro
     [selectTable, table.id, isCollapsed, updateTable]
   );
 
+  // Ctrl/Shift/Meta キーでない場合のみドラッグ防止
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.ctrlKey || e.shiftKey || e.metaKey) {
+      return;
+    }
+    e.stopPropagation();
+  }, []);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.ctrlKey || e.shiftKey || e.metaKey) {
+      return;
+    }
+    e.stopPropagation();
+  }, []);
+
   return (
     <div
       className={`px-2.5 py-1.5 rounded-t font-medium text-white text-xs flex items-center justify-between ${colorClasses.bg}`}
+      onClick={handleClick}
       onDoubleClick={handleDoubleClick}
     >
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
@@ -85,8 +120,8 @@ export const TableNodeHeader = memo(({ table, colorClasses }: TableNodeHeaderPro
           <button
             type="button"
             onClick={handleToggleCollapsed}
-            onPointerDown={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={handlePointerDown}
+            onMouseDown={handleMouseDown}
             className="p-0.5 rounded-sm transition-colors hover:bg-white/10"
             aria-label={isCollapsed ? t('table.expand') : t('table.collapse')}
             title={isCollapsed ? t('table.expand') : t('table.collapse')}
