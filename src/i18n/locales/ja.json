@@ -121,6 +121,7 @@
     "noTables": "テーブルがありません",
     "clickAddTable": "「テーブルを追加」ボタンをクリックして開始してください。",
     "selectTableOrColumnToEdit": "テーブルまたはカラムを選択して編集",
+    "maskNames": "伏せ字",
     "relationHighlight": "関連強調",
     "enableRelationHighlight": "関連強調をON",
     "disableRelationHighlight": "関連強調をOFF",

@@ -139,6 +139,7 @@
     "noTables": "No tables",
     "clickAddTable": "Click \"Add Table\" to get started.",
     "selectTableOrColumnToEdit": "Select a table or column to edit",
+    "maskNames": "Mask names",
     "zoom": "Zoom",
     "zoomLevel": "Zoom: {{percent}}%",
     "zoomIn": "Zoom In",

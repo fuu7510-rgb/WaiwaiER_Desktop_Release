@@ -63,6 +63,8 @@ function EREditorInner() {
     toggleGridVisible,
     isMemosVisible,
     toggleMemosVisible,
+    isNameMaskEnabled,
+    toggleNameMask,
     settings,
   } = useUIStore();
 
@@ -73,7 +75,7 @@ function EREditorInner() {
   const defaultFollowerIconSpeed = settings.edgeFollowerIconSpeed ?? 90;
   
   const zoom = useReactFlowStore((state) => state.transform[2], (a, b) => a === b);
-  const { getNodes } = useReactFlow();
+  useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const lastPointerPosRef = useRef<{ x: number; y: number } | null>(null);
   const pointerRafRef = useRef<number | null>(null);
@@ -830,11 +832,13 @@ function EREditorInner() {
         isRelationHighlightEnabled={isRelationHighlightEnabled}
         isGridVisible={isGridVisible}
         isAnimationTemporarilyEnabled={isAnimationTemporarilyEnabled}
+        isNameMaskEnabled={isNameMaskEnabled}
         memosLength={memos.length}
         tablesCount={tables.length}
         toggleMemosVisible={toggleMemosVisible}
         toggleRelationHighlight={toggleRelationHighlight}
         toggleGridVisible={toggleGridVisible}
+        toggleNameMask={toggleNameMask}
         toggleAnimationEnabled={() => setIsAnimationTemporarilyEnabled((v) => !v)}
         addMemo={addMemo}
         setAllTablesCollapsed={setAllTablesCollapsed}

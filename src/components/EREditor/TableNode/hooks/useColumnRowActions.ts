@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { useERStore } from '../../../../stores';
+import { useERStore, useUIStore } from '../../../../stores';
 import { useAppSheetSanitizer } from '../../ColumnEditorParts/hooks/useAppSheetSanitizer';
 import type { Column, ColumnType, MiniMetaTab, EditableState } from '../types';
 
@@ -58,6 +58,8 @@ export function useColumnRowActions({
   const deleteColumn = useERStore((state) => state.deleteColumn);
   const duplicateColumn = useERStore((state) => state.duplicateColumn);
 
+  const isNameMaskEnabled = useUIStore((state) => state.isNameMaskEnabled);
+
   const { sanitizeForType, pruneAppSheet } = useAppSheetSanitizer();
 
   const isInitialValueDisabled = useMemo(() => {
@@ -77,9 +79,10 @@ export function useColumnRowActions({
   const handleNameDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     selectColumn(tableId, column.id);
+    if (isNameMaskEnabled) return;
     setIsEditingName(true);
     setEditName(column.name);
-  }, [column.id, column.name, selectColumn, tableId, setEditName, setIsEditingName]);
+  }, [column.id, column.name, selectColumn, tableId, setEditName, setIsEditingName, isNameMaskEnabled]);
 
   const handleNameSubmit = useCallback(() => {
     const next = editName.trim();

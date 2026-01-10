@@ -52,6 +52,7 @@ interface UIState {
   isRelationHighlightEnabled: boolean;
   isGridVisible: boolean;
   isMemosVisible: boolean;
+  isNameMaskEnabled: boolean;
   
   // 設定
   settings: AppSettings;
@@ -103,6 +104,7 @@ interface UIState {
   toggleRelationHighlight: () => void;
   toggleGridVisible: () => void;
   toggleMemosVisible: () => void;
+  toggleNameMask: () => void;
   
   // 設定操作
   updateSettings: (settings: Partial<AppSettings>) => void;
@@ -163,6 +165,7 @@ export const useUIStore = create<UIState>()(
       isRelationHighlightEnabled: true,
       isGridVisible: true,
       isMemosVisible: true,
+      isNameMaskEnabled: false,
       settings: defaultSettings,
       
       // ビュー操作
@@ -253,6 +256,8 @@ export const useUIStore = create<UIState>()(
       toggleGridVisible: () => set((state) => ({ isGridVisible: !state.isGridVisible })),
 
       toggleMemosVisible: () => set((state) => ({ isMemosVisible: !state.isMemosVisible })),
+
+      toggleNameMask: () => set((state) => ({ isNameMaskEnabled: !state.isNameMaskEnabled })),
       
       // 設定操作
       updateSettings: (settings) =>

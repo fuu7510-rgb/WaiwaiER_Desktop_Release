@@ -6,10 +6,13 @@ import { useTranslation } from 'react-i18next';
 import { useColumnRowState, useColumnRowActions } from './hooks';
 import { ColumnRowActionPanel } from './ColumnRowActionPanel';
 import { columnTypeClasses } from './constants';
+import { useUIStore } from '../../../stores';
+import { maskIdentifier } from '../../../lib/masking';
 import type { ColumnRowProps } from './types';
 
 export const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: ColumnRowProps) => {
   const { t } = useTranslation();
+  const isNameMaskEnabled = useUIStore((s) => s.isNameMaskEnabled);
 
   // State management via custom hook
   const state = useColumnRowState({ column, tableId });
@@ -205,7 +208,9 @@ export const ColumnRow = memo(({ column, tableId, index, isFirst, isLast }: Colu
           />
         ) : (
           <span className="flex min-w-0 items-center gap-0.5">
-            <span className="min-w-0 truncate">{column.name}</span>
+            <span className="min-w-0 truncate">
+              {isNameMaskEnabled ? maskIdentifier(column.name) : column.name}
+            </span>
             {column.constraints.required && (
               <span
                 className="shrink-0 text-[10px] font-bold"
