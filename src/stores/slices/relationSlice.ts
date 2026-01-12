@@ -56,6 +56,7 @@ export const createRelationSlice: SliceCreator<RelationSlice> = (set, get) => ({
       }
     });
     get().saveHistory('リレーションを削除');
-    get().queueSaveToDB();
+    // 削除は即座に保存（遅延なし）
+    void get().saveToDB();
   },
 });

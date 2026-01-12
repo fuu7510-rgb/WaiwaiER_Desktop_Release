@@ -82,8 +82,10 @@ export const createHistorySlice: SliceCreator<HistorySlice> = (set, get) => ({
 
   undo: () => {
     const { historyIndex, history } = get();
+    console.log('[undo] 履歴インデックス:', historyIndex, '履歴の長さ:', history.length);
     if (historyIndex > 0) {
       const entry = history[historyIndex - 1];
+      console.log('[undo] 復元するメモ数:', entry.state.memos?.length ?? 0);
       set((state) => {
         state.historyIndex--;
         state.tables = entry.state.tables;
@@ -94,14 +96,17 @@ export const createHistorySlice: SliceCreator<HistorySlice> = (set, get) => ({
           previousSampleDataByTableId: state.sampleDataByTableId,
         });
       });
+      console.log('[undo] Undo後のメモ数:', get().memos.length);
       get().queueSaveToDB();
     }
   },
 
   redo: () => {
     const { historyIndex, history } = get();
+    console.log('[redo] 履歴インデックス:', historyIndex, '履歴の長さ:', history.length);
     if (historyIndex < history.length - 1) {
       const entry = history[historyIndex + 1];
+      console.log('[redo] 復元するメモ数:', entry.state.memos?.length ?? 0);
       set((state) => {
         state.historyIndex++;
         state.tables = entry.state.tables;
@@ -112,6 +117,7 @@ export const createHistorySlice: SliceCreator<HistorySlice> = (set, get) => ({
           previousSampleDataByTableId: state.sampleDataByTableId,
         });
       });
+      console.log('[redo] Redo後のメモ数:', get().memos.length);
       get().queueSaveToDB();
     }
   },

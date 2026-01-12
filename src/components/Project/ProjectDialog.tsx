@@ -138,15 +138,18 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
   }, [newProjectName, isEncrypted, passphrase, confirmPassphrase, limits.canEncrypt, canCreateProject, createProject, clearDiagram, openProject, onClose, t, getProjectLimit, setCurrentProjectId, setCurrentProjectPassphrase, saveToDB]);
 
   const handleOpen = useCallback(async (projectId: string) => {
+    console.log('[ProjectDialog handleOpen] プロジェクトを開きます:', projectId);
     const project = projects.find((p) => p.id === projectId);
     if (!project) return;
 
     // プロジェクト切替前に、現在の編集中データを確実に保存
     if (currentProjectId && currentProjectId !== projectId && isDirty) {
+      console.log('[ProjectDialog handleOpen] 現在のプロジェクトを保存します');
       await saveToDB();
     }
 
     if (project.isEncrypted) {
+      console.log('[ProjectDialog handleOpen] 暗号化プロジェクトです');
       // 解除フローへ
       setUnlockProjectId(projectId);
       setUnlockPassphrase('');
@@ -154,10 +157,10 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
       return;
     }
 
-    setCurrentProjectId(projectId);
-    setCurrentProjectPassphrase(null);
     try {
       await loadFromDB(projectId, { passphrase: null });
+      setCurrentProjectId(projectId);
+      setCurrentProjectPassphrase(null);
       openProject(projectId);
       onClose();
     } catch (e) {
@@ -192,11 +195,10 @@ export function ProjectDialog({ isOpen, onClose }: ProjectDialogProps) {
       await saveToDB();
     }
 
-    setCurrentProjectId(project.id);
-    setCurrentProjectPassphrase(unlockPassphrase);
-
     try {
       await loadFromDB(project.id, { passphrase: unlockPassphrase });
+      setCurrentProjectId(project.id);
+      setCurrentProjectPassphrase(unlockPassphrase);
     } catch (e) {
       console.error(e);
       setUnlockError('復号に失敗しました');

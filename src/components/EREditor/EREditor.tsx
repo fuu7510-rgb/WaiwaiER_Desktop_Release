@@ -38,6 +38,7 @@ function EREditorInner() {
     moveTables,
     moveMemos,
     addMemo,
+    deleteMemo,
     addRelation,
     addColumn,
     updateColumn,
@@ -67,6 +68,7 @@ function EREditorInner() {
     toggleNameMask,
     settings,
     setCanvasSelectedTableIds,
+    setGetViewportCenter,
   } = useUIStore();
 
   const isEdgeAnimationEnabled = settings.edgeAnimationEnabled ?? true;
@@ -74,15 +76,37 @@ function EREditorInner() {
   const defaultFollowerIconName = settings.edgeFollowerIconName ?? 'arrow-right';
   const defaultFollowerIconSize = settings.edgeFollowerIconSize ?? 14;
   const defaultFollowerIconSpeed = settings.edgeFollowerIconSpeed ?? 90;
-  
+
   const zoom = useReactFlowStore((state) => state.transform[2], (a, b) => a === b);
-  const { getNodes } = useReactFlow();
+  const { getNodes, screenToFlowPosition } = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const lastPointerPosRef = useRef<{ x: number; y: number } | null>(null);
   const pointerRafRef = useRef<number | null>(null);
-  
+
   // ノードドラッグ中かどうかを追跡（ドラッグ中は位置の同期をスキップするため）
   const isNodeDraggingRef = useRef(false);
+
+  // 現在のビューポート中心のキャンバス座標を取得
+  const getViewportCenter = useCallback(() => {
+    const rect = reactFlowWrapper.current?.getBoundingClientRect();
+    if (!rect) {
+      return { x: 200, y: 200 }; // フォールバック
+    }
+    // ビューポートの中心をスクリーン座標で計算
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    // スクリーン座標をフロー座標に変換
+    const flowPos = screenToFlowPosition({ x: centerX, y: centerY });
+    return flowPos;
+  }, [screenToFlowPosition]);
+
+  // UIStoreにgetViewportCenter関数を登録
+  useEffect(() => {
+    setGetViewportCenter(getViewportCenter);
+    return () => {
+      setGetViewportCenter(null);
+    };
+  }, [getViewportCenter, setGetViewportCenter]);
 
   // カスタムフックの使用
   const {
@@ -559,12 +583,12 @@ function EREditorInner() {
 
   // ノードドラッグ開始時にフラグをセット
   const onNodeDragStart = useCallback(
-    (event: MouseEvent | TouchEvent, node: Node) => {
+    (event: React.MouseEvent | React.TouchEvent, node: Node) => {
       isNodeDraggingRef.current = true;
 
       const hasModifier =
         'shiftKey' in event &&
-        ((event as MouseEvent).shiftKey || (event as MouseEvent).ctrlKey || (event as MouseEvent).metaKey);
+        (event.shiftKey || event.ctrlKey || event.metaKey);
       if (hasModifier) return;
 
       // 微小ドラッグ扱いで click が落ちるケース対策として、ドラッグ開始でも単一選択を確定させる
@@ -779,6 +803,30 @@ function EREditorInner() {
     setNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
   }, [selectTable, selectRelations, setNodes]);
 
+  // DELETEキーでノードを削除
+  const onNodesDelete = useCallback(
+    (deleted: Node[]) => {
+      deleted.forEach((node) => {
+        if (node.type === 'tableNode') {
+          deleteTable(node.id);
+        } else if (node.type === 'memoNode') {
+          deleteMemo(node.id);
+        }
+      });
+    },
+    [deleteTable, deleteMemo]
+  );
+
+  // DELETEキーでエッジを削除
+  const onEdgesDelete = useCallback(
+    (deleted: Edge[]) => {
+      deleted.forEach((edge) => {
+        deleteRelation(edge.id);
+      });
+    },
+    [deleteRelation]
+  );
+
   const onEdgeClick = useCallback(
     (event: React.MouseEvent, edge: Edge) => {
       event.stopPropagation();
@@ -870,6 +918,8 @@ function EREditorInner() {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodesDelete={onNodesDelete}
+        onEdgesDelete={onEdgesDelete}
         onEdgeUpdate={onEdgeUpdate}
         onEdgeUpdateStart={onEdgeUpdateStart}
         onEdgeUpdateEnd={onEdgeUpdateEnd}
@@ -951,6 +1001,7 @@ function EREditorInner() {
         toggleAnimationEnabled={() => setIsAnimationTemporarilyEnabled((v) => !v)}
         addMemo={addMemo}
         setAllTablesCollapsed={setAllTablesCollapsed}
+        getViewportCenter={getViewportCenter}
       />
     </div>
   );

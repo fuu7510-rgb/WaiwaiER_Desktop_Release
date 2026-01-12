@@ -334,7 +334,8 @@ export const createColumnSlice: SliceCreator<ColumnSlice> = (set, get) => ({
       }
     });
     get().saveHistory('カラムを削除');
-    get().queueSaveToDB();
+    // 削除は即座に保存（遅延なし）
+    void get().saveToDB();
   },
 
   reorderColumn: (tableId, columnId, newOrder) => {

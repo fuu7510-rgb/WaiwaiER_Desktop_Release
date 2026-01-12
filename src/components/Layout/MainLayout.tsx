@@ -43,7 +43,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const { undo, redo, deletedSampleRowStack, undoDeleteSampleRow } = useERStore();
   const { showLicenseDialog, setShowLicenseDialog, warning } = useLicenseStore();
   const { loadProjectsFromDB, projects, currentProjectId } = useProjectStore();
-  const { loadFromDB, currentProjectId: erCurrentProjectId, setCurrentProjectId, setCurrentProjectPassphrase } = useERStore();
+  const { loadFromDB, currentProjectId: erCurrentProjectId, setCurrentProjectId, setCurrentProjectPassphrase, isDirty, saveToDB } = useERStore();
 
   // ライセンス初期化
   useEffect(() => {
@@ -57,12 +57,23 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   // 起動時/切替時に、非暗号プロジェクトはER図を自動ロード
   useEffect(() => {
+    console.log('[MainLayout useEffect] currentProjectId:', currentProjectId, 'erCurrentProjectId:', erCurrentProjectId);
     if (!currentProjectId) return;
-    if (erCurrentProjectId === currentProjectId) return;
+    if (erCurrentProjectId === currentProjectId) {
+      console.log('[MainLayout useEffect] 同じプロジェクトなのでスキップ');
+      return;
+    }
     const project = projects.find((p) => p.id === currentProjectId);
-    if (!project) return;
-    if (project.isEncrypted) return;
+    if (!project) {
+      console.log('[MainLayout useEffect] プロジェクトが見つかりません');
+      return;
+    }
+    if (project.isEncrypted) {
+      console.log('[MainLayout useEffect] 暗号化プロジェクトなのでスキップ');
+      return;
+    }
 
+    console.log('[MainLayout useEffect] プロジェクトを自動ロードします:', project.id);
     setCurrentProjectPassphrase(null);
     setCurrentProjectId(project.id);
     void loadFromDB(project.id, { passphrase: null });
@@ -108,6 +119,22 @@ export function MainLayout({ children }: MainLayoutProps) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
+
+  // ページリロード/ウィンドウ閉じる前に保存
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        // 同期的に保存を試みる（非同期は完了しない可能性がある）
+        void saveToDB();
+        // ブラウザに変更があることを通知（確認ダイアログ表示）
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty, saveToDB]);
 
   return (
     <div className="h-screen flex flex-col min-h-screen" style={{ backgroundColor: 'var(--background)' }}>

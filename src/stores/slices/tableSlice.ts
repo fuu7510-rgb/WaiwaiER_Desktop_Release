@@ -94,7 +94,8 @@ export const createTableSlice: SliceCreator<TableSlice> = (set, get) => ({
     if (table) {
       get().saveHistory(`テーブル「${table.name}」を削除`);
     }
-    get().queueSaveToDB();
+    // 削除は即座に保存（遅延なし）
+    void get().saveToDB();
   },
 
   moveTable: (id, position) => {

@@ -55,7 +55,10 @@ interface UIState {
   isMemosVisible: boolean;
   isNameMaskEnabled: boolean;
   canvasSelectedTableIds: string[];
-  
+
+  // ビューポート座標変換関数（EREditorから登録される）
+  getViewportCenter: (() => { x: number; y: number }) | null;
+
   // 設定
   settings: AppSettings;
   
@@ -108,7 +111,8 @@ interface UIState {
   toggleMemosVisible: () => void;
   toggleNameMask: () => void;
   setCanvasSelectedTableIds: (ids: string[]) => void;
-  
+  setGetViewportCenter: (fn: (() => { x: number; y: number }) | null) => void;
+
   // 設定操作
   updateSettings: (settings: Partial<AppSettings>) => void;
   setLanguage: (language: Language) => void;
@@ -171,6 +175,7 @@ export const useUIStore = create<UIState>()(
       isMemosVisible: true,
       isNameMaskEnabled: false,
       canvasSelectedTableIds: [],
+      getViewportCenter: null,
       settings: defaultSettings,
       
       // ビュー操作
@@ -268,7 +273,9 @@ export const useUIStore = create<UIState>()(
       toggleNameMask: () => set((state) => ({ isNameMaskEnabled: !state.isNameMaskEnabled })),
 
       setCanvasSelectedTableIds: (ids: string[]) => set({ canvasSelectedTableIds: ids }),
-      
+
+      setGetViewportCenter: (fn) => set({ getViewportCenter: fn }),
+
       // 設定操作
       updateSettings: (settings) =>
         set((state) => ({

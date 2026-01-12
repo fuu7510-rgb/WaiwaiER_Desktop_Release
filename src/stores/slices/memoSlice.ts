@@ -75,8 +75,10 @@ export const createMemoSlice: SliceCreator<MemoSlice> = (set, get) => ({
   deleteMemo: (id) => {
     set((state) => {
       state.memos = state.memos.filter((m) => m.id !== id);
+      state.isDirty = true;
     });
     get().saveHistory('メモを削除');
-    get().queueSaveToDB();
+    // 削除は即座に保存（遅延なし）
+    void get().saveToDB();
   },
 });

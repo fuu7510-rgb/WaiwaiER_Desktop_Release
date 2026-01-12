@@ -17,7 +17,7 @@ export function Sidebar() {
 
 function SidebarInner() {
   const { t } = useTranslation();
-  const { settings } = useUIStore();
+  const { settings, getViewportCenter } = useUIStore();
   const { tables, addTable, selectedTableId, selectedColumnId, selectedRelationId, reorderTables } = useERStore();
   const { currentProjectId, canAddTable } = useProjectStore();
 
@@ -32,8 +32,20 @@ function SidebarInner() {
       return;
     }
 
-    const x = 100 + (tables.length % 5) * 250;
-    const y = 100 + Math.floor(tables.length / 5) * 300;
+    // ビューポートの中心を取得、取得できない場合は従来のロジックを使用
+    let x: number, y: number;
+    if (getViewportCenter) {
+      const center = getViewportCenter();
+      // ランダムなオフセットを追加して重ならないようにする
+      const randomOffsetX = Math.floor(Math.random() * 150) - 75;
+      const randomOffsetY = Math.floor(Math.random() * 150) - 75;
+      x = center.x + randomOffsetX;
+      y = center.y + randomOffsetY;
+    } else {
+      x = 100 + (tables.length % 5) * 250;
+      y = 100 + Math.floor(tables.length / 5) * 300;
+    }
+
     const tablePrefix = settings.tableNamePrefix || '';
     const tableSuffix = settings.tableNameSuffix || '';
     const baseName = newTableName.trim();
@@ -67,6 +79,7 @@ function SidebarInner() {
     settings.keyColumnSuffix,
     settings.defaultKeyColumnName,
     shouldAddCommonColumns,
+    getViewportCenter,
   ]);
 
   const sensors = useSensors(

@@ -198,6 +198,7 @@ function normalizeMemo(raw: unknown, index: number, fallbackNow: string): Memo {
     position,
     width: typeof obj.width === 'number' ? obj.width : undefined,
     height: typeof obj.height === 'number' ? obj.height : undefined,
+    isCollapsed: typeof obj.isCollapsed === 'boolean' ? obj.isCollapsed : undefined,
     createdAt: (typeof obj.createdAt === 'string' && obj.createdAt) || fallbackNow,
     updatedAt: (typeof obj.updatedAt === 'string' && obj.updatedAt) || fallbackNow,
   };

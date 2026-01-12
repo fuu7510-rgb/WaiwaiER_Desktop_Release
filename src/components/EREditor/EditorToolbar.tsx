@@ -17,6 +17,7 @@ interface EditorToolbarProps {
   toggleAnimationEnabled: () => void;
   addMemo: (position: { x: number; y: number }) => void;
   setAllTablesCollapsed: (collapsed: boolean) => void;
+  getViewportCenter: () => { x: number; y: number };
 }
 
 export function EditorToolbar({
@@ -35,6 +36,7 @@ export function EditorToolbar({
   toggleAnimationEnabled,
   addMemo,
   setAllTablesCollapsed,
+  getViewportCenter,
 }: EditorToolbarProps) {
   const { t } = useTranslation();
 
@@ -74,8 +76,10 @@ export function EditorToolbar({
         variant="secondary"
         size="sm"
         onClick={() => {
-          const offset = memosLength * 24;
-          addMemo({ x: 200 + offset, y: 200 + offset });
+          const center = getViewportCenter();
+          // ランダムなオフセットを追加して重ならないようにする
+          const randomOffset = Math.floor(Math.random() * 100) - 50;
+          addMemo({ x: center.x + randomOffset, y: center.y + randomOffset });
         }}
         title={t('editor.addMemoTooltip')}
       >

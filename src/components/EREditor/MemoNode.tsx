@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useERStore } from '../../stores';
 import type { Memo } from '../../types';
+import { Tooltip } from '../common';
 
 interface MemoNodeData {
   memo: Memo;
@@ -14,6 +15,7 @@ export const MemoNode = reactMemo(({ data, selected }: NodeProps<MemoNodeData>) 
   const { memo } = data;
   const { updateMemo, deleteMemo } = useERStore();
 
+  const isCollapsed = memo.isCollapsed ?? false;
   const [draft, setDraft] = useState(memo.text);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -27,7 +29,7 @@ export const MemoNode = reactMemo(({ data, selected }: NodeProps<MemoNodeData>) 
 
   const [liveSize, setLiveSize] = useState(() => ({
     w: memo.width ?? 260,
-    h: memo.height ?? 140,
+    h: isCollapsed ? 50 : (memo.height ?? 140),
   }));
 
   useEffect(() => {
@@ -35,8 +37,11 @@ export const MemoNode = reactMemo(({ data, selected }: NodeProps<MemoNodeData>) 
   }, [memo.text]);
 
   useEffect(() => {
-    setLiveSize({ w: memo.width ?? 260, h: memo.height ?? 140 });
-  }, [memo.height, memo.width]);
+    setLiveSize({
+      w: memo.width ?? 260,
+      h: isCollapsed ? 50 : (memo.height ?? 140)
+    });
+  }, [memo.height, memo.width, isCollapsed]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -54,6 +59,14 @@ export const MemoNode = reactMemo(({ data, selected }: NodeProps<MemoNodeData>) 
     setDraft(memo.text);
     textareaRef.current?.blur();
   }, [memo.text]);
+
+  const handleToggleCollapsed = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      updateMemo(memo.id, { isCollapsed: !isCollapsed });
+    },
+    [memo.id, isCollapsed, updateMemo]
+  );
 
   const containerClassName = useMemo(() => {
     const base = 'rounded-md border bg-white shadow-sm';
@@ -114,9 +127,30 @@ export const MemoNode = reactMemo(({ data, selected }: NodeProps<MemoNodeData>) 
   );
 
   return (
-    <div ref={containerRef} className={containerClassName + ' relative min-h-[110px] min-w-[180px]'}>
+    <div ref={containerRef} className={containerClassName + ' relative min-w-[180px]' + (isCollapsed ? '' : ' min-h-[110px]')}>
       <div className="memo-drag-handle flex items-center justify-between border-b border-zinc-200 px-2 py-1 cursor-move select-none">
-        <div className="text-[10px] font-medium text-zinc-500">{t('editor.memo')}</div>
+        <div className="flex items-center gap-1">
+          <Tooltip content={isCollapsed ? t('table.expand') : t('table.collapse')}>
+            <button
+              type="button"
+              onClick={handleToggleCollapsed}
+              className="nodrag nopan p-0.5 rounded-sm transition-colors text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
+              aria-label={isCollapsed ? t('table.expand') : t('table.collapse')}
+              title={isCollapsed ? t('table.expand') : t('table.collapse')}
+            >
+              {isCollapsed ? (
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                </svg>
+              ) : (
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              )}
+            </button>
+          </Tooltip>
+          <div className="text-[10px] font-medium text-zinc-500">{t('editor.memo')}</div>
+        </div>
         <button
           type="button"
           className="nodrag nopan rounded px-1 py-0.5 text-[10px] text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"
@@ -131,34 +165,42 @@ export const MemoNode = reactMemo(({ data, selected }: NodeProps<MemoNodeData>) 
         </button>
       </div>
 
-      <textarea
-        ref={textareaRef}
-        className="nodrag nopan h-[calc(100%-26px)] w-full resize-none bg-transparent p-2 text-[11px] leading-relaxed text-zinc-700 outline-none"
-        value={draft}
-        placeholder={t('editor.memoPlaceholder')}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-            e.preventDefault();
-            commit();
-            textareaRef.current?.blur();
-          }
-          if (e.key === 'Escape') {
-            e.preventDefault();
-            cancel();
-          }
-        }}
-      />
+      {isCollapsed ? (
+        <div className="px-2 py-1.5 text-[11px] text-zinc-500 truncate leading-normal">
+          {memo.text || t('editor.memoPlaceholder')}
+        </div>
+      ) : (
+        <>
+          <textarea
+            ref={textareaRef}
+            className="nodrag nopan h-[calc(100%-26px)] w-full resize-none bg-transparent p-2 text-[11px] leading-relaxed text-zinc-700 outline-none"
+            value={draft}
+            placeholder={t('editor.memoPlaceholder')}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                commit();
+                textareaRef.current?.blur();
+              }
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                cancel();
+              }
+            }}
+          />
 
-      <div
-        className="nodrag nopan absolute bottom-1 right-1 h-3 w-3 cursor-se-resize rounded-sm border border-zinc-300 bg-white"
-        title="ドラッグでサイズ変更"
-        onPointerDown={onResizePointerDown}
-        onPointerMove={onResizePointerMove}
-        onPointerUp={onResizePointerUp}
-        onPointerCancel={onResizePointerUp}
-      />
+          <div
+            className="nodrag nopan absolute bottom-1 right-1 h-3 w-3 cursor-se-resize rounded-sm border border-zinc-300 bg-white"
+            title="ドラッグでサイズ変更"
+            onPointerDown={onResizePointerDown}
+            onPointerMove={onResizePointerMove}
+            onPointerUp={onResizePointerUp}
+            onPointerCancel={onResizePointerUp}
+          />
+        </>
+      )}
     </div>
   );
 });

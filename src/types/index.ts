@@ -236,6 +236,7 @@ export interface Memo {
   position: TablePosition;
   width?: number;
   height?: number;
+  isCollapsed?: boolean;
   createdAt: string;
   updatedAt: string;
 }

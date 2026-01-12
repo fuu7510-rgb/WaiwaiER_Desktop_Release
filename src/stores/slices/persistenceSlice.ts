@@ -63,10 +63,20 @@ export const createPersistenceSlice: SliceCreator<PersistenceSlice> = (set, get)
     },
 
     loadFromDB: async (projectId, options) => {
+      console.log('[loadFromDB] プロジェクト読み込み開始:', projectId);
+      console.log('[loadFromDB] 現在のプロジェクトID:', get().currentProjectId, 'isDirty:', get().isDirty);
+
+      // プロジェクトを切り替える前に、保留中の保存を即座に実行
       clearQueuedSave();
+      if (get().isDirty && get().currentProjectId) {
+        console.log('[loadFromDB] 保留中の変更を保存します...');
+        await get().saveToDB();
+      }
+
       const passphrase = options?.passphrase ?? get().currentProjectPassphrase;
       const resolvedPassphrase = passphrase ?? undefined;
       const diagram = await loadDiagram(projectId, { passphrase: resolvedPassphrase });
+      console.log('[loadFromDB] DBから読み込んだメモ数:', diagram?.memos?.length ?? 0);
       const storedSampleData = await loadSampleData(projectId, { passphrase: resolvedPassphrase });
       const migratedSampleData = diagram
         ? migrateStoredSampleDataToIds({ tables: diagram.tables ?? [], storedSampleData: storedSampleData as SampleDataByTableId | null })
@@ -99,8 +109,10 @@ export const createPersistenceSlice: SliceCreator<PersistenceSlice> = (set, get)
           state.isSaving = false;
           state.saveError = null;
         });
+        console.log('[loadFromDB] stateに設定したメモ数:', get().memos.length);
         get().saveHistory('プロジェクトを読み込み');
       } else {
+        console.log('[loadFromDB] ダイアグラムが見つかりませんでした');
         set((state) => {
           state.currentProjectId = projectId;
           state.currentProjectPassphrase = passphrase ?? null;
@@ -126,7 +138,11 @@ export const createPersistenceSlice: SliceCreator<PersistenceSlice> = (set, get)
         currentProjectPassphrase,
         sampleDataByTableId,
       } = get();
-      if (!currentProjectId) return;
+      console.log('[saveToDB] 保存開始 - プロジェクトID:', currentProjectId, 'メモ数:', memos.length, 'テーブル数:', tables.length);
+      if (!currentProjectId) {
+        console.warn('[saveToDB] プロジェクトIDがないため保存をスキップ');
+        return;
+      }
 
       set((state) => {
         state.isSaving = true;
@@ -134,15 +150,18 @@ export const createPersistenceSlice: SliceCreator<PersistenceSlice> = (set, get)
       });
 
       try {
+        console.log('[saveToDB] ダイアグラム保存中...', { memos: memos.length, tables: tables.length, relations: relations.length });
         await saveDiagram(
           currentProjectId,
           { tables, relations, memos },
           { passphrase: currentProjectPassphrase || undefined }
         );
+        console.log('[saveToDB] ダイアグラム保存完了');
 
         await saveSampleData(currentProjectId, sampleDataByTableId ?? {}, {
           passphrase: currentProjectPassphrase || undefined,
         });
+        console.log('[saveToDB] サンプルデータ保存完了');
 
         // プロジェクトのデータスキーマバージョンを更新
         useProjectStore.getState().updateProject(currentProjectId, {
@@ -155,8 +174,9 @@ export const createPersistenceSlice: SliceCreator<PersistenceSlice> = (set, get)
           state.lastSavedAt = new Date().toISOString();
           state.saveError = null;
         });
+        console.log('[saveToDB] 保存完全完了 ✓');
       } catch (error) {
-        console.error('Failed to save diagram to DB:', error);
+        console.error('[saveToDB] 保存失敗 ✗', error);
         const errorMessage = error instanceof Error ? error.message : String(error);
         set((state) => {
           state.isSaving = false;
