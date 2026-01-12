@@ -49,7 +49,7 @@ function buildRootOnlyPath(args: {
   sourcePosition: 'left' | 'right' | 'top' | 'bottom';
   targetPosition: 'left' | 'right' | 'top' | 'bottom';
 }): string {
-  const { sourceX, sourceY, targetX, targetY, sourcePosition: _sourcePosition, targetPosition } = args;
+  const { sourceX, sourceY, targetX, targetY, targetPosition } = args;
 
   const dx = targetX - sourceX;
   const dy = targetY - sourceY;

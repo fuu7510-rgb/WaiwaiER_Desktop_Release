@@ -8,7 +8,6 @@ interface EditorToolbarProps {
   isGridVisible: boolean;
   isAnimationTemporarilyEnabled: boolean;
   isNameMaskEnabled: boolean;
-  memosLength: number;
   tablesCount: number;
   toggleMemosVisible: () => void;
   toggleRelationHighlight: () => void;
@@ -27,7 +26,6 @@ export function EditorToolbar({
   isGridVisible,
   isAnimationTemporarilyEnabled,
   isNameMaskEnabled,
-  memosLength,
   tablesCount,
   toggleMemosVisible,
   toggleRelationHighlight,

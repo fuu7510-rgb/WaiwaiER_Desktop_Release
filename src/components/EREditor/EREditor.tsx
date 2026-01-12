@@ -992,7 +992,6 @@ function EREditorInner() {
         isGridVisible={isGridVisible}
         isAnimationTemporarilyEnabled={isAnimationTemporarilyEnabled}
         isNameMaskEnabled={isNameMaskEnabled}
-        memosLength={memos.length}
         tablesCount={tables.length}
         toggleMemosVisible={toggleMemosVisible}
         toggleRelationHighlight={toggleRelationHighlight}
