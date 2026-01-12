@@ -1,9 +1,0 @@
-export { GeneralSettingsSection } from './GeneralSettingsSection';
-export { TableCreationRulesSection } from './TableCreationRulesSection';
-export { RelationSettingsSection } from './RelationSettingsSection';
-export { CommonColumnsSection } from './CommonColumnsSection';
-export { BackupSettingsSection } from './BackupSettingsSection';
-export { NoteParamsSettingsSection } from './NoteParamsSettingsSection';
-export { ShortcutSettingsSection } from './ShortcutSettingsSection';
-export { LicenseSection } from './LicenseSection';
-export { AboutSection } from './AboutSection';

@@ -1,1 +1,0 @@
-export { AboutDialog } from './AboutDialog';
