@@ -660,6 +660,10 @@
       "generic": "汎用SQL"
     },
     "options": {
+      "scope": "エクスポート範囲",
+      "scopeAll": "全てのテーブル",
+      "scopeSelected": "選択中のテーブル",
+      "scopeSelectedCount": "{{count}}件選択中",
       "dialect": "SQLダイアレクト",
       "includeForeignKeys": "外部キー制約を含める",
       "includeComments": "コメントを含める",

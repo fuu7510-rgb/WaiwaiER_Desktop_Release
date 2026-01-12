@@ -66,6 +66,7 @@ function EREditorInner() {
     isNameMaskEnabled,
     toggleNameMask,
     settings,
+    setCanvasSelectedTableIds,
   } = useUIStore();
 
   const isEdgeAnimationEnabled = settings.edgeAnimationEnabled ?? true;
@@ -420,17 +421,30 @@ function EREditorInner() {
   // ストアの変更を監視してノードとエッジを更新
   // 
   // 選択状態の管理戦略:
-  // - 単一選択: ストアの selectedTableId を信頼できるソースとする（computedNodesから）
-  // - 複数選択: ReactFlowの選択状態を維持（currentNodesから）
+  // - ReactFlowのノード選択状態を常に維持する
+  // - ストアの selectedTableId が変更された場合のみ、それを反映する
   // 
   // 位置の同期戦略:
   // - ドラッグ中: 位置の同期をスキップ（onNodesChangeで位置が管理される）
   // - ドラッグ後: ストア(tables)の位置を使用（ただし移動済みのノードは現在位置を維持）
+  
+  // 前回の selectedTableId を追跡
+  const prevSelectedTableIdRef = useRef<string | null>(null);
+  
   useEffect(() => {
     // ドラッグ中は位置の同期をスキップ
     if (isNodeDraggingRef.current) {
       return;
     }
+    
+    // selectedTableIdが変更されたかどうかをチェック
+    const prevId = prevSelectedTableIdRef.current;
+    const selectedTableIdChanged = prevId !== selectedTableId;
+    prevSelectedTableIdRef.current = selectedTableId;
+    
+    // selectedTableIdがnullに変わった場合（複数選択モードに入った場合）は、
+    // ノードの選択状態を上書きしない（複数選択状態を維持するため）
+    const shouldUpdateSelectionFromComputed = selectedTableIdChanged && selectedTableId !== null;
     
     setNodes((currentNodes) => {
       // 現在のReactFlowノードをマップ化（位置と選択状態を取得するため）
@@ -438,10 +452,6 @@ function EREditorInner() {
       for (const node of currentNodes) {
         currentNodeMap.set(node.id, node);
       }
-      
-      // 複数選択中かどうかを判定（2つ以上のノードが選択されている場合）
-      const selectedCount = currentNodes.filter(n => n.selected).length;
-      const isMultiSelect = selectedCount > 1;
 
       // computedNodes をマップ化
       const computedNodeMap = new Map<string, Node>();
@@ -462,10 +472,13 @@ function EREditorInner() {
           resultNodes.push(computedNode);
         } else {
           // 既存ノード: 位置は currentNode から継承、その他は computedNode から
-          // （ストアとReactFlowの位置が同じなら問題なし、ドラッグ直後でも currentNode の位置が正しい）
-          const selected = isMultiSelect 
-            ? (currentNode.selected ?? false)
-            : computedNode.selected;
+          // 選択状態: 
+          // - selectedTableIdがnull以外の値に変更された場合 → computedNodeから（単一選択）
+          // - selectedTableIdがnullに変更された場合 → currentNodeを維持（複数選択モード）
+          // - selectedTableIdが変更されていない場合 → currentNodeを維持
+          const selected = shouldUpdateSelectionFromComputed
+            ? computedNode.selected
+            : (currentNode.selected ?? false);
           
           resultNodes.push({
             ...computedNode,
@@ -477,7 +490,7 @@ function EREditorInner() {
       
       return resultNodes;
     });
-  }, [computedNodes, setNodes]);
+  }, [computedNodes, setNodes, selectedTableId]);
 
   // pendingSelectedTableIds がセットされたときにノードの選択状態を更新
   useEffect(() => {
@@ -529,6 +542,20 @@ function EREditorInner() {
     },
     [deleteTable, setNodes, tables]
   );
+  
+  // ノードの選択状態をuiStoreに同期（選択状態のみを追跡）
+  const selectedNodeIdsString = useMemo(() => {
+    return nodes
+      .filter((n) => n.type === 'tableNode' && n.selected)
+      .map((n) => n.id)
+      .sort()
+      .join(',');
+  }, [nodes]);
+  
+  useEffect(() => {
+    const selectedTableIds = selectedNodeIdsString ? selectedNodeIdsString.split(',') : [];
+    setCanvasSelectedTableIds(selectedTableIds);
+  }, [selectedNodeIdsString, setCanvasSelectedTableIds]);
 
   // ノードドラッグ開始時にフラグをセット
   const onNodeDragStart = useCallback(
@@ -774,13 +801,19 @@ function EREditorInner() {
 
   // 範囲選択によるエッジ選択を処理
   const onSelectionChange = useCallback(
-    ({ edges: selectedEdges }: { nodes: Node[]; edges: Edge[] }) => {
+    ({ nodes: selectedNodes, edges: selectedEdges }: { nodes: Node[]; edges: Edge[] }) => {
+      // 選択されたテーブルノードのIDsを保存（メモノードを除く）
+      const selectedTableIds = selectedNodes
+        .filter((n) => n.type === 'tableNode')
+        .map((n) => n.id);
+      setCanvasSelectedTableIds(selectedTableIds);
+      
       if (selectedEdges.length > 0) {
         const edgeIds = new Set(selectedEdges.map((e) => e.id));
         selectRelations(edgeIds);
       }
     },
-    [selectRelations]
+    [selectRelations, setCanvasSelectedTableIds]
   );
 
   return (

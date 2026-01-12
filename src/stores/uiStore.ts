@@ -30,6 +30,7 @@ interface UIState {
   isImportDialogOpen: boolean;
   isExportDialogOpen: boolean;
   isSQLExportDialogOpen: boolean;
+  sqlExportSelectedTableIds: string[];
   isAboutDialogOpen: boolean;
   
   // サイドバー
@@ -53,6 +54,7 @@ interface UIState {
   isGridVisible: boolean;
   isMemosVisible: boolean;
   isNameMaskEnabled: boolean;
+  canvasSelectedTableIds: string[];
   
   // 設定
   settings: AppSettings;
@@ -71,7 +73,7 @@ interface UIState {
   closeImportDialog: () => void;
   openExportDialog: () => void;
   closeExportDialog: () => void;
-  openSQLExportDialog: () => void;
+  openSQLExportDialog: (selectedTableIds?: string[]) => void;
   closeSQLExportDialog: () => void;
   openAboutDialog: () => void;
   closeAboutDialog: () => void;
@@ -105,6 +107,7 @@ interface UIState {
   toggleGridVisible: () => void;
   toggleMemosVisible: () => void;
   toggleNameMask: () => void;
+  setCanvasSelectedTableIds: (ids: string[]) => void;
   
   // 設定操作
   updateSettings: (settings: Partial<AppSettings>) => void;
@@ -151,6 +154,7 @@ export const useUIStore = create<UIState>()(
       isImportDialogOpen: false,
       isExportDialogOpen: false,
       isSQLExportDialogOpen: false,
+      sqlExportSelectedTableIds: [],
       isAboutDialogOpen: false,
       isSidebarOpen: true,
       sidebarWidth: 280,
@@ -166,6 +170,7 @@ export const useUIStore = create<UIState>()(
       isGridVisible: true,
       isMemosVisible: true,
       isNameMaskEnabled: false,
+      canvasSelectedTableIds: [],
       settings: defaultSettings,
       
       // ビュー操作
@@ -182,8 +187,11 @@ export const useUIStore = create<UIState>()(
       closeImportDialog: () => set({ isImportDialogOpen: false }),
       openExportDialog: () => set({ isExportDialogOpen: true }),
       closeExportDialog: () => set({ isExportDialogOpen: false }),
-      openSQLExportDialog: () => set({ isSQLExportDialogOpen: true }),
-      closeSQLExportDialog: () => set({ isSQLExportDialogOpen: false }),
+      openSQLExportDialog: (selectedTableIds?: string[]) => set({ 
+        isSQLExportDialogOpen: true, 
+        sqlExportSelectedTableIds: selectedTableIds ?? [] 
+      }),
+      closeSQLExportDialog: () => set({ isSQLExportDialogOpen: false, sqlExportSelectedTableIds: [] }),
       openAboutDialog: () => set({ isAboutDialogOpen: true }),
       closeAboutDialog: () => set({ isAboutDialogOpen: false }),
       
@@ -258,6 +266,8 @@ export const useUIStore = create<UIState>()(
       toggleMemosVisible: () => set((state) => ({ isMemosVisible: !state.isMemosVisible })),
 
       toggleNameMask: () => set((state) => ({ isNameMaskEnabled: !state.isNameMaskEnabled })),
+
+      setCanvasSelectedTableIds: (ids: string[]) => set({ canvasSelectedTableIds: ids }),
       
       // 設定操作
       updateSettings: (settings) =>

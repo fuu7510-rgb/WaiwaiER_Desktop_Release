@@ -3,10 +3,10 @@
  * 
  * AI開発駆動用にER図をDDL（CREATE TABLE文）とMarkdownテーブルで出力するダイアログ。
  */
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, Button } from '../common';
-import { useERStore } from '../../stores';
+import { useERStore, useUIStore } from '../../stores';
 import { filterTablesForExport } from '../../lib/exportFilter';
 import {
   generateDDL,
@@ -22,13 +22,18 @@ interface SQLExportDialogProps {
 
 type ExportTab = 'ddl' | 'markdown' | 'schema';
 type SQLDialect = DDLGeneratorOptions['dialect'];
+type ExportScope = 'all' | 'selected';
 
 export function SQLExportDialog({ isOpen, onClose }: SQLExportDialogProps) {
   const { t } = useTranslation();
-  const { tables, relations, ensureSampleData } = useERStore();
+  const { tables, relations, ensureSampleData, selectedTableId, sampleDataByTableId } = useERStore();
+  const { sqlExportSelectedTableIds, canvasSelectedTableIds } = useUIStore();
   
   const [activeTab, setActiveTab] = useState<ExportTab>('ddl');
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
+  
+  // エクスポート範囲
+  const [exportScope, setExportScope] = useState<ExportScope>('all');
   
   // DDL オプション
   const [dialect, setDialect] = useState<SQLDialect>('generic');
@@ -39,10 +44,40 @@ export function SQLExportDialog({ isOpen, onClose }: SQLExportDialogProps) {
   // Markdown オプション
   const [maxRows, setMaxRows] = useState(5);
   
-  // エクスポート対象テーブル
-  const exportTables = useMemo(() => {
+  // ダイアログが開いたとき、またはMarkdownタブに切り替えたときにサンプルデータを確保
+  useEffect(() => {
+    if (isOpen && activeTab === 'markdown') {
+      ensureSampleData();
+    }
+  }, [isOpen, activeTab, ensureSampleData]);
+  
+  // 選択可能なテーブル（エクスポート対象フィルタ適用後）
+  const allExportTables = useMemo(() => {
     return filterTablesForExport(tables, 'json'); // SQLエクスポートはJSON同様全テーブル対象
   }, [tables]);
+  
+  // 選択されたテーブル（複数選択対応）
+  // 優先順位: sqlExportSelectedTableIds（明示的に渡された） > canvasSelectedTableIds（キャンバスで選択中） > selectedTableId（単一選択）
+  const selectedTables = useMemo(() => {
+    const targetIds = sqlExportSelectedTableIds.length > 0 
+      ? sqlExportSelectedTableIds 
+      : canvasSelectedTableIds.length > 0
+        ? canvasSelectedTableIds
+        : selectedTableId ? [selectedTableId] : [];
+    
+    if (targetIds.length === 0) return [];
+    
+    const idSet = new Set(targetIds);
+    return allExportTables.filter((t) => idSet.has(t.id));
+  }, [allExportTables, sqlExportSelectedTableIds, canvasSelectedTableIds, selectedTableId]);
+  
+  // エクスポート対象テーブル（範囲に応じて）
+  const exportTables = useMemo(() => {
+    if (exportScope === 'selected' && selectedTables.length > 0) {
+      return selectedTables;
+    }
+    return allExportTables;
+  }, [exportScope, selectedTables, allExportTables]);
   
   // 生成テキスト
   const generatedText = useMemo(() => {
@@ -57,16 +92,14 @@ export function SQLExportDialog({ isOpen, onClose }: SQLExportDialogProps) {
           includeDropTable,
         });
       case 'markdown': {
-        ensureSampleData();
-        const latestSampleData = useERStore.getState().sampleDataByTableId;
-        return generateMarkdownTables(exportTables, latestSampleData, { maxRows });
+        return generateMarkdownTables(exportTables, sampleDataByTableId, { maxRows });
       }
       case 'schema':
         return generateSchemaMarkdown(exportTables);
       default:
         return '';
     }
-  }, [activeTab, exportTables, relations, dialect, includeForeignKeys, includeComments, includeDropTable, maxRows, ensureSampleData]);
+  }, [activeTab, exportTables, relations, dialect, includeForeignKeys, includeComments, includeDropTable, maxRows, sampleDataByTableId]);
   
   const handleCopy = useCallback(async () => {
     if (!generatedText) return;
@@ -145,6 +178,52 @@ export function SQLExportDialog({ isOpen, onClose }: SQLExportDialogProps) {
           className="rounded p-2.5 space-y-2"
           style={{ backgroundColor: 'var(--muted)' }}
         >
+          {/* エクスポート範囲 */}
+          <div className="flex items-center gap-4">
+            <label className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              {t('sqlExport.options.scope')}:
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="radio"
+                name="exportScope"
+                value="all"
+                checked={exportScope === 'all'}
+                onChange={() => setExportScope('all')}
+                className="w-3.5 h-3.5"
+              />
+              <span className="text-xs" style={{ color: 'var(--text-primary)' }}>
+                {t('sqlExport.options.scopeAll')}
+              </span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="radio"
+                name="exportScope"
+                value="selected"
+                checked={exportScope === 'selected'}
+                onChange={() => setExportScope('selected')}
+                disabled={selectedTables.length === 0}
+                className="w-3.5 h-3.5"
+              />
+              <span
+                className="text-xs"
+                style={{
+                  color: selectedTables.length > 0 ? 'var(--text-primary)' : 'var(--text-muted)',
+                }}
+              >
+                {t('sqlExport.options.scopeSelected')}
+                {selectedTables.length > 0 && (
+                  <span style={{ color: 'var(--text-secondary)' }}>
+                    {' '}({selectedTables.length === 1 
+                      ? selectedTables[0].name 
+                      : t('sqlExport.options.scopeSelectedCount', { count: selectedTables.length })})
+                  </span>
+                )}
+              </span>
+            </label>
+          </div>
+          
           {activeTab === 'ddl' && (
             <>
               {/* SQLダイアレクト選択 */}

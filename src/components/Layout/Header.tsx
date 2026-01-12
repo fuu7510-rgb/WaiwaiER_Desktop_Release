@@ -255,7 +255,7 @@ export function Header() {
             </svg>
           </button>
           <button
-            onClick={openSQLExportDialog}
+            onClick={() => openSQLExportDialog()}
             className="p-1 border-l transition-colors"
             style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}
             title={t('sqlExport.title')}

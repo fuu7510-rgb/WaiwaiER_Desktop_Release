@@ -680,6 +680,10 @@
       "generic": "Generic SQL"
     },
     "options": {
+      "scope": "Export scope",
+      "scopeAll": "All tables",
+      "scopeSelected": "Selected table",
+      "scopeSelectedCount": "{{count}} selected",
       "dialect": "SQL Dialect",
       "includeForeignKeys": "Include foreign keys",
       "includeComments": "Include comments",
